@@ -1,5 +1,5 @@
 const express = require('express');
-const mongoose = require('mysql');
+const mysql = require('mysql');
 const bodyParser = require('body-parser');
 const path = require('path');
 const config = require('./config/database');
@@ -9,15 +9,6 @@ const api = require('./routes/api');
 const port = 3000;
 
 // The config.database object contains the credentials for connecting to db
-mongoose.connect(config.database);
-
-mongoose.connection.on('connected', () => {
-	console.log('Connected to database '+config.database);
-});
-
-mongoose.connection.on('error', (err) => {
-	console.log('Database error: '+err);
-});
 
 // All requests to /api/* will be mapped to the routes/api file, which contains api-specific routes
 app.use('/api', api);

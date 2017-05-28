@@ -2,13 +2,19 @@ const express = require('express');
 const mysql = require('mysql');
 const bodyParser = require('body-parser');
 const path = require('path');
-const config = require('./config/database');
+const dbConfig = require('./config/database');
 
 const app = express();
 const api = require('./routes/api');
 const port = 3000;
 
-// The config.database object contains the credentials for connecting to db
+// The dbConfig object contains the credentials for connecting to the DB
+var con = mysql.createConnection(dbConfig);
+
+con.connect(function(err) {
+	if (err) throw err;
+	console.log('Connected to database: ' + dbConfig.database + '!');
+});
 
 // All requests to /api/* will be mapped to the routes/api file, which contains api-specific routes
 app.use('/api', api);

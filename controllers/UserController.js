@@ -3,16 +3,27 @@ const router = express.Router();
 const Users = require('../models/Users');
 
 router.get('/create', (req, res, next) => {
-	Users.create(req.query, (err) => {
-		if(err) {
-			res.send(response = {
+	// Check if the email is already registered. Better: if(!Users.isEmailRegistered) {...}
+	Users.isEmailRegistered(req.query.email, (err, result) => {
+		if(result[0].matches > 0) {
+			res.json(response = {
 				success: 'false',
-				msg: err
+				error: 'The email address provided is already registered.'
 			});
 		} else {
-			res.send(response = {
-				success: 'true',
-				msg: 'The user was sucessfully added to the database!'
+			// Add the new user to the db
+			Users.create(req.query, (err) => {
+				if(err) {
+					res.json(response = {
+						success: 'false',
+						msg: err
+					});
+				} else {
+					res.json(response = {
+						success: 'true',
+						msg: 'The user was sucessfully added to the database!'
+					});
+				}
 			});
 		}
 	});

@@ -46,4 +46,44 @@ router.get('/create', (req, res, next) => {
 	});
 });
 
+router.get('/user/:userId', (req, res, next) => {
+	Users.getUserById(req.params.userId, (err, user) => {
+		if(err) {
+			res.json(response = {
+				success: 'false',
+				msg: err
+			});
+		} else {
+			// Return only insensitive user information
+			if(user.length < 1) {
+				res.json(response = {
+					success: 'false',
+					msg: 'There are no users matching the ID provided.'
+				})
+			} else {
+				res.json(response = {
+					success: 'true',
+					user: user
+				});
+			}
+		}
+	})
+});
+
+router.get('/all', (req, res, next) => {
+	Users.getAllUsers((err, users) => {
+		if(err) {
+			res.json(response = {
+				success: 'false',
+				msg: err
+			});
+		} else {
+			res.json(response = {
+				success: 'true',
+				users: users
+			});
+		}
+	})
+});
+
 module.exports = router;

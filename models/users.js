@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const bcrypt = require('bcrypt');
 
 module.exports.isEmailRegistered = function(email, callback) {
 	const query = 'SELECT COUNT(*) AS matches FROM users WHERE Email = ?';
@@ -18,4 +19,12 @@ module.exports.isEmailRegistered = function(email, callback) {
 module.exports.create = function(user, callback) {
 	const query = 'INSERT INTO users SET ?';
 	db.query(query, user, callback);
+}
+
+module.exports.encryptPassword = function(password, callback) {
+	bcrypt.genSalt(11, callback);
+}
+
+module.exports.checkPassword = function(plainTextPassword, hash, callback) {
+	bcrypt.compare(myPlaintextPassword, hash, callback);
 }

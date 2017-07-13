@@ -7,50 +7,61 @@ const bcrypt = require('bcrypt');
 	Create user
 **/
 router.get('/create', (req, res, next) => {
-	// Check if the email is already registered
-	Users.isEmailRegistered(req.query.email, (err, result) => {
-		if(result[0].matches > 0) {
-			res.json({
-				success: 'false',
-				error: 'The email address ' + req.query.email + ' is already registered.'
-			});
-		} else {
-			// Hash the password
-			Users.encryptPassword(req.query.password, (err, salt) => {
-				if(err) {
-					res.json({
-						success: 'false',
-						msg: err
-					});
-				}
-				// Create user object with hashed password
-				const user = {
-					Email: req.query.email,
-					Password: salt,
-					FirstName: req.query.firstName,
-					LastName: req.query.lastName
-				}
-				// If request spcificies the new account is for testing, add this info to the DB
-				if(req.query.IsTestAccount) {
-					user.IsTestAccount = 1;
-				}
-				// Add the new user to the db
-				Users.create(user, (err) => {
+	// Check that the request contains all user details
+	if(
+	   req.query.email && req.query.password && 
+	   req.query.firstName && req.query.lastName
+	) {
+		// Check if the email is already registered
+		Users.isEmailRegistered(req.query.email, (err, result) => {
+			if(result[0].matches > 0) {
+				res.json({
+					success: 'false',
+					error: 'The email address ' + req.query.email + ' is already registered.'
+				});
+			} else {
+				// Hash the password
+				Users.encryptPassword(req.query.password, (err, salt) => {
 					if(err) {
 						res.json({
 							success: 'false',
 							msg: err
 						});
-					} else {
-						res.json({
-							success: 'true',
-							msg: 'New user account created.'
-						});
 					}
+					// Create user object with hashed password
+					const user = {
+						Email: req.query.email,
+						Password: salt,
+						FirstName: req.query.firstName,
+						LastName: req.query.lastName
+					}
+					// If request spcificies the new account is for testing, add this info to the DB
+					if(req.query.IsTestAccount) {
+						user.IsTestAccount = 1;
+					}
+					// Add the new user to the db
+					Users.create(user, (err) => {
+						if(err) {
+							res.json({
+								success: 'false',
+								msg: err
+							});
+						} else {
+							res.json({
+								success: 'true',
+								msg: 'New user account created.'
+							});
+						}
+					});
 				});
-			});
-		}
-	});
+			}
+		})
+	} else {
+		res.json({
+			success: 'false',
+			msg: 'Missing required parameters.'
+		})
+	}
 });
 
 /**

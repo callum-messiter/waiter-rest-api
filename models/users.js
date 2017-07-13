@@ -37,5 +37,5 @@ module.exports.encryptPassword = function(password, callback) {
 }
 
 module.exports.checkPassword = function(plainTextPassword, hash, callback) {
-	bcrypt.compare(myPlaintextPassword, hash, callback);
+	bcrypt.compare(plainTextPassword, hash, callback);
 }

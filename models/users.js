@@ -22,7 +22,7 @@ module.exports.getAllUsers = function(callback) {
 
 **/
 
-module.exports.create = function(user, callback) {
+module.exports.createNewUser = function(user, callback) {
 	const query = 'INSERT INTO users SET ?';
 	db.query(query, user, callback);
 }

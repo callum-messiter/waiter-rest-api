@@ -52,7 +52,7 @@ router.get('/createNewDiner', (req, res, next) => {
 						user.IsTestAccount = 1;
 					}
 					// Add the new user to the db
-					Users.create(user, (err, result) => {
+					Users.createNewUser(user, (err, result) => {
 						if(err) {
 							res.json({
 								success: 'false',
@@ -75,7 +75,7 @@ router.get('/createNewDiner', (req, res, next) => {
 								} else {
 									res.json({
 										success: 'true',
-										msg: 'User role set for user ' + result.insertId + '.'
+										userId: result.insertId
 									})
 								}
 							})

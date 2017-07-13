@@ -1,13 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const Users = require('../models/Users');
 const bcrypt = require('bcrypt');
+const moment = require('moment');
+const Users = require('../models/Users');
+const UserRoles = require('../models/UserRoles');
 
 /**
-	Create user
+
+	User roles:
+
+	'diner': 100,
+	'restaurateur': 200,
+	'admin': 900
+
 **/
-router.get('/create', (req, res, next) => {
-	// Check that the request contains all user details
+
+/**
+	Create user (diner)
+**/
+router.get('/createNewDiner', (req, res, next) => {
+	// Check that the request contains all user details	
 	if(
 	   req.query.email && req.query.password && 
 	   req.query.firstName && req.query.lastName
@@ -40,17 +52,33 @@ router.get('/create', (req, res, next) => {
 						user.IsTestAccount = 1;
 					}
 					// Add the new user to the db
-					Users.create(user, (err) => {
+					Users.create(user, (err, result) => {
 						if(err) {
 							res.json({
 								success: 'false',
 								msg: err
 							});
 						} else {
-							res.json({
-								success: 'true',
-								msg: 'New user account created.'
-							});
+							// Set user's role
+							const userDetails = {
+								UserId: result.insertId,
+								RoleId: UserRoles.roleIDs.diner,
+								StartDate: myDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss") // Consider timezones
+							}
+							UserRoles.setUserRole(userDetails, (err) => {
+								// We should log each stage of the creation process: user created, user role set, userRegistration row added
+								if(err) {
+									res.json({
+										success: 'false',
+										msg: err
+									});
+								} else {
+									res.json({
+										success: 'true',
+										msg: 'User role set for user ' + result.insertId + '.'
+									})
+								}
+							})
 						}
 					});
 				});

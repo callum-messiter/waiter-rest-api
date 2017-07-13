@@ -12,7 +12,7 @@ router.get('/create', (req, res, next) => {
 		if(result[0].matches > 0) {
 			res.json({
 				success: 'false',
-				error: 'The email address ' + req.query.email + ' is already registered. If you forgot your password, you can reset it here.'
+				error: 'The email address ' + req.query.email + ' is already registered.'
 			});
 		} else {
 			// Hash the password
@@ -30,6 +30,10 @@ router.get('/create', (req, res, next) => {
 					FirstName: req.query.firstName,
 					LastName: req.query.lastName
 				}
+				// If request spcificies the new account is for testing, add this info to the DB
+				if(req.query.IsTestAccount) {
+					user.IsTestAccount = 1;
+				}
 				// Add the new user to the db
 				Users.create(user, (err) => {
 					if(err) {
@@ -40,7 +44,7 @@ router.get('/create', (req, res, next) => {
 					} else {
 						res.json({
 							success: 'true',
-							msg: 'Success! Thanks for registering with waiter, ' + user.firstName + '. '
+							msg: 'New user account created.'
 						});
 					}
 				});

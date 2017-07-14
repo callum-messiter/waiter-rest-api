@@ -41,3 +41,8 @@ module.exports.hashPassword = function(password, callback) {
 module.exports.checkPassword = function(plainTextPassword, hash, callback) {
 	bcrypt.compare(plainTextPassword, hash, callback);
 }
+
+module.exports.addUserToken = function(userToken, callback) {
+	const query = 'INSERT INTO tokens SET ?';
+	db.query(query, userToken, callback);
+}

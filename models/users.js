@@ -32,8 +32,10 @@ module.exports.isEmailRegistered = function(email, callback) {
 	db.query(query, email, callback);
 }
 
-module.exports.encryptPassword = function(password, callback) {
-	bcrypt.genSalt(11, callback);
+module.exports.hashPassword = function(password, callback) {
+	bcrypt.genSalt(11, (err, salt) => {
+		bcrypt.hash(password, salt, callback);
+	});
 }
 
 module.exports.checkPassword = function(plainTextPassword, hash, callback) {

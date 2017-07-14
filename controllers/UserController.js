@@ -33,17 +33,18 @@ router.get('/createNewDiner', (req, res, next) => {
 				});
 			} else {
 				// Hash the password
-				Users.encryptPassword(req.query.password, (err, salt) => {
+				Users.hashPassword(req.query.password, (err, hashedPassword) => {
 					if(err) {
 						res.json({
 							success: 'false',
 							msg: err
 						});
 					}
+					console.log(hashedPassword);
 					// Create user object with hashed password
 					const user = {
 						Email: req.query.email,
-						Password: salt,
+						Password: hashedPassword,
 						FirstName: req.query.firstName,
 						LastName: req.query.lastName
 					}

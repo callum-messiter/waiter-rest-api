@@ -1,7 +1,9 @@
+// Dependencies
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const moment = require('moment');
+// Models
 const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
 
@@ -40,7 +42,6 @@ router.get('/createNewDiner', (req, res, next) => {
 							msg: err
 						});
 					}
-					console.log(hashedPassword);
 					// Create user object with hashed password
 					const user = {
 						Email: req.query.email,
@@ -48,7 +49,7 @@ router.get('/createNewDiner', (req, res, next) => {
 						FirstName: req.query.firstName,
 						LastName: req.query.lastName
 					}
-					// If request spcificies the new account is for testing, add this info to the DB
+					// If request specifies that the new account is for testing, add this info to the DB
 					if(req.query.IsTestAccount) {
 						user.IsTestAccount = 1;
 					}
@@ -67,7 +68,7 @@ router.get('/createNewDiner', (req, res, next) => {
 								StartDate: myDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss") // Consider timezones
 							}
 							UserRoles.setUserRole(userDetails, (err) => {
-								// We should log each stage of the creation process: user created, user role set, userRegistration row added
+								// We should log each stage of the creation process: user created, user role set
 								if(err) {
 									res.json({
 										success: 'false',

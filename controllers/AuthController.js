@@ -8,6 +8,7 @@ const secret = require('../config/jwt').jwt.secret;
 // Models
 const Auth = require('../models/Auth');
 const Users = require('../models/Users');
+const UserRoles = require('../models/UserRoles');
 
 router.get('/', (req, res, next) => {
 });
@@ -26,39 +27,45 @@ router.get('/login', (req, res, next) => {
 		// Check that the email address entered is registered
 		Users.doesUserExist(email, (err, user) => {
 			if(err) {
-				res.json({
+				res.status(404).json({
 					success: false,
+					error: 'unregistered_email_address',
 					msg: 'The email address supplied is not registered.'
 				});
 			} else {
 				// Check if the user is active
 				if(user[0].IsActive) {
 					// Check if the user is verified
-					if(!user[0].IsVerified) {
+					if(user[0].IsVerified) {
 						// Check that the user entered the correct password
-						const hashedPassword = user[0].Password;
-						Users.checkPassword(password, hashedPassword, (err, passwordsMatch) => {
+						const plainTextPassword = password;
+						const hashedPassword = user[0].Password
+						Users.checkPassword(plainTextPassword, hashedPassword, (err, passwordsMatch) => {
 							if(err) {
-								res.json({
+								res.status(500).json({
 									success: false,
+									error: 'bcrypt_error',
 									msg: err
 								})
 							} else if(!passwordsMatch) {
-								res.json({
+								res.status(401).json({
 									success: false,
-									msg: 'Incorrect password.'
+									error: 'invalid_password',
+									msg: 'The email account is registered but the password provided is invalid.'
 								});
 							} else if(passwordsMatch){
 								// Generate token
 								Auth.createUserToken(user[0].UserId, secret, (err, token) => {
 									if(err) {
-										res.json({
+										res.status(500).json({
 											success: false,
+											error: 'jwt_error',
 											msg: err
 										});
 									} else if(token == null) {
-										res.json({
+										res.status(500).json({
 											success: false,
+											error: 'jwt_token_null',
 											msg: 'Error creating token.'
 										});
 									} else {
@@ -74,16 +81,30 @@ router.get('/login', (req, res, next) => {
 										// Add token to the db for reference
 										Auth.saveUserTokenReference(userToken, (err, result) => {
 											if(err) {
-												res.json({
+												res.status(500).json({
 													success: false,
+													error: 'token_not_added_to_db',
 													msg: err
 												});
 											} else {
-												// Return the generated jwt
-												res.json({
-													success: true,
-													token: token
-												})
+												// Get the user's role
+												UserRoles.getUserRole(user[0].UserId, (err, userRole) => {
+													if(err) {
+														res.status(500).json({
+															success: false,
+															error: 'get_user_role_error',
+															msg: err
+														});
+													}
+													// Return the generated jwt
+													res.status(200).json({
+														success: true,
+														error: '',
+														userId: user[0].UserId,
+														role: userRole[0].RoleId,
+														token: token
+													})
+												});
 											}
 										});
 									}
@@ -91,23 +112,26 @@ router.get('/login', (req, res, next) => {
 							}
 						});
 					} else {
-						res.json({
+						res.status(401).json({
 							success: false, 
+							error: 'user_not_verified',
 							msg: 'This user account is not verified.'
 						})
 					}
 				} else {
-					res.json({
+					res.status(401).json({
 						success: false,
-						msg: 'This user account is inactive.'
+						error: 'user_not_active',
+						msg: 'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.'
 					});
 				}
 			}
 		});
 	} else {
-		res.json({
+		res.status(404).json({
 			success: false,
-			msg: 'The required user parameters were not provided.'
+			error: 'missing_required_params',
+			msg: 'The request must contain an email address and password. The request contained: ' + JSON.stringify(req.query)
 		});
 	}
 });

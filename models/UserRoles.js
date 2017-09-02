@@ -13,6 +13,6 @@ module.exports.setUserRole = function(userDetails, callback) {
 }
 
 module.exports.getUserRole = function(userId, callback) {
-	const query = 'SELECT RoleId FROM userroles WHERE UserId = ?' ;
+	const query = 'SELECT RoleId FROM userroles WHERE UserId = ?';
 	db.query(query, userId, callback);
 }

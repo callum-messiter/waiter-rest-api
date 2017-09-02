@@ -1,16 +1,19 @@
 // Dependencies
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const moment = require('moment');
 // Config
 const db = require('../config/database');
-
+const secret = require('../config/jwt').jwt.secret;
 /**
 
 	Generate a new json web token (jwt) upon successful login
 
 **/
-module.exports.createUserToken = function(userId, secret, callback) {
-	jwt.sign({userId: userId, exp: 3600}, secret, callback);
+module.exports.createUserToken = function(userId, callback) {
+	const utc_timestamp = new Date().getTime();
+	const expiresAt = utc_timestamp + 3600000; // 1 hour from the current time
+	jwt.sign({userId: userId, exp: expiresAt}, secret, callback);
 }
 
 /**
@@ -36,6 +39,10 @@ module.exports.saveUserTokenReference = function(userToken, callback) {
 	Check if token is valid (jwt.verify + check if token has been revoked)
 
 **/
+
+module.exports.verifyToken = function(token, callback) {
+	jwt.verify(token, secret, callback);
+}
 
 /**
 

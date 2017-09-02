@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const moment = require('moment');
+const jwt = require('jsonwebtoken');
 // Config
 const secret = require('../config/jwt').jwt.secret;
 // Models
@@ -55,7 +56,7 @@ router.get('/login', (req, res, next) => {
 								});
 							} else if(passwordsMatch){
 								// Generate token
-								Auth.createUserToken(user[0].UserId, secret, (err, token) => {
+								Auth.createUserToken(user[0].UserId, (err, token) => {
 									if(err) {
 										res.status(500).json({
 											success: false,
@@ -69,11 +70,18 @@ router.get('/login', (req, res, next) => {
 											msg: 'Error creating token.'
 										});
 									} else {
+										// Decode token and get userId and exp
+										const decodedToken = jwt.decode(token);
+										const tokenUserId = decodedToken.userId;
+										// Get expirary date of token
+										const tokenExp = decodedToken.exp;
+										const expiresAt = moment(tokenExp).format('YYYY-MM-DD HH:mm:ss');
+										// Get current datetime
 										const currentDate = new Date();
 										const now = moment(currentDate).format('YYYY-MM-DD HH:mm:ss');
-										const expiresAt = moment(currentDate).add(1, 'hour').format('YYYY-MM-DD HH:mm:ss');
+										// Add the token to the db for reference
 										const userToken = {
-											UserId: user[0].UserId,
+											UserId: tokenUserId,
 											Token: token,
 											Date: now,
 											ExpiryDate: expiresAt
@@ -96,14 +104,14 @@ router.get('/login', (req, res, next) => {
 															msg: err
 														});
 													}
-													// Return the generated jwt
+													// Return the relevant user details to the client
 													res.status(200).json({
 														success: true,
 														error: '',
 														userId: user[0].UserId,
 														role: userRole[0].RoleId,
 														token: token
-													})
+													});
 												});
 											}
 										});
@@ -144,6 +152,18 @@ router.get('/login', (req, res, next) => {
 router.get('/logout', (req, res, next) => {
 	// Get the token, get the userId (req.session object, perhaps)
 	// Delete the token from the db
+	const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ5LCJleHAiOjE1MDQzNjI0MzIzMzMsImlhdCI6MTUwNDM2MjQyOH0.gG1PCqlM7l_wjNLtXB7kqdqkrslDJAKMZGM3HGRGKXI';
+	Auth.verifyToken(token, (err, data) => {
+		if(err) {
+			res.json({
+				error: 'token invalid'
+			});
+		} else {
+			res.json({
+			data: 'token valid'
+		});
+		}
+	});
 });
 
 module.exports = router;

@@ -150,20 +150,50 @@ router.get('/login', (req, res, next) => {
 
 **/
 router.get('/logout', (req, res, next) => {
-	// Get the token, get the userId (req.session object, perhaps)
-	// Delete the token from the db
-	const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ5LCJleHAiOjE1MDQzNjI0MzIzMzMsImlhdCI6MTUwNDM2MjQyOH0.gG1PCqlM7l_wjNLtXB7kqdqkrslDJAKMZGM3HGRGKXI';
-	Auth.verifyToken(token, (err, data) => {
-		if(err) {
-			res.json({
-				error: 'token invalid'
-			});
-		} else {
-			res.json({
-			data: 'token valid'
+	if(!req.query.userId || !req.headers.authorization) {
+		res.status(404).json({
+			success: false,
+			error: 'missing_required_params',
+			msg: 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.'
 		});
-		}
-	});
+	} else {
+		const token = req.headers.authorization;
+		const userId = req.query.userId;
+		// Check that the token is valid
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				res.status(401).json({
+					success: false,
+					error: 'invalid_token',
+					msg: 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.'
+				});
+			} else {
+				// Delete the token from the DB (the token will be invalidated/deleted by the client)
+				Auth.deleteTokenReference(token, userId, (err, result) => {
+					if(err) {
+						res.status(500).json({
+							success: false,
+							error: 'deleting_token_query_error',
+							msg: 'The server tried to delete the token in the database, but failed.'
+						});
+					} else {
+						if(result.affectedRows < 1) {
+							res.status(404).json({
+								success: false,
+								error: 'error_deleting_token_ref',
+								msg: 'The server executed the query successfully, but nothing was deleted. It\'s likely that there exists no combination of the supplied userId and token.'
+							});
+						} else {
+							res.status(200).json({
+								success: true,
+								error: ''
+							});
+						}
+					}
+				});
+			}
+		});
+	}
 });
 
 module.exports = router;

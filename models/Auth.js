@@ -12,8 +12,18 @@ const secret = require('../config/jwt').jwt.secret;
 **/
 module.exports.createUserToken = function(userId, callback) {
 	const utc_timestamp = new Date().getTime();
-	const expiresAt = utc_timestamp + 3600000; // 1 hour from the current time
-	jwt.sign({userId: userId, exp: expiresAt}, secret, callback);
+	const alg = 'HS256';
+	const issuer = 'http://api.waiter.com';
+	const iat = utc_timestamp;
+	const exp = utc_timestamp + 3600000; // 1 hour from the current time
+	jwt.sign({
+		algorithm: alg,
+		issuer: issuer,
+		iat: iat,
+		exp: exp,
+		userId: userId,
+		userRole: 100
+	}, secret, callback);
 }
 
 /**
@@ -26,32 +36,21 @@ module.exports.saveUserTokenReference = function(userToken, callback) {
 	db.query(query, userToken, callback);
 }
 
-
-
-/**
-
-	Set user access session (req.session.rserId, req.session.roleId, req.session.token)
-
-**/
-
 /**
 
 	Check if token is valid (jwt.verify + check if token has been revoked)
 
 **/
-
 module.exports.verifyToken = function(token, callback) {
 	jwt.verify(token, secret, callback);
 }
 
 /**
 
-	Check if token has been revoked on the clientside 
-
-**/
-
-/**
-
 	Delete a token from the db upon logout
 
 **/
+module.exports.deleteTokenReference = function(token, userId, callback) {
+	const query = 'DELETE FROM tokens WHERE userId = ? AND token = ?';
+	db.query(query, [userId, token], callback);
+}

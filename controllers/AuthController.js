@@ -6,6 +6,7 @@ const moment = require('moment');
 const jwt = require('jsonwebtoken');
 // Config
 const secret = require('../config/jwt').jwt.secret;
+const JsonResponse = require('../helpers/JsonResponse');
 // Models
 const Auth = require('../models/Auth');
 const Users = require('../models/Users');
@@ -20,19 +21,16 @@ router.get('/', (req, res, next) => {
 
 **/
 router.get('/login', (req, res, next) => {
-	// If the user is already logged in (has a valid token), redirect them to the dashboard
-	const email = req.query.email;
-	const password = req.query.password;
 	// CHeck that the email and password were set
-	if(email && password) {
+	if(req.query.email && req.query.password) {
+		const email = req.query.email;
+		const password = req.query.password;
 		// Check that the email address entered is registered
 		Users.doesUserExist(email, (err, user) => {
 			if(err) {
-				res.status(404).json({
-					success: false,
-					error: 'unregistered_email_address',
-					msg: 'The email address supplied is not registered.'
-				});
+				JsonResponse.sendError(res, 500, 'get_user_query_error', err);
+			} else if(user.length < 1) {
+				JsonResponse.sendError(res, 404, 'unregistered_email_address', 'The email address supplied is not registered.');
 			} else {
 				// Check if the user is active
 				if(user[0].IsActive) {
@@ -43,32 +41,16 @@ router.get('/login', (req, res, next) => {
 						const hashedPassword = user[0].Password
 						Users.checkPassword(plainTextPassword, hashedPassword, (err, passwordsMatch) => {
 							if(err) {
-								res.status(500).json({
-									success: false,
-									error: 'bcrypt_error',
-									msg: err
-								})
+								JsonResponse.sendError(res, 500, 'bcrypt_error', err);
 							} else if(!passwordsMatch) {
-								res.status(401).json({
-									success: false,
-									error: 'invalid_password',
-									msg: 'The email account is registered but the password provided is invalid.'
-								});
+								JsonResponse.sendError(res, 401, 'invalid_password', 'The email account is registered but the password provided is invalid.');
 							} else if(passwordsMatch){
 								// Generate token
 								Auth.createUserToken(user[0].UserId, (err, token) => {
 									if(err) {
-										res.status(500).json({
-											success: false,
-											error: 'jwt_error',
-											msg: err
-										});
+										JsonResponse.sendError(res, 500, 'jwt_error', err);
 									} else if(token == null) {
-										res.status(500).json({
-											success: false,
-											error: 'jwt_token_null',
-											msg: 'Error creating token.'
-										});
+										JsonResponse.sendError(res, 500, 'jwt_token_null', 'The server could not create a unique token.');
 									} else {
 										// Decode token and get userId and exp
 										const decodedToken = jwt.decode(token);
@@ -89,20 +71,12 @@ router.get('/login', (req, res, next) => {
 										// Add token to the db for reference
 										Auth.saveUserTokenReference(userToken, (err, result) => {
 											if(err) {
-												res.status(500).json({
-													success: false,
-													error: 'token_not_added_to_db',
-													msg: err
-												});
+												JsonResponse.sendError(res, 500, 'token_not_added_to_db', err);
 											} else {
 												// Get the user's role
 												UserRoles.getUserRole(user[0].UserId, (err, userRole) => {
 													if(err) {
-														res.status(500).json({
-															success: false,
-															error: 'get_user_role_error',
-															msg: err
-														});
+														JsonResponse.sendError(res, 500, 'get_user_role_query_error', err);
 													}
 													// Return the relevant user details to the client
 													res.status(200).json({
@@ -120,27 +94,15 @@ router.get('/login', (req, res, next) => {
 							}
 						});
 					} else {
-						res.status(401).json({
-							success: false, 
-							error: 'user_not_verified',
-							msg: 'This user account is not verified.'
-						})
+						JsonResponse.sendError(res, 401, 'user_not_verified', 'This user account is not verified.');
 					}
 				} else {
-					res.status(401).json({
-						success: false,
-						error: 'user_not_active',
-						msg: 'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.'
-					});
+					JsonResponse.sendError(res, 401, 'user_not_active', 'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.');
 				}
 			}
 		});
 	} else {
-		res.status(404).json({
-			success: false,
-			error: 'missing_required_params',
-			msg: 'The request must contain an email address and password. The request contained: ' + JSON.stringify(req.query)
-		});
+		JsonResponse.sendError(res, 404, 'missing_required_params', 'The request must contain an email address and password.');
 	}
 });
 
@@ -151,38 +113,22 @@ router.get('/login', (req, res, next) => {
 **/
 router.get('/logout', (req, res, next) => {
 	if(!req.query.userId || !req.headers.authorization) {
-		res.status(404).json({
-			success: false,
-			error: 'missing_required_params',
-			msg: 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.'
-		});
+		sendErrorResponse(res, 404, 'missing_required_params', 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
 	} else {
 		const token = req.headers.authorization;
 		const userId = req.query.userId;
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				res.status(401).json({
-					success: false,
-					error: 'invalid_token',
-					msg: 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.'
-				});
+				sendErrorResponse(res, 401, 'invalid_token', 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
 				// Delete the token from the DB (the token will be invalidated/deleted by the client)
 				Auth.deleteTokenReference(token, userId, (err, result) => {
 					if(err) {
-						res.status(500).json({
-							success: false,
-							error: 'deleting_token_query_error',
-							msg: 'The server tried to delete the token in the database, but failed.'
-						});
+						sendErrorResponse(res, 500, 'deleting_token_query_error', err);
 					} else {
 						if(result.affectedRows < 1) {
-							res.status(404).json({
-								success: false,
-								error: 'error_deleting_token_ref',
-								msg: 'The server executed the query successfully, but nothing was deleted. It\'s likely that there exists no combination of the supplied userId and token.'
-							});
+							sendErrorResponse(res, 404, 'error_deleting_token_ref', 'The server executed the query successfully, but nothing was deleted. It\'s likely that there exists no combination of the supplied userId and token.');
 						} else {
 							res.status(200).json({
 								success: true,

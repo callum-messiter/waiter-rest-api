@@ -79,9 +79,7 @@ router.get('/login', (req, res, next) => {
 														JsonResponse.sendError(res, 500, 'get_user_role_query_error', err);
 													}
 													// Return the relevant user details to the client
-													res.status(200).json({
-														success: true,
-														error: '',
+													JsonResponse.sendSuccess(res, {
 														userId: user[0].UserId,
 														role: userRole[0].RoleId,
 														token: token
@@ -113,27 +111,24 @@ router.get('/login', (req, res, next) => {
 **/
 router.get('/logout', (req, res, next) => {
 	if(!req.query.userId || !req.headers.authorization) {
-		sendErrorResponse(res, 404, 'missing_required_params', 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
+		JsonResponse.sendError(res, 404, 'missing_required_params', 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
 	} else {
 		const token = req.headers.authorization;
 		const userId = req.query.userId;
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				sendErrorResponse(res, 401, 'invalid_token', 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+				JsonResponse.sendError(res, 401, 'invalid_token', 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
 				// Delete the token from the DB (the token will be invalidated/deleted by the client)
 				Auth.deleteTokenReference(token, userId, (err, result) => {
 					if(err) {
-						sendErrorResponse(res, 500, 'deleting_token_query_error', err);
+						JsonResponse.sendError(res, 500, 'deleting_token_query_error', err);
 					} else {
 						if(result.affectedRows < 1) {
-							sendErrorResponse(res, 404, 'error_deleting_token_ref', 'The server executed the query successfully, but nothing was deleted. It\'s likely that there exists no combination of the supplied userId and token.');
+							JsonResponse.sendError(res, 404, 'error_deleting_token_ref', 'The server executed the query successfully, but nothing was deleted. It\'s likely that there exists no combination of the supplied userId and token.');
 						} else {
-							res.status(200).json({
-								success: true,
-								error: ''
-							});
+							JsonResponse.sendSuccess(res);
 						}
 					}
 				});

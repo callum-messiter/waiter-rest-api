@@ -49,10 +49,7 @@ router.get('/createNewDiner', (req, res, next) => {
 									if(err) {
 										JsonResponse.sendError(res, 500, 'set_user_role_query_error', err);
 									} else {
-										res.json({
-											success: 'true',
-											userId: result.insertId
-										})
+										JsonResponse.sendSuccess(res, {userId: result.insertId});
 									}
 								})
 							}
@@ -97,14 +94,12 @@ router.get('/:userId', (req, res, next) => {
 	Get a list of all registered users
 **/
 router.get('/', (req, res, next) => {
+	// Check that the user is an admin
 	Users.getAllUsers((err, users) => {
 		if(err) {
 			JsonResponse.sendError(res, 500, 'get_all_users_query_error', err);
 		} else {
-			res.json({
-				success: 'true',
-				users: users
-			});
+			JsonResponse.sendSuccess(res, {users: users});
 		}
 	})
 });

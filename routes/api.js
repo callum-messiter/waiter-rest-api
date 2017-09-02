@@ -16,17 +16,17 @@ const TransactionController = require('../controllers/TransactionController');
 const EmailTemplatesController = require('../controllers/EmailTemplatesController');
 
 // Append controller routes to the '/api' endpoint here
-router.use('/users', UserController);
-router.use('/restaurateurs', RestaurateurController);
-router.use('/diners', DinerController);
-router.use('/admins', AdminController);
+router.use('/user', UserController);
+router.use('/restaurateur', RestaurateurController);
+router.use('/diner', DinerController);
+router.use('/admin', AdminController);
 router.use('/auth', AuthController);
-router.use('/restaurants', RestaurantController);
-router.use('/menus', MenuController);
-router.use('/sections', SectionController);
-router.use('/categories', CategoryController);
-router.use('/items', ItemController);
-router.use('/transactions', TransactionController);
+router.use('/restaurant', RestaurantController);
+router.use('/menu', MenuController);
+router.use('/section', SectionController);
+router.use('/category', CategoryController);
+router.use('/item', ItemController);
+router.use('/transaction', TransactionController);
 router.use('/emailTemplates', EmailTemplatesController);
 
 module.exports = router;

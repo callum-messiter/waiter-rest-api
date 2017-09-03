@@ -29,28 +29,32 @@ router.get('/', (req, res, next) => {
 router.get('/:userId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.userId) {
-		JsonResponse.sendError(res, 404, 'missing_required_params', 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
+		JsonResponse.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
 	} else {
 		const userId = req.params.userId;
 		const token = req.headers.authorization;
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				JsonResponse.sendError(res, 401, 'invalid_token', 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+				JsonResponse.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
 				const requesterRole = decodedpayload.userRole;
 				const requesterId = decodedpayload.userId;
 				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
 				// User details can be accessed only by the owner, or by an internal admin
 				if(requesterId != userId && requesterRole != waiterAdmin) {
-					JsonResponse.sendError(res, 401, 'unauthorised', 'A user\'s details can be accessed only by the owner, or by admins.');
+					JsonResponse.sendError(res, 401, 'unauthorised', 
+						'A user\'s details can be accessed only by the owner, or by admins.');
 				} else {
 					Users.getUserById(req.params.userId, (err, user) => {
 						if(err) {
 							JsonResponse.sendError(res, 500, 'get_user_query_error', err);
 						} else {
 							if(user.length < 1) {
-								JsonResponse.sendError(res, 404, 'user_not_found', 'There are no users matching the ID provided.');
+								JsonResponse.sendError(res, 404, 'user_not_found', 
+									'There are no users matching the ID provided.');
 							} else {
 								// Return only insensitive user information
 								user = {
@@ -94,7 +98,8 @@ router.post('/create/:userType', (req, res, next) => {
 						JsonResponse.sendError(res, 500, 'email_registered_query_error', err);
 					} else {
 						if(result[0].matches > 0) {
-							JsonResponse.sendError(res, 409, 'email_already_registered', 'The email address ' + req.query.email + ' is already registered.');
+							JsonResponse.sendError(res, 409, 
+								'email_already_registered', 'The email address ' + req.query.email + ' is already registered.');
 						} else {
 							// Hash the password
 							Users.hashPassword(req.body.password, (err, hashedPassword) => {
@@ -134,13 +139,16 @@ router.post('/create/:userType', (req, res, next) => {
 					}
 				});
 			} else {
-				JsonResponse.sendError(res, 404, 'missing_required_params', 'The server was expecting an email, password, first name and last name. At least of of these parameters was missing from the request.');
+				JsonResponse.sendError(res, 404, 'missing_required_params', 
+					'The server was expecting an email, password, first name and last name. At least of of these parameters was missing from the request.');
 			}
 		} else {
-			JsonResponse.sendError(res, 404, 'invalid_subroute', 'An invalid user type was specified in the subroute.');
+			JsonResponse.sendError(res, 404, 'invalid_subroute', 
+				'An invalid user type was specified in the subroute.');
 		}
 	} else {
-		JsonResponse.sendError(res, 404, 'missing_required_params', 'Server was expecting a subroute that specifies the type of user to be created.');
+		JsonResponse.sendError(res, 404, 'missing_required_params', 
+			'Server was expecting a subroute that specifies the type of user to be created.');
 	}
 });
 
@@ -151,39 +159,45 @@ router.post('/create/:userType', (req, res, next) => {
 router.put('/deactivate/:userId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be deactivated
 	if(!req.headers.authorization || !req.params.userId) {
-		JsonResponse.sendError(res, 404, 'missing_required_params', 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
+		JsonResponse.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
 	} else {
 		const userId = req.params.userId;
 		const token = req.headers.authorization;
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				JsonResponse.sendError(res, 401, 'invalid_token', 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+				JsonResponse.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
 				const requesterRole = decodedpayload.userRole;
 				const requesterId = decodedpayload.userId;
 				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
 				// A user can be deactivated only by the owner, or by an internal admin
 				if(requesterId != userId && requesterRole != waiterAdmin) {
-					JsonResponse.sendError(res, 401, 'unauthorised', 'A user account can be deactivated only by the owner, or by an internal admin.');
+					JsonResponse.sendError(res, 401, 'unauthorised', 
+						'A user account can be deactivated only by the owner, or by an internal admin.');
 				} else {
 					// Before deactivating the user, check if the account is already active
 					Users.getUserById(userId, (err, user) => {
 						if(err) {
 							JsonResponse.sendError(res, 500, 'get_user_query_error', err);
 						} else if(user.length < 1) {
-							JsonResponse.sendError(res, 404, 'user_not_found', 'A user with the specified Id could not be found.');
+							JsonResponse.sendError(res, 404, 'user_not_found', 
+								'A user with the specified Id could not be found.');
 						} else {
 							const IsActive = user[0].IsActive;
 							// Check if the user is active
 							if(!IsActive) {
-								JsonResponse.sendError(res, 409, 'user_already_inactive', 'The server determined that the specified user account is aready inactive. You cannot deactivate an inactive account.');
+								JsonResponse.sendError(res, 409, 'user_already_inactive', 
+									'The server determined that the specified user account is aready inactive. You cannot deactivate an inactive account.');
 							} else {
 								Users.deactivateUser(userId, (err, result) => {
 									if(err) {
 										JsonResponse.sendError(res, 500, 'deactivate_user_query_error', err);
 									} else if(result.affectedRows < 1) {
-										JsonResponse.sendError(res, 404, 'user_not_deactivated', 'The query was executed successfully but the user account was not deactivated.');
+										JsonResponse.sendError(res, 404, 'user_not_deactivated', 
+											'The query was executed successfully but the user account was not deactivated.');
 									} else {
 										JsonResponse.sendSuccess(res, 200);
 									}	

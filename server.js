@@ -1,10 +1,16 @@
+// Depdendencies
 const express = require('express');
+const app = express();
 const bodyParser = require('body-parser');
 const path = require('path');
+const cors = require('cors');
+// Config
 const dbConfig = require('./config/database');
-const app = express();
 const api = require('./routes/api');
 const port = 3000;
+
+// Enable cors
+app.use(cors());
 
 // Parses the body of an incoming request as JSON, and exposes it on req.body - easy to interface with
 app.use(bodyParser.urlencoded({

@@ -30,7 +30,8 @@ router.get('/login', (req, res, next) => {
 			if(err) {
 				JsonResponse.sendError(res, 500, 'get_user_query_error', err);
 			} else if(user.length < 1) {
-				JsonResponse.sendError(res, 404, 'unregistered_email_address', 'The email address supplied is not registered.');
+				JsonResponse.sendError(res, 404, 'unregistered_email_address', 
+					'The email address supplied is not registered.');
 			} else {
 				// Check if the user is active
 				if(user[0].IsActive) {
@@ -43,7 +44,8 @@ router.get('/login', (req, res, next) => {
 							if(err) {
 								JsonResponse.sendError(res, 500, 'bcrypt_error', err);
 							} else if(!passwordsMatch) {
-								JsonResponse.sendError(res, 401, 'invalid_password', 'The email account is registered but the password provided is invalid.');
+								JsonResponse.sendError(res, 401, 'invalid_password', 
+									'The email account is registered but the password provided is invalid.');
 							} else if(passwordsMatch){
 								// Get the user's role to store in the token
 								UserRoles.getUserRole(user[0].UserId, (err, userRole) => {
@@ -56,7 +58,8 @@ router.get('/login', (req, res, next) => {
 											if(err) {
 												JsonResponse.sendError(res, 500, 'jwt_error', err);
 											} else if(token == null) {
-												JsonResponse.sendError(res, 500, 'jwt_token_null', 'The server could not create a unique token.');
+												JsonResponse.sendError(res, 500, 'jwt_token_null', 
+													'The server could not create a unique token.');
 											} else {
 												// Decode token and get userId and exp
 												const decodedToken = jwt.decode(token);
@@ -94,15 +97,18 @@ router.get('/login', (req, res, next) => {
 							}
 						});
 					} else {
-						JsonResponse.sendError(res, 401, 'user_not_verified', 'This user account is not verified.');
+						JsonResponse.sendError(res, 401, 'user_not_verified', 
+							'This user account is not verified.');
 					}
 				} else {
-					JsonResponse.sendError(res, 401, 'user_not_active', 'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.');
+					JsonResponse.sendError(res, 401, 'user_not_active', 
+						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.');
 				}
 			}
 		});
 	} else {
-		JsonResponse.sendError(res, 404, 'missing_required_params', 'The request must contain an email address and password.');
+		JsonResponse.sendError(res, 404, 'missing_required_params', 
+			'The request must contain an email address and password.');
 	}
 });
 
@@ -113,14 +119,16 @@ router.get('/login', (req, res, next) => {
 **/
 router.get('/logout', (req, res, next) => {
 	if(!req.query.userId || !req.headers.authorization) {
-		JsonResponse.sendError(res, 404, 'missing_required_params', 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
+		JsonResponse.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
 	} else {
 		const token = req.headers.authorization;
 		const userId = req.query.userId;
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				JsonResponse.sendError(res, 401, 'invalid_token', 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+				JsonResponse.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
 				// Delete the token from the DB (the token will be invalidated/deleted by the client)
 				Auth.deleteTokenReference(token, userId, (err, result) => {
@@ -128,7 +136,8 @@ router.get('/logout', (req, res, next) => {
 						JsonResponse.sendError(res, 500, 'deleting_token_query_error', err);
 					} else {
 						if(result.affectedRows < 1) {
-							JsonResponse.sendError(res, 404, 'error_deleting_token_ref', 'The server executed the query successfully, but nothing was deleted. It\'s likely that there exists no combination of the supplied userId and token.');
+							JsonResponse.sendError(res, 404, 'error_deleting_token_ref', 
+								'The server executed the query successfully, but nothing was deleted. It\'s likely that there exists no combination of the supplied userId and token.');
 						} else {
 							JsonResponse.sendSuccess(res, 200);
 						}

@@ -77,3 +77,11 @@ module.exports.hashPassword = function(password, callback) {
 module.exports.checkPassword = function(plainTextPassword, hash, callback) {
 	bcrypt.compare(plainTextPassword, hash, callback);
 }
+
+/**
+	"Deletes" a user (sets their isActive property to 0)
+**/
+module.exports.deactivateUser = function(userId, callback) {
+	const query = 'UPDATE users SET IsActive = 0 WHERE userId = ?';
+	db.query(query, userId, callback);
+}

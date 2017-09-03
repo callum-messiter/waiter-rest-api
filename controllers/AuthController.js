@@ -80,7 +80,7 @@ router.get('/login', (req, res, next) => {
 														JsonResponse.sendError(res, 500, 'token_not_added_to_db', err);
 													} else {
 														// Return the relevant user details to the client
-														JsonResponse.sendSuccess(res, {
+														JsonResponse.sendSuccess(res, 200, {
 															userId: user[0].UserId,
 															role: role,
 															token: token
@@ -130,7 +130,7 @@ router.get('/logout', (req, res, next) => {
 						if(result.affectedRows < 1) {
 							JsonResponse.sendError(res, 404, 'error_deleting_token_ref', 'The server executed the query successfully, but nothing was deleted. It\'s likely that there exists no combination of the supplied userId and token.');
 						} else {
-							JsonResponse.sendSuccess(res);
+							JsonResponse.sendSuccess(res, 200);
 						}
 					}
 				});

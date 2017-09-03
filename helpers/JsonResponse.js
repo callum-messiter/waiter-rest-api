@@ -6,7 +6,7 @@ module.exports.sendError = function(res, statusCode, error, msg, success=false) 
 	});
 }
 
-module.exports.sendSuccess = function(res, data=null, error='', statusCode=200, success=true) {
+module.exports.sendSuccess = function(res, statusCode, data=null, error='', success=true) {
 	response = {
 		success: success,
 		error: error

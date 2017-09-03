@@ -13,12 +13,12 @@ const JsonResponse = require('../helpers/JsonResponse');
 	Get a list of all registered users
 **/
 router.get('/', (req, res, next) => {
-	// Check that the user is an admin
+	// Check that the user is a waiterAdmin
 	Users.getAllUsers((err, users) => {
 		if(err) {
 			JsonResponse.sendError(res, 500, 'get_all_users_query_error', err);
 		} else {
-			JsonResponse.sendSuccess(res, {users: users});
+			JsonResponse.sendSuccess(res, 200, {users: users});
 		}
 	})
 });
@@ -40,9 +40,9 @@ router.get('/:userId', (req, res, next) => {
 			} else {
 				const requesterRole = decodedpayload.userRole;
 				const requesterId = decodedpayload.userId;
-				const admin = UserRoles.roleIDs.admin;
-				// User details can be accessed only by the owner, or by any admin
-				if(requesterId != userId && requesterRole != admin) {
+				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
+				// User details can be accessed only by the owner, or by an internal admin
+				if(requesterId != userId && requesterRole != waiterAdmin) {
 					JsonResponse.sendError(res, 401, 'unauthorised', 'A user\'s details can be accessed only by the owner, or by admins.');
 				} else {
 					Users.getUserById(req.params.userId, (err, user) => {
@@ -61,7 +61,7 @@ router.get('/:userId', (req, res, next) => {
 									isVerified: user[0].IsVerified,
 									isActive: user[0].IsActive
 								}
-								JsonResponse.sendSuccess(res, user);
+								JsonResponse.sendSuccess(res, 200, user);
 							}
 						}
 					});
@@ -74,16 +74,16 @@ router.get('/:userId', (req, res, next) => {
 /**
 	Create user 
 **/
-router.post('/createUser/:userType', (req, res, next) => {
+router.post('/create/:userType', (req, res, next) => {
 	// No token required, and no access restriction
 	userRolesObject = UserRoles.roleIDs;
 	userType = req.params.userType;
 	// Check the subroute is set
 	if(userType) {
-		// Check that the subroute is valid
+		// Check that the subroute is valid (the user has specified a valid user type)
 		if(userRolesObject.hasOwnProperty(userType)) {
+			userRole = userRolesObject[userType]; // e.g. roleIDs['admin'] = 900
 			// Check that the request contains all required user details
-			userRole = userRolesObject[userType];
 			if(
 			   req.body.email && req.body.password && 
 			   req.body.firstName && req.body.lastName
@@ -123,7 +123,7 @@ router.post('/createUser/:userType', (req, res, next) => {
 												if(err) {
 													JsonResponse.sendError(res, 500, 'set_user_role_query_error', err);
 												} else {
-													JsonResponse.sendSuccess(res, {userId: result.insertId, userRole: userRole});
+													JsonResponse.sendSuccess(res, 201, {userId: result.insertId, userRole: userRole});
 												}
 											})
 										}
@@ -145,8 +145,57 @@ router.post('/createUser/:userType', (req, res, next) => {
 });
 
 /**
-	Delete user
+	Deactivate user
 **/
+
+router.put('/deactivate/:userId', (req, res, next) => {
+	// Check that the request contains a token, and the Id of the user whose details are to be deactivated
+	if(!req.headers.authorization || !req.params.userId) {
+		JsonResponse.sendError(res, 404, 'missing_required_params', 'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
+	} else {
+		const userId = req.params.userId;
+		const token = req.headers.authorization;
+		// Check that the token is valid
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				JsonResponse.sendError(res, 401, 'invalid_token', 'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+			} else {
+				const requesterRole = decodedpayload.userRole;
+				const requesterId = decodedpayload.userId;
+				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
+				// A user can be deactivated only by the owner, or by an internal admin
+				if(requesterId != userId && requesterRole != waiterAdmin) {
+					JsonResponse.sendError(res, 401, 'unauthorised', 'A user account can be deactivated only by the owner, or by an internal admin.');
+				} else {
+					// Before deactivating the user, check if the account is already active
+					Users.getUserById(userId, (err, user) => {
+						if(err) {
+							JsonResponse.sendError(res, 500, 'get_user_query_error', err);
+						} else if(user.length < 1) {
+							JsonResponse.sendError(res, 404, 'user_not_found', 'A user with the specified Id could not be found.');
+						} else {
+							const IsActive = user[0].IsActive;
+							// Check if the user is active
+							if(!IsActive) {
+								JsonResponse.sendError(res, 409, 'user_already_inactive', 'The server determined that the specified user account is aready inactive. You cannot deactivate an inactive account.');
+							} else {
+								Users.deactivateUser(userId, (err, result) => {
+									if(err) {
+										JsonResponse.sendError(res, 500, 'deactivate_user_query_error', err);
+									} else if(result.affectedRows < 1) {
+										JsonResponse.sendError(res, 404, 'user_not_deactivated', 'The query was executed successfully but the user account was not deactivated.');
+									} else {
+										JsonResponse.sendSuccess(res, 200);
+									}	
+								});
+							}
+						}
+					});
+				}
+			}
+		});
+	}
+});
 
 /**
 	Update user

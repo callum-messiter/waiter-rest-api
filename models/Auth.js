@@ -10,7 +10,7 @@ const secret = require('../config/jwt').jwt.secret;
 	Generate a new json web token (jwt) upon successful login
 
 **/
-module.exports.createUserToken = function(userId, callback) {
+module.exports.createUserToken = function(userId, userRole, callback) {
 	const utc_timestamp = new Date().getTime();
 	const alg = 'HS256';
 	const issuer = 'http://api.waiter.com';
@@ -22,7 +22,7 @@ module.exports.createUserToken = function(userId, callback) {
 		iat: iat,
 		exp: exp,
 		userId: userId,
-		userRole: 100
+		userRole: userRole
 	}, secret, callback);
 }
 

@@ -45,45 +45,47 @@ router.get('/login', (req, res, next) => {
 							} else if(!passwordsMatch) {
 								JsonResponse.sendError(res, 401, 'invalid_password', 'The email account is registered but the password provided is invalid.');
 							} else if(passwordsMatch){
-								// Generate token
-								Auth.createUserToken(user[0].UserId, (err, token) => {
+								// Get the user's role to store in the token
+								UserRoles.getUserRole(user[0].UserId, (err, userRole) => {
 									if(err) {
-										JsonResponse.sendError(res, 500, 'jwt_error', err);
-									} else if(token == null) {
-										JsonResponse.sendError(res, 500, 'jwt_token_null', 'The server could not create a unique token.');
+										JsonResponse.sendError(res, 500, 'get_user_role_query_error', err);
 									} else {
-										// Decode token and get userId and exp
-										const decodedToken = jwt.decode(token);
-										const tokenUserId = decodedToken.userId;
-										// Get expirary date of token
-										const tokenExp = decodedToken.exp;
-										const expiresAt = moment(tokenExp).format('YYYY-MM-DD HH:mm:ss');
-										// Get current datetime
-										const currentDate = new Date();
-										const now = moment(currentDate).format('YYYY-MM-DD HH:mm:ss');
-										// Add the token to the db for reference
-										const userToken = {
-											UserId: tokenUserId,
-											Token: token,
-											Date: now,
-											ExpiryDate: expiresAt
-										}
-										// Add token to the db for reference
-										Auth.saveUserTokenReference(userToken, (err, result) => {
+										const role = userRole[0].RoleId;
+										// Generate token
+										Auth.createUserToken(user[0].UserId, role, (err, token) => {
 											if(err) {
-												JsonResponse.sendError(res, 500, 'token_not_added_to_db', err);
+												JsonResponse.sendError(res, 500, 'jwt_error', err);
+											} else if(token == null) {
+												JsonResponse.sendError(res, 500, 'jwt_token_null', 'The server could not create a unique token.');
 											} else {
-												// Get the user's role
-												UserRoles.getUserRole(user[0].UserId, (err, userRole) => {
+												// Decode token and get userId and exp
+												const decodedToken = jwt.decode(token);
+												const tokenUserId = decodedToken.userId;
+												// Get expirary date of token
+												const tokenExp = decodedToken.exp;
+												const expiresAt = moment(tokenExp).format('YYYY-MM-DD HH:mm:ss');
+												// Get current datetime
+												const currentDate = new Date();
+												const now = moment(currentDate).format('YYYY-MM-DD HH:mm:ss');
+												// Add the token to the db for reference
+												const userToken = {
+													UserId: tokenUserId,
+													Token: token,
+													Date: now,
+													ExpiryDate: expiresAt
+												}
+												// Add token to the db for reference
+												Auth.saveUserTokenReference(userToken, (err, result) => {
 													if(err) {
-														JsonResponse.sendError(res, 500, 'get_user_role_query_error', err);
+														JsonResponse.sendError(res, 500, 'token_not_added_to_db', err);
+													} else {
+														// Return the relevant user details to the client
+														JsonResponse.sendSuccess(res, {
+															userId: user[0].UserId,
+															role: role,
+															token: token
+														});
 													}
-													// Return the relevant user details to the client
-													JsonResponse.sendSuccess(res, {
-														userId: user[0].UserId,
-														role: userRole[0].RoleId,
-														token: token
-													});
 												});
 											}
 										});

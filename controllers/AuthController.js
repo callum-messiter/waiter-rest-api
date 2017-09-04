@@ -36,7 +36,7 @@ router.get('/login', (req, res, next) => {
 				// Check if the user is active
 				if(user[0].IsActive) {
 					// Check if the user is verified
-					if(user[0].IsVerified) {
+					if(/**user[0].IsVerified**/true) {
 						// Check that the user entered the correct password
 						const plainTextPassword = password;
 						const hashedPassword = user[0].Password

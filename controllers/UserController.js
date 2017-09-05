@@ -7,6 +7,7 @@ const moment = require('moment');
 const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
 const Auth = require('../models/Auth');
+const Restaurants = require('../models/Restaurants');
 const JsonResponse = require('../helpers/JsonResponse');
 
 /**
@@ -131,7 +132,7 @@ router.post('/create/:userType', (req, res, next) => {
 													JsonResponse.sendSuccess(res, 201, {userId: result.insertId, userRole: userRole});
 												}
 											})
-										}
+										}	
 									});
 								}
 							});
@@ -214,5 +215,74 @@ router.put('/deactivate/:userId', (req, res, next) => {
 /**
 	Update user
 **/
+
+/**
+	Get user dashboard
+**/
+router.get('/dashboard/:userId', (req, res, next) => {
+		// Check that the request contains a token, and the Id of the user whose details are to be retrieved
+	if(!req.headers.authorization || !req.params.userId) {
+		JsonResponse.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
+	} else {
+		const userId = req.params.userId;
+		const token = req.headers.authorization;
+		// Check that the token is valid
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				JsonResponse.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+			} else {
+				const requesterRole = decodedpayload.userRole;
+				const requesterId = decodedpayload.userId;
+				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
+				// User details can be accessed only by the owner, or by an internal admin. Future: restaurant details accessible to users granted access by restaurant owner
+				if(requesterId != userId && requesterRole != waiterAdmin) {
+					JsonResponse.sendError(res, 401, 'unauthorised', 
+						'A user\'s details can be accessed only by the owner, or by admins.');
+				} else {
+					Users.getUserById(req.params.userId, (err, result) => {
+						if(err) {
+							JsonResponse.sendError(res, 500, 'get_user_query_error', err);
+						} else {
+							if(result.length < 1) {
+								JsonResponse.sendError(res, 404, 'user_not_found', 
+									'There are no users matching the ID provided.');
+							} else {
+								// Return only insensitive user information
+								const user = {
+									email: result[0].Email, 
+									firstName: result[0].FirstName,
+									lastName: result[0].LastName,
+									imageUrl: result[0].ImageUrl
+								}
+								Restaurants.getRestaurant(userId, (err, result) => {
+									if(err) {
+										JsonResponse.sendError(res, 500, 'get_restaurant_query_error', err);
+									} else if(result.length < 1) {
+										JsonResponse.sendError(res, 404, 'restaurant_not_found', 
+									'The user appears to have zero registered restaurants.');
+									} else {
+										console.log(result);
+										const restaurant = {
+											name: result[0].Name,
+											description: result[0].Description,
+											location: result[0].Location,
+											phoneNumber: result[0].PhoneNumber,
+											emailAddress: result[0].EmailAddress
+										}
+										JsonResponse.sendSuccess(res, 200, {user: user, restaurant: restaurant});
+									}
+								});
+							}
+						}
+					});
+				}
+			}
+		});
+	}
+});
+
+
 
 module.exports = router;

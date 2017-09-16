@@ -10,9 +10,12 @@ module.exports.getMenuById = function(menuId, callback) {
 	db.query(query, menuId, callback);
 }
 
+/**
+	Get the userId of the menu owner by passing the menuId
+**/
 module.exports.getMenuOwnerId = function(menuId, callback){
-	// Select restaurantId from menus where menuId = menuId
-	// Select ownerId from restaurants where menuId = getMenuById
-	const query = "SELECT restaurants.ownerId FROM restaurants LEFT JOIN menus on menus.restaurantId = restaurants.restaurantId WHERE menus.menuId = ?";
+	const query = 'SELECT restaurants.ownerId FROM restaurants ' +
+				  'JOIN menus on menus.restaurantId = restaurants.restaurantId ' +
+				  'WHERE menus.menuId = ?';
 	db.query(query, menuId, callback);
 }

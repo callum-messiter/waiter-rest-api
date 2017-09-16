@@ -1,4 +1,4 @@
-// Dependencies
+  // Dependencies
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
@@ -34,12 +34,12 @@ router.get('/login', (req, res, next) => {
 					'The email address supplied is not registered.');
 			} else {
 				// Check if the user is active
-				if(user[0].IsActive) {
+				if(user[0].isActive) {
 					// Check if the user is verified
 					if(/**user[0].IsVerified**/true) {
 						// Check that the user entered the correct password
 						const plainTextPassword = password;
-						const hashedPassword = user[0].Password
+						const hashedPassword = user[0].password
 						Users.checkPassword(plainTextPassword, hashedPassword, (err, passwordsMatch) => {
 							if(err) {
 								JsonResponse.sendError(res, 500, 'bcrypt_error', err);
@@ -48,13 +48,13 @@ router.get('/login', (req, res, next) => {
 									'The email account is registered but the password provided is invalid.');
 							} else if(passwordsMatch){
 								// Get the user's role to store in the token
-								UserRoles.getUserRole(user[0].UserId, (err, userRole) => {
+								UserRoles.getUserRole(user[0].userId, (err, userRole) => {
 									if(err) {
 										JsonResponse.sendError(res, 500, 'get_user_role_query_error', err);
 									} else {
-										const role = userRole[0].RoleId;
+										const role = userRole[0].roleId;
 										// Generate token
-										Auth.createUserToken(user[0].UserId, role, (err, token) => {
+										Auth.createUserToken(user[0].userId, role, (err, token) => {
 											if(err) {
 												JsonResponse.sendError(res, 500, 'jwt_error', err);
 											} else if(token == null) {
@@ -72,10 +72,10 @@ router.get('/login', (req, res, next) => {
 												const now = moment(currentDate).format('YYYY-MM-DD HH:mm:ss');
 												// Add the token to the db for reference
 												const userToken = {
-													UserId: tokenUserId,
-													Token: token,
-													Date: now,
-													ExpiryDate: expiresAt
+													userId: tokenUserId,
+													token: token,
+													date: now,
+													expiryDate: expiresAt
 												}
 												// Add token to the db for reference
 												Auth.saveUserTokenReference(userToken, (err, result) => {
@@ -84,7 +84,7 @@ router.get('/login', (req, res, next) => {
 													} else {
 														// Return the relevant user details to the client
 														JsonResponse.sendSuccess(res, 200, {
-															userId: user[0].UserId,
+															userId: user[0].userId,
 															role: role,
 															token: token
 														});

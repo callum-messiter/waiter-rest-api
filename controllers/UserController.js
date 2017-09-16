@@ -263,7 +263,7 @@ router.get('/dashboard/:userId', (req, res, next) => {
 										JsonResponse.sendError(res, 404, 'restaurant_not_found', 
 									'The user appears to have zero registered restaurants.');
 									} else {
-										console.log(result);
+										// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
 										const restaurant = {
 											name: result[0].Name,
 											description: result[0].Description,

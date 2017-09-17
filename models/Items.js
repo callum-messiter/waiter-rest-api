@@ -1,15 +1,20 @@
 const db = require('../config/database');
 
-/**
-	item: {
-		itemId: itemId,
-		categoryId: categoryId,
-		name: name,
-		price: price,
-		description: description,
-		date: date
+module.exports.schema = {
+	itemId: '',
+	categoryId: '',
+	name: '',
+	price: '',
+	description: '',
+	date: '',
+	// The parameters that can be passed in the body of the request
+	requestBodyParams: {
+		name: '',
+		price: '',
+		description: ''
 	}
-**/
+}
+
 module.exports.createNewItem = function(item, callback) {
 	const query = 'INSERT INTO items SET ?';
 	db.query(query, item, callback);

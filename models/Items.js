@@ -27,10 +27,10 @@ module.exports.deactivateItem = function(itemId, callback) {
 /**
 	Update item details
 **/
-module.exports.updateItemDetails = function(itemDetails, callback) {
+module.exports.updateItemDetails = function(itemId, itemDetails, callback) {
 	const query = 'UPDATE items SET ? ' +
 				  'WHERE itemId = ?';
-    db.query(query, itemDetails, itemId, callback);
+    db.query(query, [itemDetails, itemId], callback);
 }
 
 /**

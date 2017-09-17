@@ -2,6 +2,10 @@
 // Config
 const db = require('../config/database');
 
+
+/**
+	Get the userId of the category owner
+**/
 module.exports.getCategoryOwner = function(categoryId, callback) {
 	const query = 'SELECT restaurants.ownerId FROM restaurants ' +
 				  'JOIN menus ON menus.restaurantId = restaurants.restaurantId ' +

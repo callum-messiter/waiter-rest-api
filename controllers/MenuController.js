@@ -1,6 +1,8 @@
 // Dependencies
 const express = require('express');
 const router = express.Router();
+// Helpers
+const ResponseHelper = require('../helpers/ResponseHelper');
 // Models
 const Menus = require('../models/Menus');
 
@@ -10,7 +12,7 @@ const Menus = require('../models/Menus');
 router.get('/:menuId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.userId) {
-		JsonResponse.sendError(res, 404, 'missing_required_params', 
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
 			'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
 	} else {
 		const menuId = req.params.menuId;
@@ -18,7 +20,7 @@ router.get('/:menuId', (req, res, next) => {
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				JsonResponse.sendError(res, 401, 'invalid_token', 
+				ResponseHelper.sendError(res, 401, 'invalid_token', 
 					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
 				const requesterRole = decodedpayload.userRole;
@@ -26,14 +28,14 @@ router.get('/:menuId', (req, res, next) => {
 				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
 				// User details can be accessed only by the owner, or by an internal admin
 				if(requesterId != userId && requesterRole != waiterAdmin) {
-					JsonResponse.sendError(res, 401, 'unauthorised', 
+					ResponseHelper.sendError(res, 401, 'unauthorised', 
 						'A user\'s details can be accessed only by the owner, or by admins.');
 				} else {
 					Menus.getMenuById(menuId, (err, menu) => {
 						if(err) {
-							JsonResponse.sendError(res, 500, 'get_menu_query_error', err);
+							ResponseHelper.sendError(res, 500, 'get_menu_query_error', err);
 						} else if(menu.length < 1) {
-							JsonResponse.sendError(res, 404, 'menu_not_found', 
+							ResponseHelper.sendError(res, 404, 'menu_not_found', 
 									'There are no menus matching the ID provided.');
 						} else {
 							res.json(menu);

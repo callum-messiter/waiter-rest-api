@@ -52,7 +52,8 @@ router.get('/:menuId', (req, res, next) => {
 							result.forEach(function(item) {
 								const newCategory = {
 									categoryId: item.categoryId,
-									categoryName: item.categoryName
+									categoryName: item.categoryName,
+									items: []
 								}
 								if(categories.length < 1) {
 									categories.push(newCategory);
@@ -70,21 +71,10 @@ router.get('/:menuId', (req, res, next) => {
 								}
 							});
 
-							// Loop through the array of categoryIds and build the skeleton of response object
-							const categoriesArray = [];
-							categories.forEach(function(category) {
-								const newCategory = {
-									categoryId: category.categoryId,
-									categoryName: category.categoryName,
-									items: []
-								}
-								categoriesArray.push(newCategory);
-							});
-
 							// Add the items from the query to their respective categories
 							result.forEach(function(item) {
 								const categoryId = item.categoryId;
-								categoriesArray.forEach(function(category) {
+								categories.forEach(function(category) {
 									// If the item from the query has the same categoryId as the category...
 									if(category.categoryId == categoryId) {
 										// ...add the item to this category
@@ -100,7 +90,7 @@ router.get('/:menuId', (req, res, next) => {
 							});
 
 							// Add categories array (with all item data) to the menu object and return it
-							menu.categories = categoriesArray;
+							menu.categories = categories;
 							res.json(menu);
 						}
 					});

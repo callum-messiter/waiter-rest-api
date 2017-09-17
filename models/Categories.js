@@ -45,3 +45,12 @@ module.exports.deactivateCategory = function(categoryId, callback) {
 				  'WHERE categoryId = ?';
 	db.query(query, categoryId, callback);
 }
+
+/**
+	Update category details
+**/
+module.exports.updateCategoryDetails = function(categoryId, categoryData, callback) {
+	const query = 'UPDATE categories SET ? ' +
+				  'WHERE categoryId = ?'
+	db.query(query, [categoryData, categoryId], callback);
+}

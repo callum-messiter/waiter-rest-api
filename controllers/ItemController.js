@@ -102,7 +102,7 @@ router.put('/update/:itemId', (req, res, next) => {
 					// Check that the requester owns the menu
 					Items.getItemOwnerId(itemId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'update_item_owner_query_error', err);
+							ResponseHelper.sendError(res, 500, 'get_item_owner_query_error', err);
 						} else if(result.length < 1) {
 							ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 								'The query returned zero results. It is likely that an item with the specified ID does not exist');

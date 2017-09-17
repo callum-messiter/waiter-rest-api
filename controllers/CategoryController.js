@@ -123,8 +123,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 									} else if(result.changedRows < 1) {
 										QueryHelper.diagnoseQueryError(result, res);
 									} else {
-										ResponseHelper.sendSuccess(res, 200)
-									}
+										ResponseHelper.sendSuccess(res, 200)									}
 								});
 							}
 						}

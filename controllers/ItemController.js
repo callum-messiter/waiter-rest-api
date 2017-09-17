@@ -6,7 +6,9 @@ const Items = require('../models/Items');
 const Categories = require('../models/Categories');
 const Auth = require('../models/Auth');
 const Menus = require('../models/Menus');
+// Helpers
 const JsonResponse = require('../helpers/JsonResponse');
+const Request = require('../helpers/Request');
 // Schema
 const allowedItemParams = Items.schema.requestBodyParams;
 
@@ -29,6 +31,7 @@ router.post('/create/:categoryId', (req, res, next) => {
 			const item = req.body;
 
 			// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
+			const requestDataIsValid = Request.checkRequestDataIsValid(itemData, allowedItemParams, res);
 			if(requestDataIsValid !== true) {
 				JsonResponse.sendError(res, 422, 'invalid_data_params', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
@@ -131,7 +134,7 @@ router.put('/update/:itemId', (req, res, next) => {
 		const itemData = req.body;
 
 		// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
-		const requestDataIsValid = checkRequestDataIsValid(itemData, allowedItemParams, res);
+		const requestDataIsValid = Request.checkRequestDataIsValid(itemData, allowedItemParams, res);
 		if(requestDataIsValid !== true) {
 			JsonResponse.sendError(res, 422, 'invalid_data_params', 
 				"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
@@ -175,15 +178,6 @@ router.put('/update/:itemId', (req, res, next) => {
 		}
 	}
 });
-
-function checkRequestDataIsValid(requestBody, schema, res) {
-	for(const k in requestBody) {
-		if(!schema.hasOwnProperty(k)) {
-			return k;
-		}
-	}
-	return true;
-}
 
 function diagnoseQueryError(result, res) {
 	// Was the item found in the DB?

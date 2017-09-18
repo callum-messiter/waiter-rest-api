@@ -77,6 +77,9 @@ router.post('/create/:categoryId', (req, res, next) => {
 	}
 });
 
+/**
+	Update the details of an item
+**/
 router.put('/update/:itemId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.itemId) {
@@ -134,7 +137,7 @@ router.put('/update/:itemId', (req, res, next) => {
 });
 
 /**
-	Deactivate item, so it will no longer be visible to the user, but recoverable in the future
+	Deactivate item, such that it will no longer be visible to the user, but recoverable in the future
 **/
 router.put('/deactivate/:itemId', (req, res, next) => {
 	// Check auth header and menuId param
@@ -183,6 +186,9 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 	}
 });
 
+/**
+	Get all items associated with a particular category
+**/
 router.get('/fromCategory/:categoryId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.categoryId) {
@@ -217,6 +223,55 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 								} else if(result.length < 1) {
 									ResponseHelper.sendError(res, 404, 'no_items_found', 
 										'No items belonging to the specified category were found.');
+								} else {
+									ResponseHelper.sendSuccess(res, 200, result);
+								}
+							});
+						}
+					}
+				});
+			}
+		});
+	}
+});
+
+/**
+	Get a single item by referencing its ID
+**/
+router.get('/:itemId', (req, res, next) => {
+	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
+	if(!req.headers.authorization || !req.params.itemId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting an itemId and a token. At least one of these parameters was missing from the request.');
+	} else {
+		const token = req.headers.authorization;
+		const itemId = req.params.itemId;
+		// Check that the token is valid
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				ResponseHelper.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+			} else {
+				Items.getItemOwnerId(itemId, (err, result) => {
+					if(err) {
+						ResponseHelper.sendError(res, 500, 'get_item_owner_query_error', err);
+					} else if(result.length < 1) {
+						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
+							'The query returned zero results. It is likely that an item with the specified ID does not exist.')
+					} else {
+						const ownerId = result[0].ownerId;
+						const requesterId = decodedpayload.userId;
+						// User details can be accessed only by the owner, or by an internal admin
+						if(requesterId != ownerId) {
+							ResponseHelper.sendError(res, 401, 'unauthorised', 
+								'A resource can be accessed only by the owner.');
+						} else {
+							Items.getItemById(itemId, (err, result) => {
+								if(err) {
+									ResponseHelper.sendError(res, 500, 'get_item_query_error', err);
+								} else if(result.length < 1) {
+									ResponseHelper.sendError(res, 404, 'no_item_found', 
+										'The query returned zero results. This is a contradiction, since the ownerId of the item was found successfully. Contact the dev.');
 								} else {
 									ResponseHelper.sendSuccess(res, 200, result);
 								}

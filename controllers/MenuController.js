@@ -109,6 +109,9 @@ router.get('/:menuId', (req, res, next) => {
 	}
 });
 
+/**
+	Create a new menu, assigned to a restaurant 
+**/
 router.post('/create/:restaurantId', (req, res, next) => {
 		// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.restaurantId) {
@@ -162,6 +165,9 @@ router.post('/create/:restaurantId', (req, res, next) => {
 	}
 });
 
+/**
+	Deactivate a menu, such that it will no longer be visible to the user, but recoverable in the future
+**/
 router.put('/deactivate/:menuId', (req, res, next) => {
 		// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.menuId) {

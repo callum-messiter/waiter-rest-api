@@ -31,7 +31,7 @@ router.post('/create/:menuId', (req, res, next) => {
 			const category = req.body;
 
 			// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
-			const requestDataIsValid = Request.checkRequestDataIsValid(category, allowedCategoryParams, res);
+			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(category, allowedCategoryParams, res);
 			if(requestDataIsValid !== true) {
 				ResponseHelper.sendError(res, 422, 'invalid_data_params', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");

@@ -32,7 +32,7 @@ router.post('/create/:categoryId', (req, res, next) => {
 			const item = req.body;
 
 			// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
-			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(itemData, allowedItemParams, res);
+			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(item, allowedItemParams, res);
 			if(requestDataIsValid !== true) {
 				ResponseHelper.sendError(res, 422, 'invalid_data_params', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
@@ -44,7 +44,7 @@ router.post('/create/:categoryId', (req, res, next) => {
 							'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 					} else {
 						// Check that the requester owns the menu
-						Categories.getCategoryOwner(categoryId, (err, result) => {
+						Categories.getCategoryOwnerId(categoryId, (err, result) => {
 							if(err) {
 								ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', err);
 							} else if(result.length < 1) {
@@ -59,7 +59,7 @@ router.post('/create/:categoryId', (req, res, next) => {
 										'A menu can be modified only by the menu owner.');
 								} else {
 									// Create item
-									Items.createNewItem(item, (err, result) => {
+									Items.createNewItem(categoryId, item, (err, result) => {
 										if(err) {
 											ResponseHelper.sendError(res, 500, 'create_new_item_query_error', err);
 										} else {

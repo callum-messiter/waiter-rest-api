@@ -11,8 +11,8 @@ module.exports.getMenuById = function(menuId, callback) {
 				  'menus.name AS menuName ' +
 				  'FROM items ' +
 				  'JOIN categories on categories.categoryId = items.categoryId ' +
-				  'JOIN menus on menus.menuId = items.menuId ' +
-				  'WHERE items.menuId = ? ' +
+				  'JOIN menus on menus.menuId = categories.menuId ' +
+				  'WHERE categories.menuId = ? ' +
 				  'ORDER BY items.categoryId AND items.date';
 	db.query(query, menuId, callback);
 }
@@ -25,4 +25,14 @@ module.exports.getMenuOwnerId = function(menuId, callback){
 				  'JOIN menus on menus.restaurantId = restaurants.restaurantId ' +
 				  'WHERE menus.menuId = ?';
 	db.query(query, menuId, callback);
+}
+
+/**
+	Create new menu, assigned to a restaurant
+**/
+module.exports.createNewMenu = function(restaurantId, menu, callback) {
+	// First add the restaurantId (from the route) to the menu object (sent in the body)
+	menu.restaurantId = restaurantId;
+	const query = 'INSERT INTO menus SET ?';
+	db.query(query, menu, callback);
 }

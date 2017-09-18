@@ -27,9 +27,9 @@ router.get('/:menuId', (req, res, next) => {
 			} else {
 				Menus.getMenuOwnerId(menuId, (err, result) => {
 					if(err) {
-						JsonResponse.sendError(res, 500, 'get_menu_owner_query_error', err);
+						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error', err);
 					} else if(result.length < 1) {
-						JsonResponse.sendError(res, 404, 'owner_id_not_found',
+						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
 							'The query returned zero results. It is likely that a menu with the specified ID does not exist.')
 					} else {
 						const ownerId = result[0].ownerId;
@@ -105,6 +105,20 @@ router.get('/:menuId', (req, res, next) => {
 			}
 		});
 	}
+});
+
+router.post('/create/:restaurantId', (req, res, next) => {
+	const restaurantId = req.params.restaurantId;
+	const menu = {
+		name: 'Main menu'
+	}
+	Menus.createNewMenu(restaurantId, menu, (err, result) => {
+		if(err) {
+			res.json(err);
+		} else {
+			res.json(result);
+		}
+	});
 });
 
 module.exports = router;

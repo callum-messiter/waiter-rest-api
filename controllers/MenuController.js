@@ -215,4 +215,55 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 	}
 });
 
+/**
+	Update the details of a category
+**/
+router.put('/update/:menuId', (req, res, next) => {
+	// Check auth header and menuId param
+	if(!req.headers.authorization || !req.params.menuId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			"The server was expecting an 'authorization' header, and a menuId. At least one of these params was missing.");
+	} else {
+		const token = req.headers.authorization;
+		const menuId = req.params.menuId;
+		const menuData = req.body;
+		// Check that the token is valid
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				ResponseHelper.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+			} else {
+				// Check that the requester owns the menu
+				Menus.getMenuOwnerId(menuId, (err, result) => {
+					if(err) {
+						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error', err);
+					} else if(result.length < 1) {
+						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
+							'The query returned zero results. It is likely that an item with the specified ID does not exist');
+					} else {
+						const ownerId = result[0].ownerId;
+						const requesterId = decodedpayload.userId;
+						// Menus can only be modified by the menu owner
+						if(requesterId != ownerId) {
+							ResponseHelper.sendError(res, 401, 'unauthorised', 
+								'A menu can be modified only by its owner.');
+						} else {
+							// Update Menu
+							Menus.updateMenuDetails(menuId, menuData, (err, result) => {
+								if(err) {
+									ResponseHelper.sendError(res, 500, 'update_menu_query_error', err);
+								} else if(result.changedRows < 1) {
+									QueryHelper.diagnoseQueryError(result, res);
+								} else {
+									ResponseHelper.sendSuccess(res, 200);					
+								}
+							});
+						}
+					}
+				});
+			}
+		});
+	}
+});
+
 module.exports = router;

@@ -44,3 +44,12 @@ module.exports.deactivateMenu = function(menuId, callback) {
 	const query = 'UPDATE menus SET active = 0 WHERE menuId = ?';
 	db.query(query, menuId, callback);
 }
+
+/**
+	Update menu details
+**/
+module.exports.updateMenuDetails = function(menuId, menuData, callback) {
+	const query = 'UPDATE menus SET ? ' +
+				  'WHERE menuId = ?';
+	db.query(query, [menuData, menuId], callback);
+}

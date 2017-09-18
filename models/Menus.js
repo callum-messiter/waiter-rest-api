@@ -36,3 +36,11 @@ module.exports.createNewMenu = function(restaurantId, menu, callback) {
 	const query = 'INSERT INTO menus SET ?';
 	db.query(query, menu, callback);
 }
+
+/**
+	Deactivate menu, such that it is no longer visible to the user, but is recoverable 
+**/
+module.exports.deactivateMenu = function(menuId, callback) {
+	const query = 'UPDATE menus SET active = 0 WHERE menuId = ?';
+	db.query(query, menuId, callback);
+}

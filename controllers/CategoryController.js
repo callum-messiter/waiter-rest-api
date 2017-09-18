@@ -154,7 +154,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 				// Check that the requester owns the menu
 				Categories.getCategoryOwnerId(categoryId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_item_owner_query_error', err);
+						ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a category with the specified ID does not exist');
@@ -164,7 +164,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
 							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A category can be modified only by the item (menu) owner.');
+								'A category can be modified only by the menu owner.');
 						} else {
 							// Deactivate item
 							Categories.deactivateCategory(categoryId, (err, result) => {

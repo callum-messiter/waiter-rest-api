@@ -48,8 +48,8 @@ router.post('/create/:categoryId', (req, res, next) => {
 							if(err) {
 								ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', err);
 							} else if(result.length < 1) {
-								ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-									'The query returned zero results. It is likely that a category with the specified ID does not exist');
+								ResponseHelper.sendError(res, 404, 'owner_id_not_found', 
+									'The query returned zero results. It is likely that a category with the specified ID does not exist.');
 							} else {
 								const ownerId = result[0].ownerId;
 								const requesterId = decodedpayload.userId;

@@ -184,19 +184,49 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 });
 
 router.get('/fromCategory/:categoryId', (req, res, next) => {
-	const categoryId = req.params.categoryId;
-	Items.getAllItemsFromCategory(categoryId, (err, result) => {
-		if(err) {
-			ResponseHelper.sendError(res, 500, 'get_category_items_query_error', err);
-		} else if(result.length < 1) {
-			res.json(result)
-			// ResponseHelper.sendError(res, 404, 'no_items_found', 
-			//	'No items belonging to the specified category were found.');
-		} else {
-			res.json(result);
-			// ResponseHelper.sendSuccess(res, 200, result);
-		}
-	});
+	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
+	if(!req.headers.authorization || !req.params.categoryId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting a categoryId and a token. At least one of these parameters was missing from the request.');
+	} else {
+		const token = req.headers.authorization;
+		const categoryId = req.params.categoryId;
+		// Check that the token is valid
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				ResponseHelper.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+			} else {
+				Categories.getCategoryOwnerId(categoryId, (err, result) => {
+					if(err) {
+						ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', err);
+					} else if(result.length < 1) {
+						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
+							'The query returned zero results. It is likely that a category with the specified ID does not exist.')
+					} else {
+						const ownerId = result[0].ownerId;
+						const requesterId = decodedpayload.userId;
+						// User details can be accessed only by the owner, or by an internal admin
+						if(requesterId != ownerId) {
+							ResponseHelper.sendError(res, 401, 'unauthorised', 
+								'A user\'s details can be accessed only by the owner.');
+						} else {
+							Items.getAllItemsFromCategory(categoryId, (err, result) => {
+								if(err) {
+									ResponseHelper.sendError(res, 500, 'get_category_items_query_error', err);
+								} else if(result.length < 1) {
+									ResponseHelper.sendError(res, 404, 'no_items_found', 
+										'No items belonging to the specified category were found.');
+								} else {
+									ResponseHelper.sendSuccess(res, 200, result);
+								}
+							});
+						}
+					}
+				});
+			}
+		});
+	}
 });
 
 module.exports = router;

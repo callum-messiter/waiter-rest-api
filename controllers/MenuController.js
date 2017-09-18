@@ -5,6 +5,7 @@ const router = express.Router();
 const Menus = require('../models/Menus');
 const Auth = require('../models/Auth');
 const UserRoles = require('../models/UserRoles');
+const Restaurants = require('../models/Restaurants');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 
@@ -108,17 +109,56 @@ router.get('/:menuId', (req, res, next) => {
 });
 
 router.post('/create/:restaurantId', (req, res, next) => {
-	const restaurantId = req.params.restaurantId;
-	const menu = {
-		name: 'Main menu'
-	}
-	Menus.createNewMenu(restaurantId, menu, (err, result) => {
-		if(err) {
-			res.json(err);
+		// Check auth header and menuId param
+	if(!req.headers.authorization || !req.params.restaurantId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			"The server was expecting an 'authorization' header and a restaurantId. At least one of these params was missing.");
+	} else {
+		// Check required item data
+		if(!req.body.name) {
+			ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting a menu name.');
 		} else {
-			res.json(result);
+			const token = req.headers.authorization;
+			const restaurantId = req.params.restaurantId;
+			const menu = req.body;
+			// Check that the token is valid
+			Auth.verifyToken(token, (err, decodedpayload) => {
+				if(err) {
+					ResponseHelper.sendError(res, 401, 'invalid_token', 
+						'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+				} else {
+					// Check that the requester owns the restaurant
+					Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
+						if(err) {
+							ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error', err);
+						} else if(result.length < 1) {
+							ResponseHelper.sendError(res, 404, 'owner_id_not_found', 
+								'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.');
+						} else {
+							const ownerId = result[0].ownerId;
+							const requesterId = decodedpayload.userId;
+							// Menus can only be modified by the menu owner
+							if(requesterId != ownerId) {
+								ResponseHelper.sendError(res, 401, 'unauthorised', 
+									'A menu can be created only by the restaurant owner.');
+							} else {
+								// Create menu
+								Menus.createNewMenu(restaurantId, menu, (err, result) => {
+									if(err) {
+										ResponseHelper.sendError(res, 500, 'create_new_menu_query_error', err);
+									} else {
+										// Return the ID of the new menu
+										ResponseHelper.sendSuccess(res, 200, {createdMenuId: result.insertId});
+									}
+								});
+							}
+						}
+					});
+				}
+			});
 		}
-	});
+	}
 });
 
 module.exports = router;

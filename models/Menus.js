@@ -6,12 +6,14 @@ const db = require('../config/database');
 	Get an entire menu by ID; includes all categories and items
 **/
 module.exports.getMenuById = function(menuId, callback) {
-	const query = 'SELECT items.itemId, items.name, items.price, items.description, items.categoryId, categories.name AS categoryName, categories.description AS categoryDescription, menus.name AS menuName ' +
+	const query = 'SELECT items.itemId, items.name, items.price, items.description, items.categoryId, ' +
+				  'categories.name AS categoryName, categories.description AS categoryDescription, ' + 
+				  'menus.name AS menuName ' +
 				  'FROM items ' +
 				  'JOIN categories on categories.categoryId = items.categoryId ' +
 				  'JOIN menus on menus.menuId = items.menuId ' +
 				  'WHERE items.menuId = ? ' +
-				  'ORDER BY items.categoryId';
+				  'ORDER BY items.categoryId AND items.date';
 	db.query(query, menuId, callback);
 }
 

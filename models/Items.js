@@ -51,3 +51,14 @@ module.exports.getItemOwnerId = function(itemId, callback) {
 				  'WHERE items.itemId = ?';
 	db.query(query, itemId, callback);
 }
+
+/**
+	Get all items belonging to a particular category
+**/
+module.exports.getAllItemsFromCategory = function(categoryId, callback) {
+	const query = 'SELECT itemId, name, price, description ' +
+				  'FROM items ' +
+				  'WHERE categoryId = ? ' +
+				  'ORDER BY date';
+	db.query(query, categoryId, callback);
+}

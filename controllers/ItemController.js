@@ -183,4 +183,20 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 	}
 });
 
+router.get('/fromCategory/:categoryId', (req, res, next) => {
+	const categoryId = req.params.categoryId;
+	Items.getAllItemsFromCategory(categoryId, (err, result) => {
+		if(err) {
+			ResponseHelper.sendError(res, 500, 'get_category_items_query_error', err);
+		} else if(result.length < 1) {
+			res.json(result)
+			// ResponseHelper.sendError(res, 404, 'no_items_found', 
+			//	'No items belonging to the specified category were found.');
+		} else {
+			res.json(result);
+			// ResponseHelper.sendSuccess(res, 200, result);
+		}
+	});
+});
+
 module.exports = router;

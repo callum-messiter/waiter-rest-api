@@ -23,6 +23,6 @@ module.exports.setUserRole = function(userDetails, callback) {
 	Gets the user's role
 **/
 module.exports.getUserRole = function(userId, callback) {
-	const query = 'SELECT RoleId FROM userroles WHERE UserId = ?';
+	const query = 'SELECT roleId FROM userroles WHERE userId = ?';
 	db.query(query, userId, callback);
 }

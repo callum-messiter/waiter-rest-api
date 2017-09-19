@@ -82,6 +82,7 @@ router.get('/login', (req, res, next) => {
 													if(err) {
 														ResponseHelper.sendError(res, 500, 'token_not_added_to_db', err);
 													} else {
+														console.log(role);
 														// Return the relevant user details to the client
 														ResponseHelper.sendSuccess(res, 200, {
 															userId: user[0].userId,

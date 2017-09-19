@@ -8,7 +8,7 @@ const Auth = require('../models/Auth');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 
-router.get('/restaurant/:restaurantId', (req, res, next) => {
+router.get('/:restaurantId', (req, res, next) => {
 		// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.restaurantId) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
@@ -22,7 +22,7 @@ router.get('/restaurant/:restaurantId', (req, res, next) => {
 				ResponseHelper.sendError(res, 401, 'invalid_token', 
 					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
-				Users.getRestaurantOwnerId(restaurantId, (err, result) => {
+				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
 					if(err) {
 						ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error', err);
 					} else if(result.length < 1) {
@@ -30,14 +30,14 @@ router.get('/restaurant/:restaurantId', (req, res, next) => {
 							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.')
 					} else {
 						const requesterId = decodedpayload.userId;
-						const ownerId = result.ownerId;
+						const ownerId = result[0].ownerId;
 						// User details can be accessed only by the owner, or by an internal admin. Future: restaurant details accessible to users granted access by restaurant owner
-						if(requesterId != userId) {
+						if(requesterId != ownerId) {
 							ResponseHelper.sendError(res, 401, 'unauthorised', 
 								'A restaurant\'s details can be accessed only by the owner.');
 						} else {
 							// Get the restaurant details
-							Restaurants.getRestaurant(restaurantId, (err, result) => {
+							Restaurants.getRestaurantDetails(restaurantId, (err, result) => {
 								if(err) {
 									ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', err);
 								} else if(result.length < 1) {
@@ -46,13 +46,13 @@ router.get('/restaurant/:restaurantId', (req, res, next) => {
 								} else {
 									// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
 									const restaurant = {
-										name: result[0].Name,
-										description: result[0].Description,
-										location: result[0].Location,
-										phoneNumber: result[0].PhoneNumber,
-										emailAddress: result[0].EmailAddress
+										name: result[0].name,
+										description: result[0].description,
+										location: result[0].location,
+										phoneNumber: result[0].phoneNumber,
+										emailAddress: result[0].emailAddress
 									}
-									ResponseHelper.sendSuccess(res, 200, {restaurant: restaurant});
+									ResponseHelper.sendSuccess(res, 200, restaurant);
 								}
 							});
 						}

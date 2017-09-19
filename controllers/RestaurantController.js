@@ -177,4 +177,55 @@ router.put('/update/:restaurantId', (req, res, next) => {
 	}
 });
 
+/**
+	Deactivate a restaurant, such that it will no longer be visible to the user, but recoverable in the future
+**/
+router.put('/deactivate/:restaurantId', (req, res, next) => {
+		// Check auth header and restaurantId param
+	if(!req.headers.authorization || !req.params.restaurantId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			"The server was expecting an 'authorization' header, and a restaurantId. At least one of these params was missing.");
+	} else {
+		const token = req.headers.authorization;
+		const restaurantId = req.params.restaurantId;
+		// Check that the token is valid
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				ResponseHelper.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+			} else {
+				// Check that the requester owns the menu
+				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
+					if(err) {
+						ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error', err);
+					} else if(result.length < 1) {
+						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
+							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist');
+					} else {
+						const ownerId = result[0].ownerId;
+						const requesterId = decodedpayload.userId;
+						// Menus can only be modified by the menu owner
+						if(requesterId != ownerId) {
+							ResponseHelper.sendError(res, 401, 'unauthorised', 
+								'A restaurant can only be deactivated by its owner.');
+						} else {
+							// Deactivate menu
+							Restaurants.deactivateRestaurant(restaurantId, (err, result) => {
+								if(err) {
+									ResponseHelper.sendError(res, 500, 'deactivate_menu_query_error', err);
+								} else if(result.changedRows < 1) {
+									QueryHelper.diagnoseQueryError(result, res);
+								} else {
+									ResponseHelper.sendSuccess(res, 200);
+								}
+							});
+						}
+					}
+				});
+			}
+		});
+	}
+});
+
+
 module.exports = router;

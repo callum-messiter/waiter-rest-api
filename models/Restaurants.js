@@ -19,11 +19,19 @@ module.exports.getRestaurantOwnerId = function(restaurantId, callback) {
 }
 
 /**
-	Create a new restaurant, assigned to the user 
+	Update a restaurant's details
 **/
 module.exports.updateRestaurantDetails = function(restaurantId, restaurantData, callback) {
 	const query = 'UPDATE restaurants SET ? ' +
 				  'WHERE restaurantId = ?';
 	db.query(query, [restaurantData, restaurantId], callback);
+}
+
+/**
+	Deactivate a restaurant
+**/
+module.exports.deactivateRestaurant = function(restaurantId, callback) {
+	const query = 'UPDATE restaurants SET active = 0 WHERE restaurantId = ?';
+	db.query(query, restaurantId, callback);
 }
 

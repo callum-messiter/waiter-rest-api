@@ -199,14 +199,14 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 						} else {
 							// Deactivate menu
 							Menus.deactivateMenu(menuId, (err, result) => {
-							if(err) {
-								ResponseHelper.sendError(res, 500, 'deactivate_menu_query_error', err);
-							} else if(result.changedRows < 1) {
-								QueryHelper.diagnoseQueryError(result, res);
-							} else {
-								ResponseHelper.sendSuccess(res, 200);
-							}
-						});
+								if(err) {
+									ResponseHelper.sendError(res, 500, 'deactivate_menu_query_error', err);
+								} else if(result.changedRows < 1) {
+									QueryHelper.diagnoseQueryError(result, res);
+								} else {
+									ResponseHelper.sendSuccess(res, 200);
+								}
+							});
 						}
 					}
 				});

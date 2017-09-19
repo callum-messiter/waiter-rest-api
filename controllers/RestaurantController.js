@@ -4,10 +4,14 @@ const router = express.Router();
 // Models
 const Restaurants = require('../models/Restaurants');
 const Auth = require('../models/Auth');
+const Users = require('../models/Users');
 
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 
+/**
+	Get a restaurant and its details
+**/
 router.get('/:restaurantId', (req, res, next) => {
 		// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.restaurantId) {
@@ -60,6 +64,60 @@ router.get('/:restaurantId', (req, res, next) => {
 				});
 			}
 		});
+	}
+});
+
+router.post('/create/:userId', (req, res, next) => {
+	// Check auth header and menuId param
+	if(!req.headers.authorization || !req.params.userId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			"The server was expecting an 'authorization' header and a userId. At least one of these params was missing.");
+	} else {
+		// Check required item data
+		if(!req.body.name || !req.body.description || !req.body.location || !req.body.phoneNumber || !req.body.emailAddress) {
+			ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting a name, description, location, phone number and email address. At least one was missing.');
+		} else {
+			const token = req.headers.authorization;
+			const userId = req.params.userId;
+			const restaurant = req.body;
+
+			// Check that the token is valid
+			Auth.verifyToken(token, (err, decodedpayload) => {
+				if(err) {
+					ResponseHelper.sendError(res, 401, 'invalid_token', 
+						'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+				} else {
+					// Check that the user with the specified ID exists (we need to check that the user is who they say they are, using session)
+					Users.getUserById(userId, (err, result) => {
+						if(err) {
+							ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+							//ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+						} else if(result.length < 1) {
+							ResponseHelper.sendError(res, 404, 'user_not_found', 
+								'The query returned zero results. It is likely that a user with the specified ID does not exist');
+						} else {
+							const requesterId = decodedpayload.userId;
+							// Menus can only be modified by the menu owner
+							if(requesterId != userId) {
+								ResponseHelper.sendError(res, 401, 'unauthorised', 
+									'A restaurant cannot be created for a user on another user\'s behalf.');
+							} else {
+								// Create restaurant
+								Restaurants.createNewRestaurant(userId, restaurant, (err, result) => {
+									if(err) {
+										ResponseHelper.sendError(res, 500, 'create_restaurant_query_error', err);
+									} else {
+										// Return the ID of the new restaurant
+										ResponseHelper.sendSuccess(res, 200, {createdRestaurantId: result.insertId});
+									}
+								});
+							}
+						}
+					});
+				}
+			});
+		}
 	}
 });
 

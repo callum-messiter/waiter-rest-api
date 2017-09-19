@@ -17,3 +17,10 @@ module.exports.getRestaurantOwnerId = function(restaurantId, callback) {
 	const query = 'SELECT ownerId FROM restaurants WHERE restaurantId = ?';
 	db.query(query, restaurantId, callback);
 }
+
+module.exports.createNewRestaurant = function(userId, restaurant, callback) {
+	// First add the userId to the restaurant object
+	restaurant.ownerId = userId;
+	const query = 'INSERT INTO restaurants SET ?';
+	db.query(query, restaurant, callback);
+}

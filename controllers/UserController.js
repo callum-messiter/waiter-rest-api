@@ -43,7 +43,7 @@ router.get('/:userId', (req, res, next) => {
 					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
 				const requesterId = decodedpayload.userId;
-				
+
 				Users.getUserById(userId, (err, result) => {
 					if(err) {
 						ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
@@ -82,15 +82,24 @@ router.post('/create/:userType', (req, res, next) => {
 	userRolesObject = UserRoles.roleIDs;
 	userType = req.params.userType;
 	// Check the subroute is set
-	if(userType) {
+	if(!userType) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			'Server was expecting a subroute that specifies the type of user to be created.');
+	} else {
 		// Check that the subroute is valid (the user has specified a valid user type)
-		if(userRolesObject.hasOwnProperty(userType)) {
+		if(!userRolesObject.hasOwnProperty(userType)) {
+			ResponseHelper.sendError(res, 404, 'invalid_subroute', 
+				'An invalid user type was specified in the subroute.');
+		} else {
 			userRole = userRolesObject[userType]; // e.g. roleIDs['admin'] = 900
 			// Check that the request contains all required user details
 			if(
-			   req.body.email && req.body.password && 
-			   req.body.firstName && req.body.lastName
+			   !req.body.email || !req.body.password || 
+			   !req.body.firstName || !req.body.lastName
 			) {
+				ResponseHelper.sendError(res, 404, 'missing_required_params', 
+					'The server was expecting an email, password, first name and last name. At least of of these parameters was missing from the request.');
+			} else {
 				// Check if the email is already registered
 				Users.isEmailRegistered(req.body.email, (err, result) => {
 					if(err) {
@@ -107,10 +116,10 @@ router.post('/create/:userType', (req, res, next) => {
 								} else {
 									// Create user object with hashed password
 									const user = {
-										Email: req.body.email,
-										Password: hashedPassword,
-										FirstName: req.body.firstName,
-										LastName: req.body.lastName
+										email: req.body.email,
+										password: hashedPassword,
+										firstName: req.body.firstName,
+										lastName: req.body.lastName
 									}
 									// Add the new user to the db
 									Users.createNewUser(user, (err, result) => {
@@ -119,10 +128,11 @@ router.post('/create/:userType', (req, res, next) => {
 										} else {
 											// Set the user's role, which we get from the userRolesObject, using the specified userType
 											const userDetails = {
-												UserId: result.insertId,
-												RoleId: userRole,
-												StartDate: myDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss") // Consider timezones
+												userId: result.insertId,
+												roleId: userRole,
+												startDate: myDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss") // Consider timezones
 											}
+
 											UserRoles.setUserRole(userDetails, (err) => {
 												if(err) {
 													ResponseHelper.sendError(res, 500, 'set_user_role_query_error', err);
@@ -137,17 +147,8 @@ router.post('/create/:userType', (req, res, next) => {
 						}
 					}
 				});
-			} else {
-				ResponseHelper.sendError(res, 404, 'missing_required_params', 
-					'The server was expecting an email, password, first name and last name. At least of of these parameters was missing from the request.');
 			}
-		} else {
-			ResponseHelper.sendError(res, 404, 'invalid_subroute', 
-				'An invalid user type was specified in the subroute.');
 		}
-	} else {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'Server was expecting a subroute that specifies the type of user to be created.');
 	}
 });
 

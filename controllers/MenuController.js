@@ -227,6 +227,7 @@ router.put('/update/:menuId', (req, res, next) => {
 		const token = req.headers.authorization;
 		const menuId = req.params.menuId;
 		const menuData = req.body;
+		// Check that the body params are allowed; write an external helper function for this
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {

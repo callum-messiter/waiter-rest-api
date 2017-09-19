@@ -42,36 +42,33 @@ router.get('/:userId', (req, res, next) => {
 				ResponseHelper.sendError(res, 401, 'invalid_token', 
 					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
 			} else {
-				const requesterRole = decodedpayload.userRole;
 				const requesterId = decodedpayload.userId;
-				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
-				// User details can be accessed only by the owner, or by an internal admin
-				if(requesterId != userId && requesterRole != waiterAdmin) {
-					ResponseHelper.sendError(res, 401, 'unauthorised', 
-						'A user\'s details can be accessed only by the owner, or by admins.');
-				} else {
-					Users.getUserById(req.params.userId, (err, user) => {
-						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+				
+				Users.getUserById(userId, (err, result) => {
+					if(err) {
+						ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+					} else if(result.length < 1) {
+						ResponseHelper.sendError(res, 404, 'user_not_found', 
+							'There are no users matching the ID provided.');
+					} else {
+						// User details can be accessed only by the owner, or by an internal admin
+						if(requesterId != userId) {
+							ResponseHelper.sendError(res, 401, 'unauthorised', 
+								'A user\'s details can be accessed only by the owner, or by admins.');
 						} else {
-							if(user.length < 1) {
-								ResponseHelper.sendError(res, 404, 'user_not_found', 
-									'There are no users matching the ID provided.');
-							} else {
-								// Return only insensitive user information
-								user = {
-									userId: user[0].UserId,
-									email: user[0].Email, 
-									firstName: user[0].FirstName,
-									lastName: user[0].LastName,
-									isVerified: user[0].IsVerified,
-									isActive: user[0].IsActive
-								}
-								ResponseHelper.sendSuccess(res, 200, user);
+							// Return only insensitive user information
+							user = {
+								userId: result[0].userId,
+								email: result[0].email, 
+								firstName: result[0].firstName,
+								lastName: result[0].lastName,
+								isVerified: result[0].isVerified,
+								isActive: result[0].isActive
 							}
+							ResponseHelper.sendSuccess(res, 200, user);
 						}
-					});
-				}
+					}
+				});
 			}
 		});
 	}
@@ -216,73 +213,6 @@ router.put('/deactivate/:userId', (req, res, next) => {
 /**
 	Update user
 **/
-
-/**
-	Get user dashboard
-**/
-router.get('/dashboard/:userId', (req, res, next) => {
-		// Check that the request contains a token, and the Id of the user whose details are to be retrieved
-	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
-	} else {
-		const userId = req.params.userId;
-		const token = req.headers.authorization;
-		// Check that the token is valid
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
-			} else {
-				const requesterRole = decodedpayload.userRole;
-				const requesterId = decodedpayload.userId;
-				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
-				// User details can be accessed only by the owner, or by an internal admin. Future: restaurant details accessible to users granted access by restaurant owner
-				if(requesterId != userId && requesterRole != waiterAdmin) {
-					ResponseHelper.sendError(res, 401, 'unauthorised', 
-						'A user\'s details can be accessed only by the owner, or by admins.');
-				} else {
-					Users.getUserById(req.params.userId, (err, result) => {
-						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
-						} else {
-							if(result.length < 1) {
-								ResponseHelper.sendError(res, 404, 'user_not_found', 
-									'There are no users matching the ID provided.');
-							} else {
-								// Return only insensitive user information
-								const user = {
-									email: result[0].Email, 
-									firstName: result[0].FirstName,
-									lastName: result[0].LastName,
-									imageUrl: result[0].ImageUrl
-								}
-								Restaurants.getRestaurant(userId, (err, result) => {
-									if(err) {
-										ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', err);
-									} else if(result.length < 1) {
-										ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
-									'The user appears to have zero registered restaurants.');
-									} else {
-										// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
-										const restaurant = {
-											name: result[0].Name,
-											description: result[0].Description,
-											location: result[0].Location,
-											phoneNumber: result[0].PhoneNumber,
-											emailAddress: result[0].EmailAddress
-										}
-										ResponseHelper.sendSuccess(res, 200, {user: user, restaurant: restaurant});
-									}
-								});
-							}
-						}
-					});
-				}
-			}
-		});
-	}
-});
 
 
 

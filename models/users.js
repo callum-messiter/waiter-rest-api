@@ -9,7 +9,7 @@ const db = require('../config/database');
 
 **/
 module.exports.getUserById = function(userId, callback) {
-	const query = 'SELECT * FROM users WHERE UserId = ?';
+	const query = 'SELECT * FROM users WHERE userId = ?';
 	db.query(query, userId, callback);
 }
 

@@ -41,7 +41,7 @@ router.get('/:restaurantId', (req, res, next) => {
 								'A restaurant\'s details can be accessed only by the owner.');
 						} else {
 							// Get the restaurant details
-							Restaurants.getRestaurantDetails(restaurantId, (err, result) => {
+							Restaurants.getRestaurantById(restaurantId, (err, result) => {
 								if(err) {
 									ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', err);
 								} else if(result.length < 1) {
@@ -67,6 +67,9 @@ router.get('/:restaurantId', (req, res, next) => {
 	}
 });
 
+/**
+	Create a new restaurant, assigned to the requester user
+**/
 router.post('/create/:userId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.userId) {
@@ -118,6 +121,59 @@ router.post('/create/:userId', (req, res, next) => {
 				}
 			});
 		}
+	}
+});
+
+/**
+	Update the details of a category
+**/
+router.put('/update/:restaurantId', (req, res, next) => {
+	// Check auth header and restaurantId param
+	if(!req.headers.authorization || !req.params.restaurantId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			"The server was expecting an 'authorization' header, and a restaurantId. At least one of these params was missing.");
+	} else {
+		// Function for validating data: params must be valid, and required parmas must be provided
+		const token = req.headers.authorization;
+		const restaurantId = req.params.restaurantId;
+		const restaurantData = req.body;
+		// Check that the body params are allowed; write an external helper function for this
+		// Check that the token is valid
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				ResponseHelper.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+			} else {
+				// Check that the requester owns the menu
+				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
+					if(err) {
+						ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error', err);
+					} else if(result.length < 1) {
+						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
+							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist');
+					} else {
+						const ownerId = result[0].ownerId;
+						const requesterId = decodedpayload.userId;
+						// Menus can only be modified by the menu owner
+						if(requesterId != ownerId) {
+							ResponseHelper.sendError(res, 401, 'unauthorised', 
+								'A restaurant can be modified only by its owner.');
+						} else {
+							// Update Menu
+							Restaurants.updateRestaurantDetails(restaurantId, restaurantData, (err, result) => {
+								if(err) {
+									ResponseHelper.sendError(res, 500, 'update_restaurant_query_error', err);
+								} else if(result.changedRows < 1) {
+									QueryHelper.diagnoseQueryError(result, res);
+								} else {
+									ResponseHelper.sendSuccess(res, 200);					
+								}
+							});
+						}
+					}
+				});
+			}
+		});
 	}
 });
 

@@ -5,7 +5,7 @@ const db = require('../config/database');
 /**
 	Get restaurant by owner (user) Id
 **/
-module.exports.getRestaurantDetails = function(userId, callback) {
+module.exports.getRestaurantById = function(userId, callback) {
 	const query = 'SELECT * FROM restaurants WHERE OwnerId = ?';
 	db.query(query, userId, callback);
 }
@@ -18,9 +18,12 @@ module.exports.getRestaurantOwnerId = function(restaurantId, callback) {
 	db.query(query, restaurantId, callback);
 }
 
-module.exports.createNewRestaurant = function(userId, restaurant, callback) {
-	// First add the userId to the restaurant object
-	restaurant.ownerId = userId;
-	const query = 'INSERT INTO restaurants SET ?';
-	db.query(query, restaurant, callback);
+/**
+	Create a new restaurant, assigned to the user 
+**/
+module.exports.updateRestaurantDetails = function(restaurantId, restaurantData, callback) {
+	const query = 'UPDATE restaurants SET ? ' +
+				  'WHERE restaurantId = ?';
+	db.query(query, [restaurantData, restaurantId], callback);
 }
+

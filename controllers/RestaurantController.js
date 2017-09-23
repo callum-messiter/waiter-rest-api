@@ -227,5 +227,4 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 	}
 });
 
-
 module.exports = router;

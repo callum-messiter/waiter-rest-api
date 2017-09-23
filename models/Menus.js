@@ -1,4 +1,3 @@
-// Dependencies
 // Config
 const db = require('../config/database');
 

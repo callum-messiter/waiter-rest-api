@@ -1,4 +1,3 @@
-// Dependencies
 // Config
 const db = require('../config/database');
 
@@ -34,4 +33,3 @@ module.exports.deactivateRestaurant = function(restaurantId, callback) {
 	const query = 'UPDATE restaurants SET active = 0 WHERE restaurantId = ?';
 	db.query(query, restaurantId, callback);
 }
-

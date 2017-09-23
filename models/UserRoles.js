@@ -1,5 +1,5 @@
+// Config
 const db = require('../config/database');
-const userRolesTable = 'userroles';
 
 /**
 	The available roles. {roleTitle: roleId}

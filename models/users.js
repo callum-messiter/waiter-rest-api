@@ -4,9 +4,7 @@ const bcrypt = require('bcrypt');
 const db = require('../config/database');
 
 /**
-
 	Search the db for a userId, and returns the user if a match is found
-
 **/
 module.exports.getUserById = function(userId, callback) {
 	const query = 'SELECT * FROM users WHERE userId = ?';
@@ -25,13 +23,7 @@ module.exports.getAllUsers = function(callback) {
 
 
 /**
-	user = {
-		Email: req.query.email,
-		Password: req.query.password,
-		FirstName: req.query.firstName,
-		LastName: req.query.lastName
-	}
-
+	Create new user with a specified user type 
 **/
 module.exports.createNewUser = function(user, callback) {
 	const query = 'INSERT INTO users SET ?';

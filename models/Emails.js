@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 // Config
 const db = require('../config/database');
+const smtp = require('../config/smtp');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 
@@ -27,8 +28,8 @@ const transporter = nodemailer.createTransport({
 	service: 'gmail',
 	secure: false,
 	auth: {
-		user: 'callum.messiter@tracktics.zone',
-		pass: 'cxFpW2VInfcuouerIHKm'
+		user: stmp.creds.email,
+		pass: stmp.creds.pass
 	},
 	tls: {
 		rejectUnauthorised: false

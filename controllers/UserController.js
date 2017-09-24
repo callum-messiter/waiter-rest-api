@@ -8,6 +8,7 @@ const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
 const Auth = require('../models/Auth');
 const Restaurants = require('../models/Restaurants');
+const Emails = require('../models/Emails');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 
@@ -137,7 +138,26 @@ router.post('/create/:userType', (req, res, next) => {
 												if(err) {
 													ResponseHelper.sendError(res, 500, 'set_user_role_query_error', err);
 												} else {
-													ResponseHelper.sendSuccess(res, 201, {userId: result.insertId, userRole: userRole});
+													// Generate a random verification token, and add it to the database
+													const vt = 'asi3939cspA';
+													const templateName = 'emailVerification';
+													const recipient = {
+														email: user.email,
+														firstName: user.firstName,
+														url: 'http://app.waiter.com/verifyEmail?vt='+vt
+													};
+													// Send email
+													Emails.sendSingleEmail(res, templateName, recipient, (err, result) => {
+														if(err) {
+															ResponseHelper.sendError(res, 500, 'send_email_error', err);
+														} else {
+															ResponseHelper.sendSuccess(res, 201, {
+																userId: result.insertId, 
+																userRole: userRole,
+																verified: false
+															});
+														}
+													});
 												}
 											})
 										}	

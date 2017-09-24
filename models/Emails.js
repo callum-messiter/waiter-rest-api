@@ -28,8 +28,8 @@ const transporter = nodemailer.createTransport({
 	service: 'gmail',
 	secure: false,
 	auth: {
-		user: stmp.creds.email,
-		pass: stmp.creds.pass
+		user: smtp.creds.email,
+		pass: smtp.creds.pass
 	},
 	tls: {
 		rejectUnauthorised: false

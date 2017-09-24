@@ -108,7 +108,7 @@ router.post('/create/:userType', (req, res, next) => {
 					} else {
 						if(result[0].matches > 0) {
 							ResponseHelper.sendError(res, 409, 
-								'email_already_registered', 'The email address ' + req.query.email + ' is already registered.');
+								'email_already_registered', 'The email address ' + req.body.email + ' is already registered.');
 						} else {
 							// Hash the password
 							Users.hashPassword(req.body.password, (err, hashedPassword) => {

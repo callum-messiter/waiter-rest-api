@@ -8,6 +8,28 @@ const smtp = require('../config/smtp');
 const ResponseHelper = require('../helpers/ResponseHelper');
 
 /**
+	The email verification route which will handle requests when a user clicks the link in their verification email
+**/
+module.exports.emailVerRoute = '/verifyEmail';
+
+/**
+	The query params that will be affixed to the email-verification route, and parsed once the user clicks the link in their verification email
+**/
+module.exports.emailVerRouteQueryParams = {
+	userId: 'uid',
+	verificationToken: 'vt'
+}
+
+/**
+	The statuses an email-verification token can have	
+**/
+module.exports.emailVerTokenStatuses = {
+	active: 100,
+	used: 200, 
+	inactive: 300
+}
+
+/**
 	The handlebars in each template
 **/
 const handlebars = {
@@ -104,4 +126,29 @@ function injectDataIntoBody(templateName, body, recipient, emailOpts, handlebars
 module.exports.createNewTemplate = function(template, callback) {
 	const query = 'INSERT INTO emailtemplates SET ?';
 	db.query(query, template, callback);
+}
+/**
+	Add the email-verification token to the database
+**/
+module.exports.storeVerificationToken = function(data, callback) {
+	const query = 'INSERT INTO verification SET ?';
+	db.query(query, data, callback);
+}
+
+/**
+	Check that there exists a valid email erification
+**/
+module.exports.validateEmailVerificationToken = function(userId, token, callback) {
+	const query = 'SELECT status FROM verification ' +
+				  'WHERE userId = ? AND token = ?';
+	db.query(query,[userId, token], callback);
+}
+
+/**
+	Update the status of an email-verification token; e.g. invalidate it if it has expired
+**/
+module.exports.updateEmailVerificationTokenStatus = function(userId, token, status, callback) {
+	const query = 'UPDATE verification SET status = ? ' +
+				  'WHERE userId = ? AND token = ?';
+	db.query(query, [userId, token, status], callback);
 }

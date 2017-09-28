@@ -74,6 +74,14 @@ module.exports.checkPassword = function(plainTextPassword, hash, callback) {
 	"Deletes" a user (sets their isActive property to 0)
 **/
 module.exports.deactivateUser = function(userId, callback) {
-	const query = 'UPDATE users SET IsActive = 0 WHERE userId = ?';
+	const query = 'UPDATE users SET isActive = 0 WHERE userId = ?';
+	db.query(query, userId, callback);
+}
+
+/**
+	
+**/
+module.exports.setUserAsVerified = function(userId, callback) {
+	const query = 'UPDATE users SET isVerified = 1 WHERE userId = ?';
 	db.query(query, userId, callback);
 }

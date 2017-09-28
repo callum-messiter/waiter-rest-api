@@ -13,11 +13,11 @@ module.exports.diagnoseQueryError = function(result, res) {
 				'The resource was found but not changed. This is likely because the new resource details provided already exist in the database.');
 		// This is a MySQL contradiction that should never arise
 		} else {
-			ResponseHelper.sendError(res, 500, 'error_contradiction', 
+			ResponseHelper.sendError(res, 500, 'schroedingers_error', 
 				'The server determined that zero rows were changed, and one row was changed. Contact the dev.');
 		}
 	} else {
-		ResponseHelper.sendError(res, 404, 'item_not_found', 
+		ResponseHelper.sendError(res, 404, 'resource_not_found', 
 			'A resource with the specified ID was not found.');
 	}
 }

@@ -127,9 +127,10 @@ router.post('/create/:userType', (req, res, next) => {
 										if(err) {
 											ResponseHelper.sendError(res, 500, 'create_user_query_error', err);
 										} else {
+											const userId = result.insertId;
 											// Set the user's role, which we get from the userRolesObject, using the specified userType
 											const userDetails = {
-												userId: result.insertId,
+												userId: userId,
 												roleId: userRole,
 												startDate: myDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss") // Consider timezones
 											}
@@ -139,22 +140,33 @@ router.post('/create/:userType', (req, res, next) => {
 													ResponseHelper.sendError(res, 500, 'set_user_role_query_error', err);
 												} else {
 													// Generate a random verification token, and add it to the database
+													const emailVerRoute = Emails.emailVerRoute;
 													const vt = 'asi3939cspA';
-													const templateName = 'emailVerification';
 													const recipient = {
 														email: user.email,
 														firstName: user.firstName,
-														url: 'http://app.waiter.com/verifyEmail?vt='+vt
+														url: 'http://localhost:3000/api/email/verifyEmail?uid='+userId+'&vt='+vt
 													};
 													// Send email
-													Emails.sendSingleEmail(res, templateName, recipient, (err, result) => {
+													Emails.sendSingleEmail(res, 'emailVerification', recipient, (err, result) => {
 														if(err) {
 															ResponseHelper.sendError(res, 500, 'send_email_error', err);
 														} else {
-															ResponseHelper.sendSuccess(res, 201, {
-																userId: result.insertId, 
-																userRole: userRole,
-																verified: false
+															// Add the verification token to the database
+															const data = {
+																userId: userId, 
+																token: vt
+															}
+															Emails.storeVerificationToken(data, (err, results) => {
+																if(err) {
+																	ResponseHelper.sendError(res, 500, 'store_email_ver_token_query_error', err);
+																} else {
+																	ResponseHelper.sendSuccess(res, 201, {
+																		userId: userId, 
+																		userRole: userRole,
+																		isVerified: false
+																	});
+																}
 															});
 														}
 													});

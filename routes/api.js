@@ -13,7 +13,7 @@ const SectionController = require('../controllers/SectionController');
 const CategoryController = require('../controllers/CategoryController');
 const ItemController = require('../controllers/ItemController');
 const TransactionController = require('../controllers/TransactionController');
-const EmailTemplatesController = require('../controllers/EmailTemplatesController');
+const EmailController = require('../controllers/EmailController');
 
 // Append controller routes to the '/api' endpoint here
 router.use('/user', UserController);
@@ -27,6 +27,6 @@ router.use('/section', SectionController);
 router.use('/category', CategoryController);
 router.use('/item', ItemController);
 router.use('/transaction', TransactionController);
-router.use('/emailTemplates', EmailTemplatesController);
+router.use('/email', EmailController);
 
 module.exports = router;

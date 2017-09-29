@@ -1,16 +1,14 @@
 // Dependencies
 const nodemailer = require('nodemailer');
 const path = require('path');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 // Config
 const db = require('../config/database');
 const smtp = require('../config/smtp');
+const secret = require('../config/jwt').jwt.secret;
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
-
-/**
-	The email verification route which will handle requests when a user clicks the link in their verification email
-**/
-module.exports.emailVerRoute = '/verifyEmail';
 
 /**
 	The query params that will be affixed to the email-verification route, and parsed once the user clicks the link in their verification email
@@ -39,7 +37,7 @@ const handlebars = {
 	},
 	passwordReset: {
 		firstName: '{{firstName}}',
-		pin: '{{resetPin}}'
+		resetUrl: '{{resetUrl}}'
 	}
 }
 
@@ -151,4 +149,29 @@ module.exports.updateEmailVerificationTokenStatus = function(userId, token, stat
 	const query = 'UPDATE verification SET status = ? ' +
 				  'WHERE userId = ? AND token = ?';
 	db.query(query, [userId, token, status], callback);
+}
+
+module.exports.createResetPasswordToken = function(userId, hash, callback) {
+	const utc_timestamp = new Date().getTime();
+	const alg = 'HS256';
+	const issuer = 'http://api.waiter.com';
+	const action = 'resetPassword';
+	const iat = utc_timestamp;
+	const exp = utc_timestamp + 3600000; // 1 hour from the current time
+	jwt.sign({
+		algorithm: alg,
+		issuer: issuer,
+		action: action,
+		iat: iat,
+		exp: exp,
+		userId: userId,
+		hash: hash
+	}, secret, callback);
+}
+
+module.exports.createResetPasswordHash = function(hashedPassword, secret, callback) {
+	const string = hashedPassword+secret;
+	bcrypt.genSalt(11, (err, salt) => {
+		bcrypt.hash(string, salt, callback);
+	});
 }

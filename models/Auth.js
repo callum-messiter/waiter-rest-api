@@ -5,10 +5,9 @@ const moment = require('moment');
 // Config
 const db = require('../config/database');
 const secret = require('../config/jwt').jwt.secret;
+
 /**
-
 	Generate a new json web token (jwt) upon successful login
-
 **/
 module.exports.createUserToken = function(userId, userRole, callback) {
 	const utc_timestamp = new Date().getTime();
@@ -27,9 +26,7 @@ module.exports.createUserToken = function(userId, userRole, callback) {
 }
 
 /**
-
 	Stores a reference to any generated jwt
-
 **/
 module.exports.saveUserTokenReference = function(userToken, callback) {
 	const query = 'INSERT INTO tokens SET ?';
@@ -37,18 +34,14 @@ module.exports.saveUserTokenReference = function(userToken, callback) {
 }
 
 /**
-
 	Check if token is valid (jwt.verify + check if token has been revoked)
-
 **/
 module.exports.verifyToken = function(token, callback) {
 	jwt.verify(token, secret, callback);
 }
 
 /**
-
 	Delete a token from the db upon logout
-
 **/
 module.exports.deleteTokenReference = function(token, userId, callback) {
 	const query = 'DELETE FROM tokens WHERE userId = ? AND token = ?';

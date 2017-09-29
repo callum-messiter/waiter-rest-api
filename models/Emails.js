@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 // Config
 const db = require('../config/database');
 const smtp = require('../config/smtp');
-const secret = require('../config/jwt').jwt.secret;
+const secret = require('../config/jwt').secret;
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 
@@ -140,6 +140,23 @@ module.exports.validateEmailVerificationToken = function(userId, token, callback
 	const query = 'SELECT status FROM verification ' +
 				  'WHERE userId = ? AND token = ?';
 	db.query(query,[userId, token], callback);
+}
+
+module.exports.createEmailVerificationToken = function(userId, secret, callback) {
+	const utc_timestamp = new Date().getTime();
+	const alg = 'HS256';
+	const issuer = 'http://api.waiter.com';
+	const action = 'verifyEmail';
+	const iat = utc_timestamp;
+	const exp = utc_timestamp + 3600000; // 1 hour from the current time
+	jwt.sign({
+		algorithm: alg,
+		issuer: issuer,
+		action: action,
+		iat: iat,
+		exp: exp,
+		userId: userId
+	}, secret, callback);
 }
 
 /**

@@ -11,49 +11,64 @@ const Auth = require('../models/Auth');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 const QueryHelper = require('../helpers/QueryHelper');
+// Config
+const secret = require('../config/jwt').secret;
 
 router.get('/verifyEmail', (req, res, next) => {
-	if(!req.query.uid || !req.query.vt) {
+	const vtoken = req.query.v;
+
+	if(!vtoken) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
 			'The server was expecting a uid and a verification token. At least one of these params was missing.');
 	} else {
-		const uid = req.query.uid;
-		const vt = req.query.vt;
-		// Check the database for a the uid-vt combination (is the combo active)
-		Emails.validateEmailVerificationToken(uid, vt, (err, result) => {
+		// Check that the token is not expired, and that is is the correct type
+		Auth.verifyToken(vtoken, (err, decodedPayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 500, 'validate_email_ver_token_query_error', err);
-			} else if(result.length < 1) {
-				ResponseHelper.sendError(res, 404, 'email_ver_token_not_found', 
-					'The query returned zero results. The uid-and-token combination (of any status) could not be found.');
+				ResponseHelper.sendError(res, 500, 'vtoken_verification_error', err);
 			} else {
-				// Check the status of the token so as to provide an informative response
-				const status = result[0].status;
-				switch(status) {
-				    case statuses.used:
-				    	ResponseHelper.sendError(res, 409, 'email_ver_token_already_used', 
-							'The veriication-token status is "used". The user has already used this token to verify their email account.');
-				        break;
-				    case statuses.inactive:
-				    	ResponseHelper.sendError(res, 401, 'email_ver_token_inactive', 
-							'The verification token is inactive. Encourage the client to trigger a new verification email.');
-				        break;
-				    case statuses.active:
-				    	// Set the user.isActive property to 1, and redirect the user to the login route
-				    	Users.setUserAsVerified(uid, (err, result) => {
-				    		if(err) {
-				    			ResponseHelper.sendError(res, 500, 'set_user_valid_query_error', err);
-				    		} else if(result.changedRows < 1) {
-								QueryHelper.diagnoseQueryError(result, res);
-				    		} else {
-				    			// Update verification token status
-				    			ResponseHelper.sendSuccess(res, 200, {userId: uid, isVerified: true});	    			
-				    		}
-				    	});
-				        break;
-				    default:
-				    	ResponseHelper.sendError(res, 500, 'unknown_ver_token_status', 
-				    		'The verification status token has the unrecognise status ' + status + '. Contact the dev.');
+				if(!decodedPayload.action || !decodedPayload.action == 'verifyEmail') {
+					ResponseHelper.sendError(res, 401, 'invalid_ver_token_type', 
+						'The decoded payload did not contain the "action" claim with the correct value.');
+				} else {
+					const uid = decodedPayload.userId;
+					// Check the database for a the uid-vt combination (is the combo active)
+					Emails.validateEmailVerificationToken(uid, vtoken, (err, result) => {
+						if(err) {
+							ResponseHelper.sendError(res, 500, 'validate_email_ver_token_query_error', err);
+						} else if(result.length < 1) {
+							ResponseHelper.sendError(res, 404, 'email_ver_token_not_found', 
+								'The query returned zero results. The uid-and-token combination (of any status) could not be found.');
+						} else {
+							// Check the status of the token so as to provide an informative response
+							const status = result[0].status;
+							switch(status) {
+							    case statuses.used:
+							    	ResponseHelper.sendError(res, 409, 'email_ver_token_already_used', 
+										'The veriication-token status is "used". The user has already used this token to verify their email account.');
+							        break;
+							    case statuses.inactive:
+							    	ResponseHelper.sendError(res, 401, 'email_ver_token_inactive', 
+										'The verification token is inactive. Encourage the client to trigger a new verification email.');
+							        break;
+							    case statuses.active:
+							    	// Set the user.isActive property to 1, and redirect the user to the login route
+							    	Users.setUserAsVerified(uid, (err, result) => {
+							    		if(err) {
+							    			ResponseHelper.sendError(res, 500, 'set_user_valid_query_error', err);
+							    		} else if(result.changedRows < 1) {
+											QueryHelper.diagnoseQueryError(result, res);
+							    		} else {
+							    			// Update verification token status
+							    			ResponseHelper.sendSuccess(res, 200, {userId: uid, isVerified: true});	    			
+							    		}
+							    	});
+							        break;
+							    default:
+							    	ResponseHelper.sendError(res, 500, 'unknown_ver_token_status', 
+							    		'The verification status token has the unrecognise status ' + status + '. Contact the dev.');
+							}
+						}
+					});
 				}
 			}
 		});
@@ -78,7 +93,6 @@ router.get('/requestPasswordReset', (req, res, next) => {
 		} else {
 			const userCurrentHashedPass = user.password;
 			const userEmailAddress = user.email;
-			const secret = 'H4FMWP4YifmMcB6kOdPnhlTTVSpljRZq';
 			const string = userCurrentHashedPass+secret;
 			// Generate a hash containg the user's current (hashed) password, and add it as a claim to the new email-verification jwt. When the user clicks the url in the email we send them,
 			// we will decode the jwt, get the hash, generate a new hash using the same data, and compare the two hashes. The two hashes should

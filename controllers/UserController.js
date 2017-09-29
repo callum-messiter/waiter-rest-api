@@ -11,6 +11,8 @@ const Restaurants = require('../models/Restaurants');
 const Emails = require('../models/Emails');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
+// Config
+const secret = require('../config/jwt').secret;
 
 /**
 	Get a list of all registered users
@@ -140,31 +142,35 @@ router.post('/create/:userType', (req, res, next) => {
 													ResponseHelper.sendError(res, 500, 'set_user_role_query_error', err);
 												} else {
 													// Generate a random verification token, and add it to the database
-													const emailVerRoute = Emails.emailVerRoute;
-													const vt = 'asi3939cspA';
-													const recipient = {
-														email: user.email,
-														firstName: user.firstName,
-														url: 'http://localhost:3000/api/email/verifyEmail?uid='+userId+'&vt='+vt
-													};
-													// Send email
-													Emails.sendSingleEmail(res, 'emailVerification', recipient, (err, result) => {
+													Emails.createEmailVerificationToken(userId, secret, (err, token) => {
 														if(err) {
-															ResponseHelper.sendError(res, 500, 'send_email_error', err);
+															ResponseHelper.sendError(res, 500, 'create_email_ver_token_query_error', err);
 														} else {
-															// Add the verification token to the database
-															const data = {
-																userId: userId, 
-																token: vt
-															}
-															Emails.storeVerificationToken(data, (err, results) => {
+															const recipient = {
+																email: user.email,
+																firstName: user.firstName,
+																url: 'http://localhost:3000/api/email/verifyEmail?v='+token
+															};
+															// Send email
+															Emails.sendSingleEmail(res, 'emailVerification', recipient, (err, result) => {
 																if(err) {
-																	ResponseHelper.sendError(res, 500, 'store_email_ver_token_query_error', err);
+																	ResponseHelper.sendError(res, 500, 'send_email_error', err);
 																} else {
-																	ResponseHelper.sendSuccess(res, 201, {
+																	// Add the verification token to the database
+																	const data = {
 																		userId: userId, 
-																		userRole: userRole,
-																		isVerified: false
+																		token: token
+																	}
+																	Emails.storeVerificationToken(data, (err, result) => {
+																		if(err) {
+																			ResponseHelper.sendError(res, 500, 'store_email_ver_token_query_error', err);
+																		} else {
+																			ResponseHelper.sendSuccess(res, 201, {
+																				userId: userId, 
+																				userRole: userRole,
+																				isVerified: false
+																			});
+																		}
 																	});
 																}
 															});

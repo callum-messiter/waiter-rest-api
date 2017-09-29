@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const moment = require('moment');
 // Config
 const db = require('../config/database');
-const secret = require('../config/jwt').jwt.secret;
+const secret = require('../config/jwt').secret;
 
 /**
 	Generate a new json web token (jwt) upon successful login

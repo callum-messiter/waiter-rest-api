@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const moment = require('moment');
 const jwt = require('jsonwebtoken');
 // Config
-const secret = require('../config/jwt').jwt.secret;
+const secret = require('../config/jwt').secret;
 const ResponseHelper = require('../helpers/ResponseHelper');
 // Models
 const Auth = require('../models/Auth');

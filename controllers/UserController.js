@@ -12,8 +12,10 @@ const Restaurants = require('../models/Restaurants');
 const Emails = require('../models/Emails');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
+const RequestHelper = require('../helpers/RequestHelper');
 // Config
 const secret = require('../config/jwt').secret;
+const modifiableUserDetails = Users.schema.requestBodyParams;
 
 /**
 	Get a list of all registered users
@@ -258,7 +260,59 @@ router.put('/deactivate/:userId', (req, res, next) => {
 /**
 	Update user
 **/
+router.put('/updateDetails/:userId', (req, res, next) => {
+	if(!req.headers.authorization || !req.params.userId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			"The server was expecting an 'authorization' header, and a userId. At least one of these params was missing.");
+	} else {
+		if(!req.body.firstName && !req.body.lastName) {
+			ResponseHelper.sendError(res, 404, 'missing_required_params', 
+				'The server received zero valid parameters to be updated.');
+		} else {
+			const token = req.headers.authorization;
+			const userId = req.params.userId;
+			const userDetails = req.body;
+			// Check that the body params are allowed; write an external helper function for this
+			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(userDetails, modifiableUserDetails, res);
+			if(requestDataIsValid !== true) {
+				ResponseHelper.sendError(res, 422, 'invalid_data_params', 
+					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
+			} else {
+				Auth.verifyToken(token, (err, decodedpayload) => {
+					if(err) {
+						ResponseHelper.sendError(res, 401, 'invalid_token', 
+							'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+					} else {
+						const ownerId = userId;
+						const requesterId = decodedpayload.userId;
+						// Menus can only be modified by the menu owner
+						if(requesterId != ownerId) {
+							ResponseHelper.sendError(res, 401, 'unauthorised', 
+								'A user can modify only their own details.');
+						} else {
+							// Update user details
+							Users.updateUserDetails(userId, userDetails, (err, result) => {
+								if(err) {
+									ResponseHelper.sendError(res, 500, 'update_user_query_error', err);
+								} else if(result.changedRows < 1) {
+									QueryHelper.diagnoseQueryError(result, res);
+								} else {
+									ResponseHelper.sendSuccess(res, 200);					
+								}
+							});
+						}
+					}
+				});
+			}
+		}
+	}
+});
 
+router.put('updatePassword/:userId', (req, res, next) => {
+});
+
+router.put('updateEmail/:userId', (req, res, next) => {
+});
 
 
 module.exports = router;

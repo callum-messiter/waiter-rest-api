@@ -3,6 +3,25 @@ const bcrypt = require('bcrypt');
 // Config
 const db = require('../config/database');
 
+module.exports.schema = {
+	userId: '',
+	email: '',
+	password: '',
+	firstName: '',
+	lastName: '',
+	isVerified: '',
+	isActive: '',
+	imageUrl: '',
+	// The parameters that can be passed in the body of the request when a user wishes to update their details
+	requestBodyParams: {
+		email: '',
+		password: '',
+		firstName: '',
+		lastName: '',
+		imageUrl: ''
+	}
+}
+
 /**
 	Search the db for a userId, and returns the user if a match is found
 **/
@@ -74,4 +93,13 @@ module.exports.deactivateUser = function(userId, callback) {
 module.exports.setUserAsVerified = function(userId, callback) {
 	const query = 'UPDATE users SET isVerified = 1 WHERE userId = ?';
 	db.query(query, userId, callback);
+}
+
+/**
+	Update the user's details. Refer to the schema to see info about editable parameters
+**/
+module.exports.updateUserDetails = function(userId, userDetails, callback) {
+	const query = 'UPDATE users SET ? ' +
+				  'WHERE userId = ?';
+	db.query(query, [userDetails, userId], callback);
 }

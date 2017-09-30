@@ -45,7 +45,7 @@ module.exports.deactivateItem = function(itemId, callback) {
 module.exports.updateItemDetails = function(itemId, itemData, callback) {
 	const query = 'UPDATE items SET ? ' +
 				  'WHERE itemId = ?';
-    db.query(query, [itemDetails, itemId], callback);
+    db.query(query, [itemData, itemId], callback);
 }
 
 /**

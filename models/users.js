@@ -103,3 +103,15 @@ module.exports.updateUserDetails = function(userId, userDetails, callback) {
 				  'WHERE userId = ?';
 	db.query(query, [userDetails, userId], callback);
 }
+
+module.exports.updateUserPassword = function(userId, newPassword, callback) {
+	const query = 'UPDATE users SET password = ? ' +
+				  'WHERE userId = ?';
+	db.query(query, [newPassword, userId], callback);
+}
+
+module.exports.doesPasswordMatch = function(userId, currentPassword, callback) {
+	const query = 'COUNT (*) FROM users ' +
+				  'WHERE userId = ? AND password = ?';
+	db.query(query, [userId, currentPassword], callback);
+}

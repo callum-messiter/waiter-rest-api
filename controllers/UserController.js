@@ -308,7 +308,85 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 	}
 });
 
-router.put('updatePassword/:userId', (req, res, next) => {
+/**
+	Update a user's password 
+**/
+router.put('/updatePassword/:userId', (req, res, next) => {
+	// Check the request contains the required data
+	if(!req.headers.authorization || !req.params.userId) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			"The server was expecting an 'authorization' header, and a userId. At least one of these params was missing.");
+	} else if(!req.body.currentPassword || !req.body.newPassword) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			'The server was expecting a newPassword parameter and a currentPassword parameter.');
+	} else {
+		const token = req.headers.authorization;
+		const userId = req.params.userId;
+		const currentPassword = req.body.currentPassword;
+		const newPassword = req.body.newPassword;
+
+		Auth.verifyToken(token, (err, decodedpayload) => {
+			if(err) {
+				ResponseHelper.sendError(res, 401, 'invalid_token', 
+					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+			} else {
+				const ownerId = userId;
+				const requesterId = decodedpayload.userId;
+				// A user can update only their own password
+				if(requesterId != ownerId) {
+					ResponseHelper.sendError(res, 401, 'unauthorised', 
+						'A user can modify only their own details.');
+				} else {
+					// Check that the user has entered a password that is different from their current password
+					if(newPassword == currentPassword) {
+						ResponseHelper.sendError(res, 409, 'password_conflict', 
+							'The new password provided is the same as the user\'s current password.');
+					} else {
+						// Get the user's current hashed password
+						Users.getUserById(userId, (err, result) => {
+							if(err) {
+								ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+							} else if(result.length < 1) {
+								ResponseHelper.sendError(res, 404, 'user_not_found', 
+									'The query returned zero results. It is likely that a user with the specified ID does not exist.');
+							} else {
+								const currentHashedPass = result[0].password;
+								const currentPlainTextPass = currentPassword;
+
+								// Check that the user has entered their current password correctly
+								Users.checkPassword(currentPlainTextPass, currentHashedPass, (err, passwordsMatch) => {
+									if(err) {
+										ResponseHelper.sendError(res, 500, 'bcrypt_error', err);
+									} else if(!passwordsMatch) {
+										ResponseHelper.sendError(res, 401, 'invalid_password', 
+											'The currentPassword provided does not match the user\'s current password in the database.');
+									} else if(passwordsMatch){
+										// Hash the new password
+										Users.hashPassword(newPassword, (err, newHashedPassword) => {
+											if(err) {
+												ResponseHelper.sendError(res, 500, 'bcrypt_error', err);
+											} else {
+												// Update user details
+												Users.updateUserPassword(userId, newHashedPassword, (err, result) => {
+													if(err) {
+														ResponseHelper.sendError(res, 500, 'update_oassword_query_error', err);
+													} else if(result.changedRows < 1) {
+														QueryHelper.diagnoseQueryError(result, res);
+													} else {
+														ResponseHelper.sendSuccess(res, 200);					
+													}
+												});
+											}
+										});
+									}
+								});
+							}
+						});
+					}
+				}
+			}
+		});
+	}
 });
 
 router.put('updateEmail/:userId', (req, res, next) => {

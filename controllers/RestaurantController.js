@@ -79,7 +79,7 @@ router.post('/create/:userId', (req, res, next) => {
 		// Check required item data
 		if(!req.body.name || !req.body.description || !req.body.location || !req.body.phoneNumber || !req.body.emailAddress) {
 			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting a name, description, location, phone number and email address. At least one was missing.');
+				'The server was expecting a name, description, location, phone number and email address. At least one was missing.');
 		} else {
 			const token = req.headers.authorization;
 			const userId = req.params.userId;

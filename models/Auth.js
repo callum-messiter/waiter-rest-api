@@ -5,16 +5,17 @@ const moment = require('moment');
 // Config
 const db = require('../config/database');
 const secret = require('../config/jwt').secret;
+const jwtOpts = require('../config/jwt').opts;
 
 /**
 	Generate a new json web token (jwt) upon successful login
 **/
 module.exports.createUserToken = function(userId, userRole, callback) {
 	const utc_timestamp = new Date().getTime();
-	const alg = 'HS256';
-	const issuer = 'http://api.waiter.com';
+	const alg = jwtOpts.alg;
+	const issuer = jwtOpts.issuer;
 	const iat = utc_timestamp;
-	const exp = utc_timestamp + 3600000; // 1 hour from the current time
+	const exp = utc_timestamp + (3600000*24*7); // 1 week from the current time
 	jwt.sign({
 		algorithm: alg,
 		issuer: issuer,

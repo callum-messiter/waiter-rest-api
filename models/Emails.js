@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 const smtp = require('../config/smtp');
 const secret = require('../config/jwt').secret;
+const jwtOpts = require('../config/jwt').opts;
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 
@@ -142,10 +143,10 @@ module.exports.validateEmailVerificationToken = function(userId, token, callback
 	db.query(query,[userId, token], callback);
 }
 
-module.exports.createEmailVerificationToken = function(userId, secret, callback) {
+module.exports.createEmailVerificationToken = function(userId, hash, callback) {
 	const utc_timestamp = new Date().getTime();
-	const alg = 'HS256';
-	const issuer = 'http://api.waiter.com';
+	const alg = jwtOpts.alg;
+	const issuer = jwtOpts.issuer;
 	const action = 'verifyEmail';
 	const iat = utc_timestamp;
 	const exp = utc_timestamp + 3600000; // 1 hour from the current time
@@ -155,7 +156,8 @@ module.exports.createEmailVerificationToken = function(userId, secret, callback)
 		action: action,
 		iat: iat,
 		exp: exp,
-		userId: userId
+		userId: userId,
+		hash: hash
 	}, secret, callback);
 }
 
@@ -170,8 +172,8 @@ module.exports.updateEmailVerificationTokenStatus = function(userId, token, stat
 
 module.exports.createResetPasswordToken = function(userId, hash, callback) {
 	const utc_timestamp = new Date().getTime();
-	const alg = 'HS256';
-	const issuer = 'http://api.waiter.com';
+	const alg = jwtOpts.alg;
+	const issuer = jwtOpts.issuer;
 	const action = 'resetPassword';
 	const iat = utc_timestamp;
 	const exp = utc_timestamp + 3600000; // 1 hour from the current time

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const moment = require('moment');
+const md5 = require('js-md5');
 // Models
 const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
@@ -141,8 +142,14 @@ router.post('/create/:userType', (req, res, next) => {
 												if(err) {
 													ResponseHelper.sendError(res, 500, 'set_user_role_query_error', err);
 												} else {
-													// Generate a random verification token, and add it to the database
-													Emails.createEmailVerificationToken(userId, secret, (err, token) => {
+													// Generate a hash containg the user's current isVerified value, and add it as a claim to the new email-verification jwt. When the user clicks the url in the email we send them,
+													// we will decode the jwt, get the hash, generate a new hash using the same data, and compare the two hashes. The two hashes should
+													// only differ if the user has already verified their email account (thus invalidating the token and the url/email)
+													const userCurrentVerifiedStatus = 0;
+													const string = userCurrentVerifiedStatus+secret;
+													const hash = md5(string);
+
+													Emails.createEmailVerificationToken(userId, hash, (err, token) => {
 														if(err) {
 															ResponseHelper.sendError(res, 500, 'create_email_ver_token_query_error', err);
 														} else {

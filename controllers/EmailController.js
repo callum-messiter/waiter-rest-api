@@ -19,53 +19,52 @@ router.get('/verifyEmail', (req, res, next) => {
 
 	if(!vtoken) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting a uid and a verification token. At least one of these params was missing.');
+			'The server was expecting a userId and a verification token. At least one of these params was missing.');
 	} else {
 		// Check that the token is not expired, and that is is the correct type
 		Auth.verifyToken(vtoken, (err, decodedPayload) => {
 			if(err) {
 				ResponseHelper.sendError(res, 500, 'vtoken_verification_error', err);
 			} else {
-				if(!decodedPayload.action || !decodedPayload.action == 'verifyEmail') {
-					ResponseHelper.sendError(res, 401, 'invalid_ver_token_type', 
-						'The decoded payload did not contain the "action" claim with the correct value.');
+				// Get claims
+				const oldHash = decodedPayload.hash;
+				const userId = decodedPayload.userId;
+				const tokenType = decodedPayload.action;
+				const exp = decodedPayload.exp;
+				const now = new Date().getTime();
+
+				if(now > exp) {
+					ResponseHelper.sendError(res, 401, 'ver_token_expired', 
+						'This verification token has expired. Encourage the user to request another email.');
+				} else if(!tokenType || !tokenType == 'verifyEmail') {
+						ResponseHelper.sendError(res, 401, 'invalid_ver_token_type', 
+							'The decoded payload did not contain the "action" claim with the correct value.');
 				} else {
-					const uid = decodedPayload.userId;
-					// Check the database for a the uid-vt combination (is the combo active)
-					Emails.validateEmailVerificationToken(uid, vtoken, (err, result) => {
+					// Get the user's current hashed password
+					Users.getUserById(userId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'validate_email_ver_token_query_error', err);
+							ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
 						} else if(result.length < 1) {
-							ResponseHelper.sendError(res, 404, 'email_ver_token_not_found', 
-								'The query returned zero results. The uid-and-token combination (of any status) could not be found.');
+							ResponseHelper.sendError(res, 404, 'user_not_found', 
+								'The query returned zero results. It is likely that a user with the specified ID does not exist.');
 						} else {
-							// Check the status of the token so as to provide an informative response
-							const status = result[0].status;
-							switch(status) {
-							    case statuses.used:
-							    	ResponseHelper.sendError(res, 409, 'email_ver_token_already_used', 
-										'The veriication-token status is "used". The user has already used this token to verify their email account.');
-							        break;
-							    case statuses.inactive:
-							    	ResponseHelper.sendError(res, 401, 'email_ver_token_inactive', 
-										'The verification token is inactive. Encourage the client to trigger a new verification email.');
-							        break;
-							    case statuses.active:
-							    	// Set the user.isActive property to 1, and redirect the user to the login route
-							    	Users.setUserAsVerified(uid, (err, result) => {
-							    		if(err) {
-							    			ResponseHelper.sendError(res, 500, 'set_user_valid_query_error', err);
-							    		} else if(result.changedRows < 1) {
-											QueryHelper.diagnoseQueryError(result, res);
-							    		} else {
-							    			// Update verification token status
-							    			ResponseHelper.sendSuccess(res, 200, {userId: uid, isVerified: true});	    			
-							    		}
-							    	});
-							        break;
-							    default:
-							    	ResponseHelper.sendError(res, 500, 'unknown_ver_token_status', 
-							    		'The verification status token has the unrecognise status ' + status + '. Contact the dev.');
+							const userCurrentVerifiedStatus = result[0].isVerified;
+							const string = userCurrentVerifiedStatus+secret;
+
+							// Generate the new hash and compare it with the old one: they will be the same unless the user has already verified their email account
+							const newHash = md5(string);
+							if(oldHash != newHash) {
+								ResponseHelper.sendError(res, 401, 'invalid_email_ver_token', 
+									'It is likely that the user has already used this email-verification token, by clicking the url we emailed to them, and successfully verifying their email account.');
+							} else {
+								// Set the user as verified
+								Users.setUserAsVerified(userId, (err, result) => {
+									if(err) {
+										ResponseHelper.sendError(res, 500, 'verify_user_query_error', err);
+									} else {
+										ResponseHelper.sendSuccess(res, 200, {userId: userId, isVerified: true});
+									}
+								});
 							}
 						}
 					});
@@ -94,7 +93,7 @@ router.get('/requestPasswordReset', (req, res, next) => {
 			const userCurrentHashedPass = user.password;
 			const userEmailAddress = user.email;
 			const string = userCurrentHashedPass+secret;
-			// Generate a hash containg the user's current (hashed) password, and add it as a claim to the new email-verification jwt. When the user clicks the url in the email we send them,
+			// Generate a hash containg the user's current (hashed) password, and add it as a claim to the new resetPassword jwt. When the user clicks the url in the email we send them,
 			// we will decode the jwt, get the hash, generate a new hash using the same data, and compare the two hashes. The two hashes should
 			// only differ if the user has already reset their password (thus invalidating the token and the url/email)
 			const hash = md5(string);
@@ -132,37 +131,45 @@ router.get('/verifyPasswordReset', (req, res, next) => {
 	const vtoken = req.query.v;
 
 	Auth.verifyToken(vtoken, (err, decodedPayload) => {
-		const oldHash = decodedPayload.hash;
-		const userId = decodedPayload.userId;
-
 		if(err) {
 			ResponseHelper.sendError(res, 500, 'vtoken_verification_error', err);
-		} else if(!decodedPayload.action || !decodedPayload.action == 'resetPassword') {
-			ResponseHelper.sendError(res, 401, 'invalid_ver_token_type', 
-				'The decoded payload did not contain the "action" claim with the correct value.');
 		} else {
-			// Get the user's current hashed password
-			Users.getUserById(userId, (err, result) => {
-				if(err) {
-					ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
-				} else if(result.length < 1) {
-					ResponseHelper.sendError(res, 404, 'user_not_found', 
-						'The query returned zero results. It is likely that a user with the specified ID does not exist.');
-				} else {
-					const userCurrentHashedPass = result[0].password;
-					const secret = 'H4FMWP4YifmMcB6kOdPnhlTTVSpljRZq';
-					const string = userCurrentHashedPass+secret;
+			const oldHash = decodedPayload.hash;
+			const userId = decodedPayload.userId;
+			const tokenType = decodedPayload.action;
+			const exp = decodedPayload.exp;
+			const now = new Date().getTime();
 
-					// Generate the new hash and compare it with the old one: they will be the same unless the user has already reset their password
-					const newHash = md5(string);
-					if(oldHash != newHash) {
-						ResponseHelper.sendError(res, 401, 'invalid_reset_pass_token', 
-							'It is likely that the user has already used this rest-password token, by clicking the url we emailed to them, and successfully updating their password.');
+			if(now > exp) {
+				ResponseHelper.sendError(res, 401, 'ver_token_expired', 
+					'This verification token has expired. Encourage the user to request another email.');
+			} else if(!tokenType || !tokenType == 'resetPassword') {
+				ResponseHelper.sendError(res, 401, 'invalid_ver_token_type', 
+					'The decoded payload did not contain the "action" claim with the correct value.');
+			} else {
+				// Get the user's current hashed password
+				Users.getUserById(userId, (err, result) => {
+					if(err) {
+						ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+					} else if(result.length < 1) {
+						ResponseHelper.sendError(res, 404, 'user_not_found', 
+							'The query returned zero results. It is likely that a user with the specified ID does not exist.');
 					} else {
-						ResponseHelper.sendSuccess(res, 200, {userId: userId});
+						const userCurrentHashedPass = result[0].password;
+						const secret = 'H4FMWP4YifmMcB6kOdPnhlTTVSpljRZq';
+						const string = userCurrentHashedPass+secret;
+
+						// Generate the new hash and compare it with the old one: they will be the same unless the user has already reset their password
+						const newHash = md5(string);
+						if(oldHash != newHash) {
+							ResponseHelper.sendError(res, 401, 'invalid_reset_pass_token', 
+								'It is likely that the user has already used this rest-password token, by clicking the url we emailed to them, and successfully updating their password.');
+						} else {
+							ResponseHelper.sendSuccess(res, 200, {userId: userId});
+						}
 					}
-				}
-			});
+				});
+			}
 		}
 	});
 });

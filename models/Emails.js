@@ -3,13 +3,13 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+// Helpers
+const ResponseHelper = require('../helpers/ResponseHelper');
 // Config
 const db = require('../config/database');
 const smtp = require('../config/smtp');
 const secret = require('../config/jwt').secret;
 const jwtOpts = require('../config/jwt').opts;
-// Helpers
-const ResponseHelper = require('../helpers/ResponseHelper');
 
 /**
 	The query params that will be affixed to the email-verification route, and parsed once the user clicks the link in their verification email
@@ -143,6 +143,9 @@ module.exports.validateEmailVerificationToken = function(userId, token, callback
 	db.query(query,[userId, token], callback);
 }
 
+/**
+	Here we generate the token that will be affixed to the url we will send the user when requesting they verify their email account
+**/
 module.exports.createEmailVerificationToken = function(userId, hash, callback) {
 	const utc_timestamp = new Date().getTime();
 	const alg = jwtOpts.alg;
@@ -170,6 +173,9 @@ module.exports.updateEmailVerificationTokenStatus = function(userId, token, stat
 	db.query(query, [userId, token, status], callback);
 }
 
+/**
+	Here we generate the token that will be affixed to the url we will send the user when they request to reset their password
+**/
 module.exports.createResetPasswordToken = function(userId, hash, callback) {
 	const utc_timestamp = new Date().getTime();
 	const alg = jwtOpts.alg;
@@ -186,11 +192,4 @@ module.exports.createResetPasswordToken = function(userId, hash, callback) {
 		userId: userId,
 		hash: hash
 	}, secret, callback);
-}
-
-module.exports.createResetPasswordHash = function(hashedPassword, secret, callback) {
-	const string = hashedPassword+secret;
-	bcrypt.genSalt(11, (err, salt) => {
-		bcrypt.hash(string, salt, callback);
-	});
 }

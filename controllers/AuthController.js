@@ -4,25 +4,26 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const moment = require('moment');
 const jwt = require('jsonwebtoken');
-// Config
-const secret = require('../config/jwt').secret;
-const ResponseHelper = require('../helpers/ResponseHelper');
 // Models
 const Auth = require('../models/Auth');
 const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
+// Config
+const secret = require('../config/jwt').secret;
+const ResponseHelper = require('../helpers/ResponseHelper');
 
 router.get('/', (req, res, next) => {
 });
 
 /**
-
 	User login
-
 **/
 router.get('/login', (req, res, next) => {
 	// CHeck that the email and password were set
-	if(req.query.email && req.query.password) {
+	if(!req.query.email || !req.query.password) {
+		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			'The request must contain an email address and password.');
+	} else {
 		const email = req.query.email;
 		const password = req.query.password;
 		// Check that the email address entered is registered
@@ -34,9 +35,15 @@ router.get('/login', (req, res, next) => {
 					'The email address supplied is not registered.');
 			} else {
 				// Check if the user is active
-				if(user[0].isActive) {
+				if(user[0].isActive !== 1) {
+					ResponseHelper.sendError(res, 401, 'user_not_active', 
+						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.');
+				} else {
 					// Check if the user is verified
-					if(/**user[0].IsVerified**/true) {
+					if(user[0].isVerified !== 1) {
+						ResponseHelper.sendError(res, 401, 'user_not_verified', 
+							'This user account is not verified.');
+					} else  {
 						// Check that the user entered the correct password
 						const plainTextPassword = password;
 						const hashedPassword = user[0].password
@@ -97,26 +104,15 @@ router.get('/login', (req, res, next) => {
 								});
 							}
 						});
-					} else {
-						ResponseHelper.sendError(res, 401, 'user_not_verified', 
-							'This user account is not verified.');
 					}
-				} else {
-					ResponseHelper.sendError(res, 401, 'user_not_active', 
-						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.');
 				}
 			}
 		});
-	} else {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The request must contain an email address and password.');
 	}
 });
 
 /**
-
 	User logout
-
 **/
 router.get('/logout', (req, res, next) => {
 	if(!req.query.userId || !req.headers.authorization) {

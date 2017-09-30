@@ -12,9 +12,7 @@ module.exports.getUserById = function(userId, callback) {
 }
 
 /**
-
 	(ADMIN-ONLY): Returns a list of all registered email addresses
-
 **/
 module.exports.getAllUsers = function(callback) {
 	const query = 'SELECT email FROM users';
@@ -31,9 +29,7 @@ module.exports.createNewUser = function(user, callback) {
 }
 
 /**
-
 	Checks if a user exists by running an email address against the db. Returns the match if found
-
 **/
 module.exports.doesUserExist = function(email, callback) {
 	const query = 'SELECT * FROM Users WHERE email = ?';
@@ -41,9 +37,7 @@ module.exports.doesUserExist = function(email, callback) {
 }
 
 /**
-
 	Checks if a user exists by running an email address against the db. Returns true if a match is found
-
 **/
 module.exports.isEmailRegistered = function(email, callback) {
 	const query = 'SELECT COUNT(*) AS matches FROM users WHERE Email = ?';
@@ -51,9 +45,7 @@ module.exports.isEmailRegistered = function(email, callback) {
 }
 
 /**
-
 	Hashes the user's password upon signup
-
 **/
 module.exports.hashPassword = function(password, callback) {
 	bcrypt.genSalt(11, (err, salt) => {
@@ -62,9 +54,7 @@ module.exports.hashPassword = function(password, callback) {
 }
 
 /**
-
 	Compares the user's login password with their hashed password that is stored in the db
-
 **/
 module.exports.checkPassword = function(plainTextPassword, hash, callback) {
 	bcrypt.compare(plainTextPassword, hash, callback);
@@ -79,7 +69,7 @@ module.exports.deactivateUser = function(userId, callback) {
 }
 
 /**
-	
+	Verify the user's email account
 **/
 module.exports.setUserAsVerified = function(userId, callback) {
 	const query = 'UPDATE users SET isVerified = 1 WHERE userId = ?';

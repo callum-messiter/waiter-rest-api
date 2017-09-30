@@ -14,6 +14,11 @@ const QueryHelper = require('../helpers/QueryHelper');
 // Config
 const secret = require('../config/jwt').secret;
 
+/**
+	In the user controller, when a new user is created, we send them an email requesting that they click the provided url in order to verifiy their account.
+	When the user clicks the url the browser will request a client-app route, which will itself request this api enpoint.
+	Here we check the email-verification token we affixed to the url.
+**/
 router.get('/verifyEmail', (req, res, next) => {
 	const vtoken = req.query.v;
 
@@ -156,14 +161,13 @@ router.get('/verifyPasswordReset', (req, res, next) => {
 							'The query returned zero results. It is likely that a user with the specified ID does not exist.');
 					} else {
 						const userCurrentHashedPass = result[0].password;
-						const secret = 'H4FMWP4YifmMcB6kOdPnhlTTVSpljRZq';
 						const string = userCurrentHashedPass+secret;
 
 						// Generate the new hash and compare it with the old one: they will be the same unless the user has already reset their password
 						const newHash = md5(string);
 						if(oldHash != newHash) {
 							ResponseHelper.sendError(res, 401, 'invalid_reset_pass_token', 
-								'It is likely that the user has already used this rest-password token, by clicking the url we emailed to them, and successfully updating their password.');
+								'It is likely that the user has already used this resetPassword token, by clicking the url we emailed to them, and successfully updating their password.');
 						} else {
 							ResponseHelper.sendSuccess(res, 200, {userId: userId});
 						}

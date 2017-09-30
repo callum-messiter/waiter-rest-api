@@ -200,7 +200,6 @@ router.post('/create/:userType', (req, res, next) => {
 /**
 	Deactivate user
 **/
-
 router.put('/deactivate/:userId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be deactivated
 	if(!req.headers.authorization || !req.params.userId) {

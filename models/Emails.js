@@ -39,6 +39,10 @@ const handlebars = {
 	passwordReset: {
 		firstName: '{{firstName}}',
 		resetUrl: '{{resetUrl}}'
+	},
+	updateEmailAddress: {
+		firstName: '{{firstName}}',
+		updateUrl: '{{updateUrl}}'
 	}
 }
 
@@ -144,6 +148,15 @@ module.exports.validateEmailVerificationToken = function(userId, token, callback
 }
 
 /**
+	Update the status of an email-verification token; e.g. invalidate it if it has expired
+**/
+module.exports.updateEmailVerificationTokenStatus = function(userId, token, status, callback) {
+	const query = 'UPDATE verification SET status = ? ' +
+				  'WHERE userId = ? AND token = ?';
+	db.query(query, [userId, token, status], callback);
+}
+
+/**
 	Here we generate the token that will be affixed to the url we will send the user when requesting they verify their email account
 **/
 module.exports.createEmailVerificationToken = function(userId, hash, callback) {
@@ -162,15 +175,6 @@ module.exports.createEmailVerificationToken = function(userId, hash, callback) {
 		userId: userId,
 		hash: hash
 	}, secret, callback);
-}
-
-/**
-	Update the status of an email-verification token; e.g. invalidate it if it has expired
-**/
-module.exports.updateEmailVerificationTokenStatus = function(userId, token, status, callback) {
-	const query = 'UPDATE verification SET status = ? ' +
-				  'WHERE userId = ? AND token = ?';
-	db.query(query, [userId, token, status], callback);
 }
 
 /**
@@ -193,3 +197,27 @@ module.exports.createResetPasswordToken = function(userId, hash, callback) {
 		hash: hash
 	}, secret, callback);
 }
+
+/**
+	Here we generate the token that will be affixed to the url we will send the user when they request to reset their password
+**/
+module.exports.createUpdateEmailVerificationToken = function(userId, hash, newEmailAddress, callback) {
+	const utc_timestamp = new Date().getTime();
+	const alg = jwtOpts.alg;
+	const issuer = jwtOpts.issuer;
+	const action = 'verifyNewEmailAddress';
+	const iat = utc_timestamp;
+	const exp = utc_timestamp + 3600000; // 1 hour from the current time
+	jwt.sign({
+		algorithm: alg,
+		issuer: issuer,
+		action: action,
+		iat: iat,
+		exp: exp,
+		userId: userId,
+		newEmail: newEmailAddress,
+		hash: hash
+	}, secret, callback);
+}
+
+// The above 3 functions should be a single function, which take as an argument the action

@@ -369,10 +369,11 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 												// Update user details
 												Users.updateUserPassword(userId, newHashedPassword, (err, result) => {
 													if(err) {
-														ResponseHelper.sendError(res, 500, 'update_oassword_query_error', err);
+														ResponseHelper.sendError(res, 500, 'update_password_query_error', err);
 													} else if(result.changedRows < 1) {
 														QueryHelper.diagnoseQueryError(result, res);
 													} else {
+														// Invalidate the current token
 														ResponseHelper.sendSuccess(res, 200);					
 													}
 												});
@@ -390,6 +391,9 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 });
 
 router.put('updateEmail/:userId', (req, res, next) => {
+	// Check the headers and request params
+	// Check that the body contains the newEmailAddress param
+	// Send an email to the new email address
 });
 
 

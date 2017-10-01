@@ -1,0 +1,1 @@
+module.exports.secretKey = 'sk_test_A9MV5fs8EX1RmXjpm59bk9JS';

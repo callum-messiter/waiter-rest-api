@@ -47,10 +47,10 @@ const io = socket(server);
 
 
 // ------------------------------------------------------------------------------------------------------------------------ //
+const Orders = require('./models/Orders');
 
 
-
-	/**
+/**
 	START: LIVEKITCHEN WITH WEBSOCKETS
 **/
 
@@ -69,6 +69,7 @@ io.on('connection', (socket) => {
 	
 	// Listen for new orders placed by the diner
 	socket.on('newOrder', (order) => {
+		// Verify order.headers.token
 		console.log('Server received an order from ' + order.userId);
 		/** 
 			1) The customer (iOS client) has sent a new order to the server: now get the details
@@ -76,23 +77,43 @@ io.on('connection', (socket) => {
 		const userId = order.userId;
 		const restaurantId = order.restaurantId;
 		const orderName = 'order-' + restaurantId;
-		/**
-			2) Create and join a room that is created exclusively for this customer and the recipient restaurant 
-			(the restaurant will join the room later)
-		**/
-		const roomName = 'transaction-'+userId+'-'+restaurantId;
-		socket.join(roomName);
+
 		/** 
-			3) Emit the order to the kitchen (web app). The web app will listen to events whose name == said restaurant's ID
+			2) All logic which would be in the order controller will be located here
+				a) Add order to the database
+				b) Process the transaction
 		**/
-		socket.broadcast.emit(orderName, order);
-		/** 
-			All logic which would be in the order controller will be located here
-				1) Add order to the database
-				2) Process the transaction
-		**/
-		console.log('New room created: "' +roomName+ '".');
-		console.log(io.sockets.adapter.rooms); // Room { sockets: { 'dDv-s07qFkbz3aEXAAAA': true }, length: 1 }
+		Orders.storeOrder(order, (err, result) => {
+			if(err) {
+				console.log(err);
+			} else {
+				/**
+					3) Create and join a room that is created exclusively for this customer and the recipient restaurant 
+					(the restaurant will join the room later)
+				**/
+				const roomName = 'transaction-'+userId+'-'+restaurantId;
+				socket.join(roomName);
+				/** 
+					4) Emit the order to the kitchen (web app). The web app will listen to events whose name == said restaurant's ID
+				**/
+				socket.broadcast.emit(orderName, order);
+				console.log('New room created: "' +roomName+ '".');
+				console.log(io.sockets.adapter.rooms); // Room { sockets: { 'dDv-s07qFkbz3aEXAAAA': true }, length: 1 }
+				/**
+					5) Once the order is sent, update the order status in the db
+						a) We must generate a random orerId before inserting it into the db
+						b) then once the order is sent to the kitchen, we can use this unique id to query the db and update its status
+				**/
+				orderId = 1; // hard code this for now, for testing
+				Orders.updateOrderStatus(orderId, 200, (err, result) => {
+					if(err) {
+						console.log(err);
+					} else {
+						console.log('Order status updated!');
+					}
+				});
+			}
+		});
 	});
 
 	// Listen to order-status updates made by the restauraut

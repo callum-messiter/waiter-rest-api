@@ -110,8 +110,7 @@ io.on('connection', (socket) => {
 						a) We must generate a random orerId before inserting it into the db
 						b) then once the order is sent to the kitchen, we can use this unique id to query the db and update the order's status to "sent"
 				**/
-				const orderId = result.insertId;
-				console.log("ORDERID: " + orderId);
+				const orderId = order.orderId;
 				const newStatus = Orders.statuses.sentToKitchen;
 				console.log("STATUS-UPDATE, NEW STATUS: " + newStatus);
 				Orders.updateOrderStatus(orderId, newStatus, (err, result) => {

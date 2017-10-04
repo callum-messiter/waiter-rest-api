@@ -18,10 +18,9 @@
 			<script>
 				window.onload=function(){
 					// 1) Get the restaurantId from the server before doing anything else. This will probably be returned upon login, along with the userId. Later, for users with multiple restaurant, they will have a username-and-password combination per restaurant, but each 'account' will be assigned to the same email address if they so desire
-					const userId = 'customer2';
 					const restaurantId = 'mcdonalds';
 					const orderName = 'order-' + restaurantId;
-
+					
 					// 2) Create a socket to the server - now we're listening for events 
 					const socket = io.connect("http://localhost:3000/");
 
@@ -31,16 +30,17 @@
 
 					// 3) We listen for events that are specific to our restaurant. On the server, the order it receives from a client (iOS app) will contain the restaurantId. The server will then emit the event to us - the web app - using the same naming convention as orderName. As such, each restaurant will only receive orders placed to *their* kitchen
 					socket.on(orderName, function(order) {
+						window.buyerId = order.buyerId;
 						// 4) Upon receiving an order, we will add it to our orders list
-						output.innerHTML += '<p><strong>' + order.userId + '</strong></p>';
+						output.innerHTML += '<p><strong>' + order.buyerId + '</strong></p>';
 					});
 
 					// 5) The web app should also emit events: an update of the order's status. If, for example, the chef accepts the user's order, the new status will be emitted to the server (api), and to the user (iOS).
-					accept.addEventListener('click', function() {
+					accept.addEventListener('click', function(buyerId) {
 						const orderStatus = {
-							userId: userId,
+							buyerId: window.buyerId,
 							restaurantId: restaurantId,
-							status: 'accepted'
+							status: 'accepted' // see the Orders.statuses array, and use this on the client-side
 						}
 						socket.emit('orderStatusUpdate', orderStatus);
 					});

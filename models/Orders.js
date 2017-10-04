@@ -4,7 +4,7 @@ const db = require('../config/database');
 /**
 	Order schema
 **/
-order = {
+module.exports.schema = {
 	orderId: '', // random, unique text-string
 	buyerId: '', // random, unique text-string representing the customer who placed the order
 	sellerId: '', // random, unique text-string representing the restaurant for whom the order is meant
@@ -17,7 +17,7 @@ order = {
 	Order statuses (each step of the order flow has a statusId)
 **/
 module.exports.statuses = {
-	receivedByWaiter: 100,
+	receivedByServer: 100,
 	sentToKitchen: 200,
 	// receivedByKitchen: 300,
 	acceptedByKitchen: 300,
@@ -35,12 +35,6 @@ module.exports.statuses = {
 	Once an order has been received by the server, call this method to add it to the database
 **/
 module.exports.storeOrder = function(order, callback) {
-	order = {
-		buyerId: 'buyer1',
-		sellerId: 'seller1',
-		price: 25.20
-	}
-	// For now just do mock data
 	const query = 'INSERT INTO orders SET ?';
 	db.query(query, order, callback);
 }
@@ -53,3 +47,8 @@ module.exports.updateOrderStatus = function(orderId, newStatus, callback) {
 				  'WHERE orderId = ?';
 	db.query(query, [newStatus, orderId], callback);
 };
+
+/**
+	Generate random, unique orderId
+
+**/

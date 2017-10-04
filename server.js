@@ -37,9 +37,6 @@ const server = app.listen(port, () => {
 // All requests to /api/* will be mapped to the routes/api file, which contains api-specific routes
 app.use('/api', api);
 
-// Websockets setup
-const io = socket(server);
-
 /**
 	END: SERVER CONFIGURATION SETTINGS
 **/
@@ -47,41 +44,50 @@ const io = socket(server);
 
 
 // ------------------------------------------------------------------------------------------------------------------------ //
-const Orders = require('./models/Orders');
-
 
 /**
 	START: LIVEKITCHEN WITH WEBSOCKETS
 **/
-
-// Expose the io object to all routes via the req object
-/**
-app.use((req, res, next) => {
-	req.io = io;
-	next();
-});
-**/
+// Websockets setup
+const io = socket(server);
+// Dependences
+const uuidv4 = require('uuid/v4');
+// Models
+const Orders = require('./models/Orders');
 
 io.on('connection', (socket) => {
-
 	// Note when a new client connects
 	console.log('Client "' + socket.id + '" connected.');
 	
 	// Listen for new orders placed by the diner
 	socket.on('newOrder', (order) => {
-		// Verify order.headers.token
-		console.log('Server received an order from ' + order.userId);
+		/**
+			0) Verify order.headers.token
+		**/
+		console.log('Server received an order from ' + order.buyerId + '. \r\n' + JSON.stringify(order));
 		/** 
 			1) The customer (iOS client) has sent a new order to the server: now get the details
 		**/
-		const userId = order.userId;
-		const restaurantId = order.restaurantId;
-		const orderName = 'order-' + restaurantId;
 
+		// Verify the price of the items by retrieving them from the database (user each itemId)
+
+		// Construct the order object to be passed to the query
+		const orderId = uuidv4();
+		order = {
+			orderId: orderId,
+			buyerId: order.buyerId,
+			sellerId: order.sellerId,
+			price: order.price,
+			status: Orders.statuses.receivedByServer
+		}
+		// The userId and restaurantId are needed to create the exlusive customer-restaurant WebSockets channel (room)
+		const userId = order.buyerId;
+		const restaurantId = order.sellerId;
+		// The recipient restaurant will be listening for events following this naming convention
+		const orderName = 'order-' + restaurantId; // Use the restaurantId so that restaurants only listen for their own orders
+		console.log(order.orderId);
 		/** 
-			2) All logic which would be in the order controller will be located here
-				a) Add order to the database
-				b) Process the transaction
+			2) Add the order to the database	
 		**/
 		Orders.storeOrder(order, (err, result) => {
 			if(err) {
@@ -102,14 +108,18 @@ io.on('connection', (socket) => {
 				/**
 					5) Once the order is sent, update the order status in the db
 						a) We must generate a random orerId before inserting it into the db
-						b) then once the order is sent to the kitchen, we can use this unique id to query the db and update its status
+						b) then once the order is sent to the kitchen, we can use this unique id to query the db and update the order's status to "sent"
 				**/
-				orderId = 1; // hard code this for now, for testing
-				Orders.updateOrderStatus(orderId, 200, (err, result) => {
+				const orderId = result.insertId;
+				console.log("ORDERID: " + orderId);
+				const newStatus = Orders.statuses.sentToKitchen;
+				console.log("STATUS-UPDATE, NEW STATUS: " + newStatus);
+				Orders.updateOrderStatus(orderId, newStatus, (err, result) => {
 					if(err) {
 						console.log(err);
+					// Check that at least one row was changed
 					} else {
-						console.log('Order status updated!');
+						console.log(result);
 					}
 				});
 			}
@@ -119,12 +129,12 @@ io.on('connection', (socket) => {
 	// Listen to order-status updates made by the restauraut
 	socket.on('orderStatusUpdate', (status) => {
 		// Update the status in the database
-
 		/** 
 			4) Look for the restaurant-customer specific room,  and join it 
 			(the other member will be a customer who has placed an order with the restaurant)
 		**/ 
-		const userId = status.userId;
+		const orderId = status.orderId;
+		const userId = status.buyerId;
 		const restaurantId = status.restaurantId;
 		const roomName = 'transaction-'+userId+'-'+restaurantId;
 
@@ -143,7 +153,21 @@ io.on('connection', (socket) => {
 			6) Emit the new order status to the rest of the room [e.g the single customer (iOS client)]
 			Upon receiving the new status, The iOS client should push a notification to the customer 
 		**/
-		socket.broadcast.to(roomName).emit('newStatus', status); 
+		const newStatus = Orders.statuses.acceptedByKitchen;
+		console.log("STATUS-UPDATE, NEW STATUS: " + newStatus);
+		Orders.updateOrderStatus(orderId, newStatus, (err, result) => {
+			if(err) {
+				console.log(err);
+			// Check that at least one row was changed
+			} else {
+				console.log(result);
+				socket.broadcast.to(roomName).emit('newStatus', status.status); 
+			}
+		});
+
+		/**
+			7) Process the transaction
+		**/
 	});
 
 	// Note when a client disconnects

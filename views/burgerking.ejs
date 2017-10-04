@@ -12,14 +12,12 @@
 		<!-- Latest compiled and minified CSS -->
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
 		integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
-		<link rel="stylesheet" href="css/main.css">
 		</head>
 		<body>
 			<script>
 				window.onload=function(){
 					// 1) Get the restaurantId from the server before doing anything else. This will probably be returned upon login, along with the userId. Later, for users with multiple restaurant, they will have a username-and-password combination per restaurant, but each 'account' will be assigned to the same email address if they so desire
-					const userId = 'customer1';
-					const restaurantId = 'burgerking'; 
+					const restaurantId = 'burgerking';
 					const orderName = 'order-' + restaurantId;
 
 					// 2) Create a socket to the server - now we're listening for events 
@@ -31,16 +29,19 @@
 
 					// 3) We listen for events that are specific to our restaurant. On the server, the order it receives from a client (iOS app) will contain the restaurantId. The server will then emit the event to us - the web app - using the same naming convention as orderName. As such, each restaurant will only receive orders placed to *their* kitchen
 					socket.on(orderName, function(order) {
+						window.buyerId = order.buyerId;
+						window.orderId = order.orderId;
 						// 4) Upon receiving an order, we will add it to our orders list
-						output.innerHTML += '<p><strong>' + order.userId + '</strong></p>';
+						output.innerHTML += '<p><strong>' + order.buyerId + '</strong></p>';
 					});
 
 					// 5) The web app should also emit events: an update of the order's status. If, for example, the chef accepts the user's order, the new status will be emitted to the server (api), and to the user (iOS).
 					accept.addEventListener('click', function() {
 						const orderStatus = {
-							userId: userId,
+							orderId: window.orderId,
+							buyerId: window.buyerId,
 							restaurantId: restaurantId,
-							status: 'accepted'
+							status: 'accepted' // see the Orders.statuses array, and use this on the client-side
 						}
 						socket.emit('orderStatusUpdate', orderStatus);
 					});

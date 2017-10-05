@@ -123,8 +123,9 @@ io.on('connection', (socket) => {
 						Orders.updateOrderStatus(orderId, newStatus, (err, result) => {
 							if(err) {
 								console.log(err);
-							// Check that at least one row was changed
 							} else {
+								// Check that at least one row was changed
+								Orders.wasOrderUpdated(result);
 								console.log(result);
 							}
 						});
@@ -166,8 +167,9 @@ io.on('connection', (socket) => {
 		Orders.updateOrderStatus(orderId, newStatus, (err, result) => {
 			if(err) {
 				console.log(err);
-			// Check that at least one row was changed
 			} else {
+				// Check that at least one row was changed
+				Orders.wasOrderUpdated(result);
 				console.log(result);
 				socket.broadcast.to(roomName).emit('newStatus', status.status); 
 			}

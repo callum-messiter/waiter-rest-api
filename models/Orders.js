@@ -49,6 +49,27 @@ module.exports.updateOrderStatus = function(orderId, newStatus, callback) {
 };
 
 /**
-	Generate random, unique orderId
+	Run a more strict check on the updateOrderStatus query result
+**/
+module.exports.wasOrderUpdated = function(result) {
+	const msg = result.message;
+	const orderFound = 'Rows matched: 1';
+	if(!msg.includes(orderFound)) {
+		console.log('An order with the specified ID was not found');
+	// If the order with the the provided ID was found...
+	} else {
+		const orderUpdated = 'Changed: 1';
+		// Check if this order was also updated
+		if(!msg.includes(orderUpdated)) {
+			console.log('Order found but not updated, because it already has this status.');
+		} else {
+			console.log('Order status updated!');
+		}
+	}
+}
 
+/**
+	Get a list of placed orders to refresh the LiveKitchen (in case of any client disconnections).
+	If for example the web-app server crashes during business hours, then when it reconnects, it will 
+	need to pull in the restaurant'ts *live* ordersfrom the database
 **/

@@ -6,8 +6,8 @@ const db = require('../config/database');
 **/
 module.exports.schema = {
 	orderId: '', // random, unique text-string
-	buyerId: '', // random, unique text-string representing the customer who placed the order
-	sellerId: '', // random, unique text-string representing the restaurant for whom the order is meant
+	customerId: '', // random, unique text-string representing the customer who placed the order
+	restaurantId: '', // random, unique text-string representing the restaurant for whom the order is meant
 	price: '', // decimal (10, 2), representing the total price of the order
 	paid: '', // tinyint, 0 or 1 depending on whether or not the transaction associated with the order has been process 
 	status: '' // int (see statuses object): represents the status of the order at a given time

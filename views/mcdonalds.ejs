@@ -30,15 +30,17 @@
 
 					// 3) We listen for events that are specific to our restaurant. On the server, the order it receives from a client (iOS app) will contain the restaurantId. The server will then emit the event to us - the web app - using the same naming convention as orderName. As such, each restaurant will only receive orders placed to *their* kitchen
 					socket.on(orderName, function(order) {
-						window.buyerId = order.buyerId;
+						window.customerId = order.customerId;
+						window.orderId = order.orderId;
 						// 4) Upon receiving an order, we will add it to our orders list
-						output.innerHTML += '<p><strong>' + order.buyerId + '</strong></p>';
+						output.innerHTML += '<p><strong>' + order.customerId + '</strong></p>';
 					});
 
 					// 5) The web app should also emit events: an update of the order's status. If, for example, the chef accepts the user's order, the new status will be emitted to the server (api), and to the user (iOS).
-					accept.addEventListener('click', function(buyerId) {
+					accept.addEventListener('click', function(customerId) {
 						const orderStatus = {
-							buyerId: window.buyerId,
+							orderId: window.orderId,
+							customerId: window.customerId,
 							restaurantId: restaurantId,
 							status: 'accepted' // see the Orders.statuses array, and use this on the client-side
 						}

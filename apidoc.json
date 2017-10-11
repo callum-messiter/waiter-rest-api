@@ -1,0 +1,8 @@
+{
+    "name": "Waiter REST API",
+    "version": "1.0.0",
+    "description": "",
+    "template": {
+        "forceLanguage": "en"
+    }
+}

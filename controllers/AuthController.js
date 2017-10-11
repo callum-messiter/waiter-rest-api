@@ -16,8 +16,30 @@ router.get('/', (req, res, next) => {
 });
 
 /**
-	User login
-**/
+ * @api {post} /tasks Register a new task
+ * @apiGroup Tasks
+ * @apiParam {String} title Task title
+ * @apiParamExample {json} Input
+ *    {
+ *      "title": "Study"
+ *    }
+ * @apiSuccess {Number} id Task id
+ * @apiSuccess {String} title Task title
+ * @apiSuccess {Boolean} done=false Task is done?
+ * @apiSuccess {Date} updated_at Update date
+ * @apiSuccess {Date} created_at Register date
+ * @apiSuccessExample {json} Success
+ *    HTTP/1.1 200 OK
+ *    {
+ *      "id": 1,
+ *      "title": "Study",
+ *      "done": false,
+ *      "updated_at": "2016-02-10T15:46:51.778Z",
+ *      "created_at": "2016-02-10T15:46:51.778Z"
+ *    }
+ * @apiErrorExample {json} Register error
+ *    HTTP/1.1 500 Internal Server Error
+ */
 router.get('/login', (req, res, next) => {
 	// CHeck that the email and password were set
 	if(!req.query.email || !req.query.password) {

@@ -1,16 +1,17 @@
 define({
   "name": "Waiter REST API",
   "version": "1.0.0",
-  "description": "",
+  "description": "The RESTful API for waiter, serving all client applications.",
+  "url": "http://localhost:3000/api",
+  "sampleUrl": "/api",
   "template": {
     "forceLanguage": "en"
   },
-  "sampleUrl": false,
   "defaultVersion": "0.0.0",
   "apidoc": "0.3.0",
   "generator": {
     "name": "apidoc",
-    "time": "2017-10-11T21:29:09.697Z",
+    "time": "2017-10-14T16:50:14.301Z",
     "url": "http://apidocjs.com",
     "version": "0.17.6"
   }

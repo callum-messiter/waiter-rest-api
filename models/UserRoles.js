@@ -7,8 +7,8 @@ const db = require('../config/database');
 module.exports.roleIDs = {
 	'diner': 100,
 	'restaurateur': 200,
-	'userAdmin': 500,
-	'waiterAdmin': 900
+	'internalAdmin': 500,
+	'externalAdmin': 900
 }
 
 /**

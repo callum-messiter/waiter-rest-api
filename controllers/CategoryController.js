@@ -13,12 +13,73 @@ const QueryHelper = require('../helpers/QueryHelper');
 const allowedCategoryParams = Categories.schema.requestBodyParams;
 
 /**
-	Add a new category to a menu
+ * @api {post} /category/create/:menuId CreateNewCategory
+ * @apiGroup Category
+ * @apiDescription Add a new menu category to an existing menu
+ * @apiPermission restaurateur, internalAdmin, externalAdmin
+ * @apiHeader {String} Authorization The user access token provided by the API upon successful login
+ * @apiParam {String} menuId The id of the menu to which the category should be added
+ * @apiSuccessExample {json} Success 200
+{
+    "success": true,
+    "error": "",
+    "data": {
+        "createdCategoryId": 3
+    }
+}
+ * @apiErrorExample {json} 401 Invalid token
+{
+    "success": false,
+    "error": "invalid_token",
+    "msg": "The server determined that the token provided in the request is invalid. It likely expired - try logging in again."
+}
+ * @apiErrorExample {json} 401 Unauthorised: not resource owner
+{
+    "success": false,
+    "error": "unauthorised",
+    "msg": "A menu can be modified only by the menu owner."
+}
+ * @apiErrorExample {json} 404 Mandatory request data missing
+{
+    "success": false,
+    "error": "request_data_missing",
+    "msg": "The server was expecting an 'authorization' header and a menuId. At least one of these params was missing."
+}
+ * @apiErrorExample {json} 404 Mandatory request params missing
+{
+    "success": false,
+    "error": "missing_required_params",
+    "msg": "The server was expecting a category name."
+}
+ * @apiErrorExample {json} 404 ownerId not found
+{
+    "success": false,
+    "error": "ownerId_not_found",
+    "msg": "The query returned zero results. It is likely that a menu with the specified ID does not exist."
+}	
+ * @apiErrorExample {json} 422 Invalid request parameter
+{
+    "success": false,
+    "error": "invalid_data_param",
+    "msg": "The data parameter 'dodgyParam' is not a valid parameter for the resource in question."
+}
+ * @apiErrorExample {json} 500 getMenuOwnerId (SQL) error
+{
+    "success": false,
+    "error": "get_menu_owner_query_error",
+    "msg": // sql SNAKE_CASE error key - report to the api dev
+}
+ * @apiErrorExample {json} 500 createNewCategory (SQL) error
+{
+    "success": false,
+    "error": "create_category_query_error",
+    "msg": // sql SNAKE_CASE error key - report to the api dev
+}
 **/
 router.post('/create/:menuId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.menuId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+		ResponseHelper.sendError(res, 404, 'request_data_missing', 
 			"The server was expecting an 'authorization' header and a menuId. At least one of these params was missing.");
 	} else {
 		// Check required item data
@@ -33,7 +94,7 @@ router.post('/create/:menuId', (req, res, next) => {
 			// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
 			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(category, allowedCategoryParams, res);
 			if(requestDataIsValid !== true) {
-				ResponseHelper.sendError(res, 422, 'invalid_data_params', 
+				ResponseHelper.sendError(res, 422, 'invalid_data_param', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
 			} else {
 				// Check that the token is valid
@@ -77,12 +138,65 @@ router.post('/create/:menuId', (req, res, next) => {
 });
 
 /**
-	Update the details of a category
+ * @api {post} /category/update/:categoryId UpdateCategory
+ * @apiGroup Category
+ * @apiDescription Update the name and/or description of an existing category
+ * @apiPermission restaurateur, internalAdmin, externalAdmin
+ * @apiHeader {String} Authorization The user access token provided by the API upon successful login
+ * @apiParam {String} categoryId The id of the category to be updated
+ * @apiSuccessExample {json} Success 200
+{
+    "success": true,
+    "error": "",
+    "data": {}
+}
+ * @apiErrorExample {json} 401 Invalid token
+{
+    "success": false,
+    "error": "invalid_token",
+    "msg": "The server determined that the token provided in the request is invalid. It likely expired - try logging in again."
+}
+ * @apiErrorExample {json} 401 Unauthorised: not resource owner
+{
+    "success": false,
+    "error": "unauthorised",
+    "msg": "A category can be modified only by the category (menu) owner."
+}
+ * @apiErrorExample {json} 404 ownerId not found
+{
+    "success": false,
+    "error": "ownerId_not_found",
+    "msg": "The query returned zero results. It is likely that a menu with the specified ID does not exist."
+}
+ * @apiErrorExample {json} 404 Mandatory request data missing
+{
+    "success": false,
+    "error": "request_data_missing",
+    "msg": "The server was expecting an 'authorization' header and a categoryId. At least one of these params was missing."
+}
+ * @apiErrorExample {json} 422 Invalid request parameter
+{
+    "success": false,
+    "error": "invalid_data_param",
+    "msg": "The data parameter 'dodgyParam' is not a valid parameter for the resource in question."
+}
+ * @apiErrorExample {json} 500 getCategoryOwnerId (SQL) error
+{
+    "success": false,
+    "error": "get_category_owner_query_error",
+    "msg": // sql SNAKE_CASE error key - report to the api dev
+}
+ * @apiErrorExample {json} 500 updateCategoryDetails (SQL) error
+{
+    "success": false,
+    "error": "update_category_query_error",
+    "msg": // sql SNAKE_CASE error key - report to the api dev
+}
 **/
 router.put('/update/:categoryId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.categoryId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+		ResponseHelper.sendError(res, 404, 'request_data_missing', 
 			"The server was expecting an 'authorization' header, and a categoryId. At least one of these params was missing.");
 	} else {
 		const token = req.headers.authorization;
@@ -123,7 +237,8 @@ router.put('/update/:categoryId', (req, res, next) => {
 									} else if(result.changedRows < 1) {
 										QueryHelper.diagnoseQueryError(result, res);
 									} else {
-										ResponseHelper.sendSuccess(res, 200)									}
+										ResponseHelper.sendSuccess(res, 200)									
+									}
 								});
 							}
 						}
@@ -135,12 +250,65 @@ router.put('/update/:categoryId', (req, res, next) => {
 });
 
 /**
-	Deactivate category, so it will no longer be visible to the user, but recoverable in the future
+ * @api {post} /category/deactivate/:categoryId DeactivateCategory
+ * @apiGroup Category
+ * @apiDescription Deactivate a category such that it becomes invisible. It can be restored later, if necessary
+ * @apiPermission restaurateur, internalAdmin, externalAdmin
+ * @apiHeader {String} Authorization The user access token provided by the API upon successful login
+ * @apiParam {String} categoryId The id of the category to be deactivated
+ * @apiSuccessExample {json} Success 200
+{
+    "success": true,
+    "error": "",
+    "data": {}
+}
+ * @apiErrorExample {json} 401 Invalid token
+{
+    "success": false,
+    "error": "invalid_token",
+    "msg": "The server determined that the token provided in the request is invalid. It likely expired - try logging in again."
+}
+ * @apiErrorExample {json} 401 Unauthorised: not resource owner
+{
+    "success": false,
+    "error": "unauthorised",
+    "msg": "A category can be deactivated  only by the category (menu) owner."
+}
+ * @apiErrorExample {json} 404 ownerId not found
+{
+    "success": false,
+    "error": "ownerId_not_found",
+    "msg": "The query returned zero results. It is likely that a category with the specified ID does not exist."
+}
+ * @apiErrorExample {json} 404 Mandatory request data missing
+{
+    "success": false,
+    "error": "request_data_missing",
+    "msg": "The server was expecting an 'authorization' header and a categoryId. At least one of these params was missing."
+}
+ * @apiErrorExample {json} 422 Invalid request parameter
+{
+    "success": false,
+    "error": "invalid_data_param",
+    "msg": "The data parameter 'dodgyParam' is not a valid parameter for the resource in question."
+}
+ * @apiErrorExample {json} 500 getCategoryOwnerId (SQL) error
+{
+    "success": false,
+    "error": "get_category_owner_query_error",
+    "msg": // sql SNAKE_CASE error key - report to the api dev
+}
+ * @apiErrorExample {json} 500 deactivateCategory (SQL) error
+{
+    "success": false,
+    "error": "update_category_query_error",
+    "msg": // sql SNAKE_CASE error key - report to the api dev
+}
 **/
 router.put('/deactivate/:categoryId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.categoryId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+		ResponseHelper.sendError(res, 404, 'request_data_missing', 
 			"The server was expecting an 'authorization' header, and a categoryId. At least one of these params was missing.");
 	} else {
 		const token = req.headers.authorization;

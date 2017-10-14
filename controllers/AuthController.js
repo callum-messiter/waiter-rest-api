@@ -216,7 +216,7 @@ router.get('/login', (req, res, next) => {
  * @apiErrorExample {json} 500 deleteTokenReferenence (SQL) error
 {
     "success": false,
-    "error": "deleting_token_query_error'",
+    "error": "deleting_token_query_error",
     "msg": // sql SNAKE_CASE error key - report to the api dev
 }
 **/

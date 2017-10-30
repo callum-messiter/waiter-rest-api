@@ -83,14 +83,14 @@ router.get('/:userId', (req, res, next) => {
 /**
 	Create user 
 **/
-router.post('/create/:userType', (req, res, next) => {
+router.post('/create', (req, res, next) => {
 	// No token required, and no access restriction
 	userRolesObject = UserRoles.roleIDs;
-	userType = req.params.userType;
+	userType = req.body.userType;
 	// Check the subroute is set
 	if(!userType) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'Server was expecting a subroute that specifies the type of user to be created.');
+			'Server was expecting a parameter that specifies the type of user to be created.');
 	} else {
 		// Check that the subroute is valid (the user has specified a valid user type)
 		if(!userRolesObject.hasOwnProperty(userType)) {

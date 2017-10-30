@@ -35,7 +35,7 @@ const server = app.listen(port, () => {
 });
 
 // All requests to /api/* will be mapped to the routes/api file, which contains api-specific routes
-app.use('/api/', api);
+app.use('/api', api);
 
 
 // Redirect requests to /api and / to the documentation page

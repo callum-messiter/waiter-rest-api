@@ -111,7 +111,7 @@ router.get('/login', (req, res, next) => {
 						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.');
 				} else {
 					// Check if the user is verified
-					if(true /**user[0].isVerified !== 1**/) {
+					if(1 == 2 /**user[0].isVerified !== 1**/) {
 						ResponseHelper.sendError(res, 403, 'user_not_verified', 
 							'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.');
 					} else  {

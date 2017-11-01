@@ -86,6 +86,7 @@ router.post('/create/:userId', (req, res, next) => {
 			const userId = req.params.userId;
 			const restaurant = req.body;
 			// Add the restaurantId and ownerId
+			restaurant['restaurantId'] = shortId.generate();
 			restaurant['ownerId'] = userId;
 
 			// Check that the token is valid
@@ -115,7 +116,7 @@ router.post('/create/:userId', (req, res, next) => {
 										ResponseHelper.sendError(res, 500, 'create_restaurant_query_error', err);
 									} else {
 										// Return the ID of the new restaurant
-										ResponseHelper.sendSuccess(res, 200, {createdRestaurantId: result.insertId});
+										ResponseHelper.sendSuccess(res, 200, {createdRestaurantId: restaurant.restaurantId});
 									}
 								});
 							}

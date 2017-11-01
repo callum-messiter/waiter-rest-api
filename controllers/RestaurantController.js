@@ -86,8 +86,8 @@ router.post('/create/:userId', (req, res, next) => {
 			const userId = req.params.userId;
 			const restaurant = req.body;
 			// Add the restaurantId and ownerId
-			restaurant['restaurantId'] = shortId.generate();
-			restaurant['ownerId'] = userId;
+			restaurant.restaurantId= shortId.generate();
+			restaurant.ownerId = userId;
 
 			// Check that the token is valid
 			Auth.verifyToken(token, (err, decodedpayload) => {

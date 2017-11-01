@@ -1,6 +1,7 @@
 // Dependencies
 const express = require('express');
 const router = express.Router();
+const shortId = require('shortid');
 // Models
 const Menus = require('../models/Menus');
 const Auth = require('../models/Auth');
@@ -126,6 +127,8 @@ router.post('/create/:restaurantId', (req, res, next) => {
 			const token = req.headers.authorization;
 			const restaurantId = req.params.restaurantId;
 			const menu = req.body;
+			menu.menuId = shortId.generate();
+			menu.restaurantId = restaurantId;
 			// Check that the token is valid
 			Auth.verifyToken(token, (err, decodedpayload) => {
 				if(err) {
@@ -148,12 +151,12 @@ router.post('/create/:restaurantId', (req, res, next) => {
 									'A menu can be created only by the restaurant owner.');
 							} else {
 								// Create menu
-								Menus.createNewMenu(restaurantId, menu, (err, result) => {
+								Menus.createNewMenu(menu, (err, result) => {
 									if(err) {
 										ResponseHelper.sendError(res, 500, 'create_new_menu_query_error', err);
 									} else {
 										// Return the ID of the new menu
-										ResponseHelper.sendSuccess(res, 200, {createdMenuId: result.insertId});
+										ResponseHelper.sendSuccess(res, 200, {createdMenuId: menu.menuId});
 									}
 								});
 							}

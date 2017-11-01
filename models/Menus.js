@@ -29,9 +29,8 @@ module.exports.getMenuOwnerId = function(menuId, callback){
 /**
 	Create new menu, assigned to a restaurant
 **/
-module.exports.createNewMenu = function(restaurantId, menu, callback) {
+module.exports.createNewMenu = function(menu, callback) {
 	// First add the restaurantId (from the route) to the menu object (sent in the body)
-	menu.restaurantId = restaurantId;
 	const query = 'INSERT INTO menus SET ?';
 	db.query(query, menu, callback);
 }

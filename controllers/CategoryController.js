@@ -1,6 +1,7 @@
 // Dependencies
 const express = require('express');
 const router = express.Router();
+const shortId = require('shortid');
 // Models
 const Categories = require('../models/Categories');
 const Auth = require('../models/Auth');
@@ -97,6 +98,8 @@ router.post('/create/:menuId', (req, res, next) => {
 				ResponseHelper.sendError(res, 422, 'invalid_data_param', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
 			} else {
+				category.categoryId = shortId.generate();
+				category.menuId = menuId;
 				// Check that the token is valid
 				Auth.verifyToken(token, (err, decodedpayload) => {
 					if(err) {
@@ -119,12 +122,12 @@ router.post('/create/:menuId', (req, res, next) => {
 										'A menu can be modified only by the menu owner.');
 								} else {
 									// Create category
-									Categories.createNewCategory(menuId, category, (err, result) => {
+									Categories.createNewCategory(category, (err, result) => {
 										if(err) {
 											ResponseHelper.sendError(res, 500, 'create_category_query_error', err);
 										} else {
 											// Return the ID of the new category
-											ResponseHelper.sendSuccess(res, 200, {createdCategoryId: result.insertId});
+											ResponseHelper.sendSuccess(res, 200, {createdCategoryId: category.categoryId});
 										}
 									});
 								}

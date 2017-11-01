@@ -18,9 +18,8 @@ module.exports.schema = {
 /**
 	Create a new item, assigned to a category
 **/
-module.exports.createNewItem = function(categoryId, item, callback) {
+module.exports.createNewItem = function(item, callback) {
 	// First add the categoryId (from the route) to the item object (sent in the body)
-	item.categoryId = categoryId;
 	const query = 'INSERT INTO items SET ?';
 	db.query(query, item, callback);
 }

@@ -30,9 +30,8 @@ module.exports.getCategoryOwnerId = function(categoryId, callback) {
 /**
 	Create new category that is assigned to the relevant menu
 **/
-module.exports.createNewCategory = function(menuId, category, callback) {
+module.exports.createNewCategory = function(category, callback) {
 	// First add the menuId (from the route) to the category object (sent in the body)
-	category.menuId = menuId;
 	const query = 'INSERT INTO categories SET ?';
 	db.query(query, category, callback);
 }

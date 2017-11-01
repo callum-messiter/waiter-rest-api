@@ -17,6 +17,11 @@ module.exports.getRestaurantOwnerId = function(restaurantId, callback) {
 	db.query(query, restaurantId, callback);
 }
 
+module.exports.createNewRestaurant = function(restaurant, callback) {
+	const query = 'INSERT INTO restaurants SET ?';
+	db.query(query, restaurant, callback);
+}
+
 /**
 	Update a restaurant's details
 **/

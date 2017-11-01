@@ -1,6 +1,7 @@
 // Dependencies
 const express = require('express');
 const router = express.Router();
+const shortId = require('shortid');
 // Models
 const Restaurants = require('../models/Restaurants');
 const Auth = require('../models/Auth');
@@ -84,6 +85,8 @@ router.post('/create/:userId', (req, res, next) => {
 			const token = req.headers.authorization;
 			const userId = req.params.userId;
 			const restaurant = req.body;
+			// Add the restaurantId and ownerId
+			restaurant['ownerId'] = userId;
 
 			// Check that the token is valid
 			Auth.verifyToken(token, (err, decodedpayload) => {
@@ -107,7 +110,7 @@ router.post('/create/:userId', (req, res, next) => {
 									'A restaurant cannot be created for a user on another user\'s behalf.');
 							} else {
 								// Create restaurant
-								Restaurants.createNewRestaurant(userId, restaurant, (err, result) => {
+								Restaurants.createNewRestaurant(restaurant, (err, result) => {
 									if(err) {
 										ResponseHelper.sendError(res, 500, 'create_restaurant_query_error', err);
 									} else {

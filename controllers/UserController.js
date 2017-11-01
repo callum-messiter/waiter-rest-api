@@ -4,6 +4,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const moment = require('moment');
 const md5 = require('js-md5');
+const shortId = require('shortid');
 // Models
 const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
@@ -122,6 +123,7 @@ router.post('/create', (req, res, next) => {
 								} else {
 									// Create user object with hashed password
 									const user = {
+										userId: shortId.generate(),
 										email: req.body.email,
 										password: hashedPassword,
 										firstName: req.body.firstName,
@@ -132,7 +134,7 @@ router.post('/create', (req, res, next) => {
 										if(err) {
 											ResponseHelper.sendError(res, 500, 'create_user_query_error', err);
 										} else {
-											const userId = result.insertId;
+											const userId = user.userId;
 											// Set the user's role, which we get from the userRolesObject, using the specified userType
 											const userDetails = {
 												userId: userId,

@@ -11,6 +11,26 @@ const Restaurants = require('../models/Restaurants');
 const ResponseHelper = require('../helpers/ResponseHelper');
 const QueryHelper = require('../helpers/QueryHelper');
 
+
+router.get('/test', (req, res, next) => {
+	const restaurant = {
+		restaurantId: shortId.generate(),
+		name: 'Curry House',
+		ownerId: 'Bk8F3AdR-'
+	};
+	const menu = {
+		menuId: shortId.generate(),
+		restaurantId: restaurant.restaurantId,
+		name: 'Main menu'
+	}
+	Restaurants.createRestaurantWithDefaultMenu(restaurant, menu, (err, result) => {
+		if(err) {
+			res.send(err);
+		} else {
+			res.send(result);
+		}
+	});
+});
 /**
 	Get an entire menu by ID; includes all categories and items
 **/
@@ -113,22 +133,21 @@ router.get('/:menuId', (req, res, next) => {
 /**
 	Create a new menu, assigned to a restaurant 
 **/
-router.post('/create/:restaurantId', (req, res, next) => {
+router.post('/create', (req, res, next) => {
 		// Check auth header and menuId param
-	if(!req.headers.authorization || !req.params.restaurantId) {
+	if(!req.headers.authorization) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting an 'authorization' header and a restaurantId. At least one of these params was missing.");
+			"The server was expecting an 'authorization' header.");
 	} else {
 		// Check required item data
-		if(!req.body.name) {
+		if(!req.body.name || !req.body.restaurantId) {
 			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting a menu name.');
+			'The server was expecting a menu name and a restaurantId.');
 		} else {
 			const token = req.headers.authorization;
-			const restaurantId = req.params.restaurantId;
+			const restaurantId = req.body.restaurantId;
 			const menu = req.body;
 			menu.menuId = shortId.generate();
-			menu.restaurantId = restaurantId;
 			// Check that the token is valid
 			Auth.verifyToken(token, (err, decodedpayload) => {
 				if(err) {
@@ -156,7 +175,12 @@ router.post('/create/:restaurantId', (req, res, next) => {
 										ResponseHelper.sendError(res, 500, 'create_new_menu_query_error', err);
 									} else {
 										// Return the ID of the new menu
-										ResponseHelper.sendSuccess(res, 200, {createdMenuId: menu.menuId});
+										ResponseHelper.sendSuccess(res, 200, {
+											createdMenu: {
+												menuId: menu.menuId,
+												menuName: menu.name
+											}
+										});
 									}
 								});
 							}

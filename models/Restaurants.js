@@ -1,3 +1,6 @@
+// Dependencies
+const shortId = require('shortid');
+
 // Config
 const db = require('../config/database');
 
@@ -37,4 +40,34 @@ module.exports.updateRestaurantDetails = function(restaurantId, restaurantData, 
 module.exports.deactivateRestaurant = function(restaurantId, callback) {
 	const query = 'UPDATE restaurants SET active = 0 WHERE restaurantId = ?';
 	db.query(query, restaurantId, callback);
+}
+
+module.exports.createRestaurantWithDefaultMenu = function(restaurant, menu, callback) {
+	// Default categories
+	const categories = [
+		[shortId.generate(), 'Starters', menu.menuId],
+		[shortId.generate(), 'Mains', menu.menuId],
+		[shortId.generate(), 'Sides', menu.menuId],
+		[shortId.generate(), 'Desserts', menu.menuId],
+		[shortId.generate(), 'Drinks', menu.menuId]
+	];
+
+	// Queries
+	const createRestaurant = 'INSERT INTO restaurants SET ?';
+	const createMenu = 'INSERT INTO menus SET ?';
+	const createCategory = 'INSERT INTO categories (categoryId, name, menuId) VALUES ?';
+	
+	db.query(createRestaurant, restaurant, (err, result) => {
+		if(!err) {
+			db.query(createMenu, menu, (err, result) => {
+				if(!err) {
+					db.query(createCategory, [categories], callback);
+				} else {
+					callback;
+				}
+			});
+		} else {
+			callback;
+		}
+	});
 }

@@ -187,10 +187,15 @@ router.post('/create', (req, res, next) => {
 																					ResponseHelper.sendError(res, 500, 'store_email_ver_token_query_error', err);
 																				} else {
 																					ResponseHelper.sendSuccess(res, 201, {
-																						userId: userId, 
-																						userRole: userRole,
-																						isVerified: false,
-																						restaurantId: restaurant.restaurantId
+																						user: {
+																							userId: userId, 
+																							userRole: userRole,
+																							isVerified: false,
+																						},
+																						restaurant: {
+																							restaurantId: restaurant.restaurantId,
+																							restaurantName: req.body.restaurantName
+																						}
 																					});
 																				}
 																			});

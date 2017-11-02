@@ -102,10 +102,10 @@ router.post('/create', (req, res, next) => {
 			// Check that the request contains all required user details
 			if(
 			   !req.body.email || !req.body.password || 
-			   !req.body.firstName || !req.body.lastName
+			   !req.body.firstName || !req.body.lastName || !req.body.restaurantName
 			) {
 				ResponseHelper.sendError(res, 404, 'missing_required_params', 
-					'The server was expecting an email, password, first name and last name. At least of of these parameters was missing from the request.');
+					'The server was expecting an email, password, first name, last name and restaurantName. At least of of these parameters was missing from the request.');
 			} else {
 				// Check if the email is already registered
 				Users.isEmailRegistered(req.body.email, (err, result) => {
@@ -146,40 +146,53 @@ router.post('/create', (req, res, next) => {
 												if(err) {
 													ResponseHelper.sendError(res, 500, 'set_user_role_query_error', err);
 												} else {
-													// Generate a hash containg the user's current isVerified value, and add it as a claim to the new email-verification jwt. When the user clicks the url in the email we send them,
-													// we will decode the jwt, get the hash, generate a new hash using the same data, and compare the two hashes. The two hashes should
-													// only differ if the user has already verified their email account (thus invalidating the token and the url/email)
-													const userCurrentVerifiedStatus = 0;
-													const string = userCurrentVerifiedStatus+secret;
-													const hash = md5(string);
-
-													Emails.createEmailVerificationToken(userId, hash, (err, token) => {
+													// Create the user's restaurant
+													const restaurant = {
+														ownerId: userId,
+														restaurantId: shortId.generate(),
+														name: req.body.restaurantName
+													};
+													Restaurants.createNewRestaurant(restaurant, (err, result) => {
 														if(err) {
-															ResponseHelper.sendError(res, 500, 'create_email_ver_token_query_error', err);
+															ResponseHelper.sendError(res, 500, 'create_restaurant_query_error', err);
 														} else {
-															const recipient = {
-																email: user.email,
-																firstName: user.firstName,
-																url: 'http://localhost:3000/api/email/verifyEmail?v='+token
-															};
-															// Send email
-															Emails.sendSingleEmail(res, 'emailVerification', recipient, (err, result) => {
+															// Generate a hash containg the user's current isVerified value, and add it as a claim to the new email-verification jwt. When the user clicks the url in the email we send them,
+															// we will decode the jwt, get the hash, generate a new hash using the same data, and compare the two hashes. The two hashes should
+															// only differ if the user has already verified their email account (thus invalidating the token and the url/email)
+															const userCurrentVerifiedStatus = 0;
+															const string = userCurrentVerifiedStatus+secret;
+															const hash = md5(string);
+
+															Emails.createEmailVerificationToken(userId, hash, (err, token) => {
 																if(err) {
-																	ResponseHelper.sendError(res, 500, 'send_email_error', err);
+																	ResponseHelper.sendError(res, 500, 'create_email_ver_token_query_error', err);
 																} else {
-																	// Add the verification token to the database
-																	const data = {
-																		userId: userId, 
-																		token: token
-																	}
-																	Emails.storeVerificationToken(data, (err, result) => {
+																	const recipient = {
+																		email: user.email,
+																		firstName: user.firstName,
+																		url: 'http://localhost:3000/api/email/verifyEmail?v='+token
+																	};
+																	// Send email
+																	Emails.sendSingleEmail(res, 'emailVerification', recipient, (err, result) => {
 																		if(err) {
-																			ResponseHelper.sendError(res, 500, 'store_email_ver_token_query_error', err);
+																			ResponseHelper.sendError(res, 500, 'send_email_error', err);
 																		} else {
-																			ResponseHelper.sendSuccess(res, 201, {
+																			// Add the verification token to the database
+																			const data = {
 																				userId: userId, 
-																				userRole: userRole,
-																				isVerified: false
+																				token: token
+																			}
+																			Emails.storeVerificationToken(data, (err, result) => {
+																				if(err) {
+																					ResponseHelper.sendError(res, 500, 'store_email_ver_token_query_error', err);
+																				} else {
+																					ResponseHelper.sendSuccess(res, 201, {
+																						userId: userId, 
+																						userRole: userRole,
+																						isVerified: false,
+																						restaurantId: restaurant.restaurantId
+																					});
+																				}
 																			});
 																		}
 																	});

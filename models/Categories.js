@@ -28,6 +28,14 @@ module.exports.getCategoryOwnerId = function(categoryId, callback) {
 }
 
 /**
+	Get all items belonging to a category
+**/
+module.exports.getCategoryItems = function(categoryId, callback) {
+	const query = 'SELEC itemId, name, price, description FROM items WHERE categoryId = ?';
+	db.query(query, categoryId, callback);
+}
+
+/**
 	Create new category that is assigned to the relevant menu
 **/
 module.exports.createNewCategory = function(category, callback) {

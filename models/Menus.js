@@ -2,12 +2,26 @@
 const db = require('../config/database');
 
 /**
+	Get the menu details
+**/
+module.exports.getMenuDetails = function(menuId, callback) {
+	const query = 'SELECT menuId, name FROM menus WHERE menuId = ?';
+	db.query(query, menuId, callback);
+}
+
+/**
+	Get all cateories belonging to a menu
+**/
+module.exports.getMenuCategories = function(menuId, callback) {
+	const query = 'SELECT categoryId, name from categories WHERE menuId = ?';
+	db.query(query, menuId, callback);
+}
+
+/**
 	Get an entire menu by ID; includes all categories and items
 **/
-module.exports.getMenuById = function(menuId, callback) {
-	const query = 'SELECT items.itemId, items.name, items.price, items.description, items.categoryId, ' +
-				  'categories.name AS categoryName, categories.description AS categoryDescription, ' + 
-				  'menus.name AS menuName ' +
+module.exports.getMenuItems = function(menuId, callback) {
+	const query = 'SELECT items.itemId, items.name, items.price, items.description, items.categoryId ' + 
 				  'FROM items ' +
 				  'JOIN categories on categories.categoryId = items.categoryId ' +
 				  'JOIN menus on menus.menuId = categories.menuId ' +

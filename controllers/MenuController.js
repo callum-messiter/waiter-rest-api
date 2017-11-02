@@ -42,64 +42,69 @@ router.get('/:menuId', (req, res, next) => {
 							ResponseHelper.sendError(res, 401, 'unauthorised', 
 								'A user\'s details can be accessed only by the owner, or by admins.');
 						} else {
-							Menus.getMenuById(menuId, (err, result) => {
+							Menus.getMenuDetails(menuId, (err, result) => {
 								if(err) {
 									ResponseHelper.sendError(res, 500, 'get_menu_query_error', err);
 								} else if(result.length < 1) {
 									ResponseHelper.sendError(res, 404, 'menu_not_found', 
 										'There are no menus matching the ID provided.');
 								} else {
+									/**
+										The following is horribly inefficient and verbose. The queries with joins to get all items belonging to the menu
+										didn't work if there were zero items (if the menu has empty categories, the query returns nothing.). I can't yet figure
+										out how to do this with a single query.
+									**/
+
 									// Build response object skeleton
 									const menu = {
-										menuId: menuId,
-										menuName: result[0].menuName
-									}
-
-									// Loop through all items and compile an array of categoryIds
-									const categories = [];
-									result.forEach(function(item) {
-										const newCategory = {
-											categoryId: item.categoryId,
-											categoryName: item.categoryName,
-											items: []
-										}
-										if(categories.length < 1) {
-											categories.push(newCategory);
+										menuId: result[0].menuId,
+										menuName: result[0].name,
+									};
+									// Get the menu's categories
+									Menus.getMenuCategories(menuId, (err, result) => {
+										if(err) {
+											ResponseHelper.sendError(res, 500, 'get_menu_categories_query_error', err);
+										} else if(result.length < 1) {
+											// Return a menu object without categories
+											c
+											ResponseHelper.sendSuccess(res, 200, menu);
 										} else {
-											var unique = true;
-											// Is the category with the categoryId already in the categories array?
-											categories.forEach(function(category) {
-												if(category.categoryId == item.categoryId) {
-													unique = false;
+											// If there are categories, add them to the menu object
+											menu.categories = result;
+											// Add an empty items array to each category object
+											for(i = 0; i < menu.categories.length; i++) {
+												menu.categories[i].items = [];
+											}
+											// Get all menu items
+											Menus.getMenuItems(menuId, (err, result) => {
+												if(err) {
+													ResponseHelper.sendError(res, 500, 'get_menu_items_query_error', err);
+												} else if(result.length < 1) {
+													ResponseHelper.sendSuccess(res, 200, menu);
+												} else {
+													// Add the items from the query to their respective categories
+													result.forEach(function(item) {
+														const categoryId = item.categoryId;
+														const categories = menu.categories;
+														categories.forEach(function(category) {
+															// If the item from the query has the same categoryId as the category...
+															if(category.categoryId == categoryId) {
+																// ...add the item to this category
+																const newItem = {
+																	itemId: item.itemId,
+																	name: item.name,
+																	price: item.price,
+																	description: item.description
+																};
+																category.items.push(newItem);
+															}
+														});
+													});
+													ResponseHelper.sendSuccess(res, 200, menu);
 												}
 											});
-											if(unique === true) {
-												categories.push(newCategory);
-											}
 										}
-									});
-
-									// Add the items from the query to their respective categories
-									result.forEach(function(item) {
-										const categoryId = item.categoryId;
-										categories.forEach(function(category) {
-											// If the item from the query has the same categoryId as the category...
-											if(category.categoryId == categoryId) {
-												// ...add the item to this category
-												const newItem = {
-													itemId: item.itemId,
-													name: item.name,
-													price: item.price,
-													description: item.description
-												};
-												category.items.push(newItem);
-											}
-										});
-									});
-
-									// Add categories array (with all item data) to the menu object and return it
-									menu.categories = categories;
-									res.json(menu);
+									})
 								}
 							});
 						}

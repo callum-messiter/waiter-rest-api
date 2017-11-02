@@ -11,26 +11,6 @@ const Restaurants = require('../models/Restaurants');
 const ResponseHelper = require('../helpers/ResponseHelper');
 const QueryHelper = require('../helpers/QueryHelper');
 
-
-router.get('/test', (req, res, next) => {
-	const restaurant = {
-		restaurantId: shortId.generate(),
-		name: 'Curry House',
-		ownerId: 'Bk8F3AdR-'
-	};
-	const menu = {
-		menuId: shortId.generate(),
-		restaurantId: restaurant.restaurantId,
-		name: 'Main menu'
-	}
-	Restaurants.createRestaurantWithDefaultMenu(restaurant, menu, (err, result) => {
-		if(err) {
-			res.send(err);
-		} else {
-			res.send(result);
-		}
-	});
-});
 /**
 	Get an entire menu by ID; includes all categories and items
 **/

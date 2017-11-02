@@ -157,18 +157,20 @@ router.post('/create', (req, res, next) => {
 														menuId: shortId.generate(),
 														name: 'Main Menu'
 													};
-													const response = {user: null, restaurant, menu};
 
 													Restaurants.createRestaurantWithDefaultMenu(restaurant, menu, (err, result) => {
 														if(err) {
 															ResponseHelper.sendError(res, 500, 'create_restaurant_and_menu_query_error', err);
 														} else {
-															response.user = {
-																userId: userId, 
-																userRole: userRole,
-																isVerified: false,
-															};
-															ResponseHelper.sendSuccess(res, 201, response);
+															ResponseHelper.sendSuccess(res, 201, {
+																user: {
+																	userId: userId, 
+																	userRole: userRole,
+																	isVerified: false,
+																},
+																restaurant: restaurant,
+																menu: menu
+															});
 															/**
 																Email verification goes here
 															**/

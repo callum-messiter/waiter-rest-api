@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const Auth = require('../models/Auth');
 const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
+const Restaurants = require('../models/Restaurants');
 // Config
 const secret = require('../config/jwt').secret;
 const ResponseHelper = require('../helpers/ResponseHelper');
@@ -110,7 +111,7 @@ router.get('/login', (req, res, next) => {
 					ResponseHelper.sendError(res, 403, 'user_not_active', 
 						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.');
 				} else {
-					// Check if the user is verified
+					// Ignore user verification for now
 					if(1 == 2 /**user[0].isVerified !== 1**/) {
 						ResponseHelper.sendError(res, 403, 'user_not_verified', 
 							'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.');
@@ -160,12 +161,29 @@ router.get('/login', (req, res, next) => {
 													if(err) {
 														ResponseHelper.sendError(res, 500, 'token_not_added_to_db', err);
 													} else {
-														console.log(role);
-														// Return the relevant user details to the client
-														ResponseHelper.sendSuccess(res, 200, {
-															userId: user[0].userId,
-															role: role,
-															token: token
+														// Get the user's restaurant
+														Restaurants.getRestaurantById(user[0].userId, (err, result) => {
+															// Return the relevant user details to the client
+															if(err) {
+																ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', err);
+															} else if(result.length < 1) {
+																ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
+																	'The query returned zero results. This user does not have an associated restaurant.');
+															} else {
+																ResponseHelper.sendSuccess(res, 200, {
+																	user: {
+																		userId: user[0].userId,
+																		role: role,
+																		token: token
+																	},
+																	// For now we will return the first restaurant, since the user will only have one
+																	restaurant: {
+																		restaurantId: result[0].restaurantId,
+																		restaurantName: result[0].name
+																	}
+																});
+																
+															}
 														});
 													}
 												});

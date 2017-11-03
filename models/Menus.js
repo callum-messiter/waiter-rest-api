@@ -10,6 +10,14 @@ module.exports.getMenuDetails = function(menuId, callback) {
 }
 
 /**
+	Get menu by referencing the ID of the restaurant to which it belongs
+**/
+module.exports.getMenuByRestaurantId = function(restaurantId, callback) {
+	const query = 'SELECT menuId, name FROM menus WHERE restaurantId = ?';
+	db.query(query, restaurantId, callback);
+}
+
+/**
 	Get all cateories belonging to a menu
 **/
 module.exports.getMenuCategories = function(menuId, callback) {

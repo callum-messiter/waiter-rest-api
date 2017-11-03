@@ -9,6 +9,7 @@ const Auth = require('../models/Auth');
 const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
 const Restaurants = require('../models/Restaurants');
+const Menus = require('../models/Menus');
 // Config
 const secret = require('../config/jwt').secret;
 const ResponseHelper = require('../helpers/ResponseHelper');
@@ -162,27 +163,40 @@ router.get('/login', (req, res, next) => {
 														ResponseHelper.sendError(res, 500, 'token_not_added_to_db', err);
 													} else {
 														// Get the user's restaurant
-														Restaurants.getRestaurantById(user[0].userId, (err, result) => {
+														Restaurants.getRestaurantById(user[0].userId, (err, restaurant) => {
 															// Return the relevant user details to the client
 															if(err) {
 																ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', err);
-															} else if(result.length < 1) {
+															} else if(restaurant.length < 1) {
 																ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
 																	'The query returned zero results. This user does not have an associated restaurant.');
 															} else {
-																ResponseHelper.sendSuccess(res, 200, {
-																	user: {
-																		userId: user[0].userId,
-																		role: role,
-																		token: token
-																	},
-																	// For now we will return the first restaurant, since the user will only have one
-																	restaurant: {
-																		restaurantId: result[0].restaurantId,
-																		name: result[0].name
+																Menus.getMenuByRestaurantId(restaurant[0].restaurantId, (err, menu) => {
+																	if(err) {
+																		ResponseHelper.sendError(res, 500, 'get_menu_query_error', err);
+																	} else if(restaurant.length < 1) {
+																		ResponseHelper.sendError(res, 404, 'menu_not_found', 
+																			'The query returned zero results. This user\'s restaurant does not have an associated menu.');
+																	} else {
+																		ResponseHelper.sendSuccess(res, 200, {
+																			user: {
+																				userId: user[0].userId,
+																				role: role,
+																				token: token
+																			},
+																			// For now we will return the first restaurant, since the user will only have one
+																			restaurant: {
+																				restaurantId: restaurant[0].restaurantId,
+																				name: restaurant[0].name
+																			},
+																			// For now we will return the first menu, since the user will only have one
+																			menu: {
+																				menuId: menu[0].menuId,
+																				name: menu[0].name
+																			}
+																		});
 																	}
 																});
-																
 															}
 														});
 													}

@@ -179,7 +179,7 @@ router.get('/login', (req, res, next) => {
 																	// For now we will return the first restaurant, since the user will only have one
 																	restaurant: {
 																		restaurantId: result[0].restaurantId,
-																		restaurantName: result[0].name
+																		name: result[0].name
 																	}
 																});
 																

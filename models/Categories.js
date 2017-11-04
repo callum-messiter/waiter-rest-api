@@ -11,6 +11,7 @@ module.exports.schema = {
 	active: '',
 	// The parameters that can be passed in the body of the request
 	requestBodyParams: {
+		menuId: '',
 		name: '',
 		description: ''
 	}

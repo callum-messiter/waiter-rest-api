@@ -21,7 +21,10 @@ module.exports.getMenuByRestaurantId = function(restaurantId, callback) {
 	Get all cateories belonging to a menu
 **/
 module.exports.getMenuCategories = function(menuId, callback) {
-	const query = 'SELECT categoryId, name from categories WHERE menuId = ?';
+	const query = 'SELECT categoryId, name ' + 
+				  'FROM categories ' +
+				  'WHERE menuId = ? ' +
+				  'ORDER BY date DESC';
 	db.query(query, menuId, callback);
 }
 

@@ -77,20 +77,20 @@ const allowedCategoryParams = Categories.schema.requestBodyParams;
     "msg": // sql SNAKE_CASE error key - report to the api dev
 }
 **/
-router.post('/create/:menuId', (req, res, next) => {
+router.post('/create', (req, res, next) => {
 	// Check auth header and menuId param
-	if(!req.headers.authorization || !req.params.menuId) {
+	if(!req.headers.authorization) {
 		ResponseHelper.sendError(res, 404, 'request_data_missing', 
-			"The server was expecting an 'authorization' header and a menuId. At least one of these params was missing.");
+			"The server was expecting an 'authorization' header.");
 	} else {
 		// Check required item data
-		if(!req.body.name) {
+		if(!req.body.name || !req.body.menuId) {
 			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting a category name.');
+			'The server was expecting a category name and menuId.');
 		} else {
 			const token = req.headers.authorization;
-			const menuId = req.params.menuId;
 			const category = req.body;
+			const menuId = category.menuId;
 
 			// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
 			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(category, allowedCategoryParams, res);
@@ -99,7 +99,6 @@ router.post('/create/:menuId', (req, res, next) => {
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
 			} else {
 				category.categoryId = shortId.generate();
-				category.menuId = menuId;
 				// Check that the token is valid
 				Auth.verifyToken(token, (err, decodedpayload) => {
 					if(err) {

@@ -77,6 +77,7 @@ router.get('/:menuId', (req, res, next) => {
 											}
 											// Get all menu items
 											Menus.getMenuItems(menuId, (err, result) => {
+												console.log(result);
 												if(err) {
 													ResponseHelper.sendError(res, 500, 'get_menu_items_query_error', err);
 												} else if(result.length < 1) {

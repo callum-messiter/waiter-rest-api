@@ -24,6 +24,7 @@ module.exports.getMenuCategories = function(menuId, callback) {
 	const query = 'SELECT categoryId, name ' + 
 				  'FROM categories ' +
 				  'WHERE menuId = ? ' +
+				  'AND active = 1 ' +
 				  'ORDER BY date DESC';
 	db.query(query, menuId, callback);
 }

@@ -38,6 +38,7 @@ module.exports.getMenuItems = function(menuId, callback) {
 				  'JOIN categories on categories.categoryId = items.categoryId ' +
 				  'JOIN menus on menus.menuId = categories.menuId ' +
 				  'WHERE categories.menuId = ? ' +
+				  'AND items.active = 1 ' +
 				  'ORDER BY items.categoryId AND items.date';
 	db.query(query, menuId, callback);
 }

@@ -66,7 +66,6 @@ router.get('/:menuId', (req, res, next) => {
 											ResponseHelper.sendError(res, 500, 'get_menu_categories_query_error', err);
 										} else if(result.length < 1) {
 											// Return a menu object without categories
-											c
 											ResponseHelper.sendSuccess(res, 200, menu);
 										} else {
 											// If there are categories, add them to the menu object

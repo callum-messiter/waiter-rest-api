@@ -11,7 +11,8 @@ module.exports.schema = {
 	requestBodyParams: {
 		name: '',
 		price: '',
-		description: ''
+		description: '',
+		categoryId: '',
 	}
 }
 

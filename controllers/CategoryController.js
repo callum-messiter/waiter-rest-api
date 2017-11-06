@@ -345,7 +345,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.categoryId) {
 		ResponseHelper.sendError(res, 404, 'request_data_missing', 
-			"The server was expecting the 'category' req param, and the 'Authorization' header.",
+			"The server was expecting the 'categoryId' req param, and the 'Authorization' header.",
 			ResponseHelper.msg.default
 		);
 	} else {

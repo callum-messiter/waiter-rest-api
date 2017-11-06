@@ -18,7 +18,9 @@ router.get('/:menuId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.menuId) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
+			"The server was expecting the req param 'menuId', and the 'Authorization' header.",
+			ResponseHelper.msg.default
+		);
 	} else {
 		const menuId = req.params.menuId;
 		const token = req.headers.authorization;
@@ -26,28 +28,42 @@ router.get('/:menuId', (req, res, next) => {
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
 				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
+					'Your session has expired. Please log in again.' // Not needed
+				);
 			} else {
 				Menus.getMenuOwnerId(menuId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error', err);
+						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error',
+							ResponseHelper.msg.sql+err.code,
+							ResponseHelper.msg.default
+						);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
-							'The query returned zero results. It is likely that a menu with the specified ID does not exist.')
+							'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
+							ResponseHelper.msg.default
+						);
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
 						// User details can be accessed only by the owner, or by an internal admin
 						if(requesterId != ownerId) {
 							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A user\'s details can be accessed only by the owner, or by admins.');
+								'A user\'s details can be accessed only by the owner, or by admins.',
+								"Sorry, you don't have permission to do that!"
+							);
 						} else {
 							Menus.getMenuDetails(menuId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'get_menu_query_error', err);
+									ResponseHelper.sendError(res, 500, 'get_menu_query_error',
+										ResponseHelper.msg.sql+err.code,
+										ResponseHelper.msg.default
+									);
 								} else if(result.length < 1) {
 									ResponseHelper.sendError(res, 404, 'menu_not_found', 
-										'There are no menus matching the ID provided.');
+										'There are no menus matching the ID provided.',
+										ResponseHelper.msg.default
+									);
 								} else {
 									/**
 										The following is horribly inefficient and verbose. The queries with joins to get all items belonging to the menu
@@ -78,7 +94,10 @@ router.get('/:menuId', (req, res, next) => {
 											Menus.getMenuItems(menuId, (err, result) => {
 												console.log(result);
 												if(err) {
-													ResponseHelper.sendError(res, 500, 'get_menu_items_query_error', err);
+													ResponseHelper.sendError(res, 500, 'get_menu_items_query_error',
+														ResponseHelper.msg.sql+err.code,
+														ResponseHelper.msg.default
+													);
 												} else if(result.length < 1) {
 													ResponseHelper.sendSuccess(res, 200, menu);
 												} else {
@@ -122,12 +141,16 @@ router.post('/create', (req, res, next) => {
 		// Check auth header and menuId param
 	if(!req.headers.authorization) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting an 'authorization' header.");
+			"The server was expecting an 'Authorization' header.",
+			ResponseHelper.msg.default
+		);
 	} else {
 		// Check required item data
 		if(!req.body.name || !req.body.restaurantId) {
 			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting a menu name and a restaurantId.');
+				'The server was expecting the req params "name" and "restaurantId".',
+				ResponseHelper.msg.default
+			);
 		} else {
 			const token = req.headers.authorization;
 			const restaurantId = req.body.restaurantId;
@@ -137,27 +160,39 @@ router.post('/create', (req, res, next) => {
 			Auth.verifyToken(token, (err, decodedpayload) => {
 				if(err) {
 					ResponseHelper.sendError(res, 401, 'invalid_token', 
-						'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+						'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
+						'Your session has expired. Please log in again.' // Not needed
+					);
 				} else {
 					// Check that the requester owns the restaurant
 					Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error', err);
+							ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error',
+								ResponseHelper.msg.sql+err.code,
+								ResponseHelper.msg.default
+							);
 						} else if(result.length < 1) {
 							ResponseHelper.sendError(res, 404, 'owner_id_not_found', 
-								'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.');
+								'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
+								ResponseHelper.msg.default
+							);
 						} else {
 							const ownerId = result[0].ownerId;
 							const requesterId = decodedpayload.userId;
 							// Menus can only be modified by the menu owner
 							if(requesterId != ownerId) {
 								ResponseHelper.sendError(res, 401, 'unauthorised', 
-									'A menu can be created only by the restaurant owner.');
+									'A menu can be created only by the restaurant owner.',
+									ResponseHelper.msg.default
+								);
 							} else {
 								// Create menu
 								Menus.createNewMenu(menu, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'create_new_menu_query_error', err);
+										ResponseHelper.sendError(res, 500, 'create_new_menu_query_error',
+											ResponseHelper.msg.sql+err.code,
+											ResponseHelper.msg.default
+										);
 									} else {
 										// Return the ID of the new menu
 										ResponseHelper.sendSuccess(res, 200, {
@@ -184,7 +219,9 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 		// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.menuId) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting an 'authorization' header, and a menuId. At least one of these params was missing.");
+			"The server was expecting the req param 'menuId', and the 'Authorization' header.",
+			ResponseHelper.msg.default
+		);
 	} else {
 		const token = req.headers.authorization;
 		const menuId = req.params.menuId;
@@ -192,27 +229,39 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
 				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
+					'Your session has expired. Please log in again.' // Not needed
+				);
 			} else {
 				// Check that the requester owns the menu
 				Menus.getMenuOwnerId(menuId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error', err);
+						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error',
+							ResponseHelper.msg.sql+err.code,
+							ResponseHelper.msg.default
+						);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-							'The query returned zero results. It is likely that a menu with the specified ID does not exist');
+							'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
+							ResponseHelper.msg.default
+						);
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
 							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A menu can only be deactivated by its owner.');
+								'A menu can only be deactivated by its owner.',
+								"Sorry, you don't have permission to do that!"
+							);
 						} else {
 							// Deactivate menu
 							Menus.deactivateMenu(menuId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'deactivate_menu_query_error', err);
+									ResponseHelper.sendError(res, 500, 'deactivate_menu_query_error',
+										ResponseHelper.msg.sql+err.code,
+										ResponseHelper.msg.default
+									);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
@@ -234,7 +283,9 @@ router.put('/update/:menuId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.menuId) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting an 'authorization' header, and a menuId. At least one of these params was missing.");
+			"The server was expecting the req param 'menuId', and the 'Authorization' header.",
+			ResponseHelper.msg.default
+		);
 	} else {
 		const token = req.headers.authorization;
 		const menuId = req.params.menuId;
@@ -244,27 +295,39 @@ router.put('/update/:menuId', (req, res, next) => {
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
 				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
+					'Your session has expired. Please log in again.' // Not needed
+				);
 			} else {
 				// Check that the requester owns the menu
 				Menus.getMenuOwnerId(menuId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error', err);
+						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error',
+							ResponseHelper.msg.sql+err.code,
+							ResponseHelper.msg.default
+						);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-							'The query returned zero results. It is likely that an item with the specified ID does not exist');
+							'The query returned zero results. It is likely that an item with the specified ID does not exist.',
+							ResponseHelper.msg.default
+						);
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
 							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A menu can be modified only by its owner.');
+								'A menu can be modified only by its owner.',
+								"Sorry, you don't have permission to do that!"
+							);
 						} else {
 							// Update Menu
 							Menus.updateMenuDetails(menuId, menuData, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'update_menu_query_error', err);
+									ResponseHelper.sendError(res, 500, 'update_menu_query_error',
+										ResponseHelper.msg.sql+err.code,
+										ResponseHelper.msg.default
+									);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {

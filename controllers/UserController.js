@@ -14,6 +14,7 @@ const Emails = require('../models/Emails');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 const RequestHelper = require('../helpers/RequestHelper');
+const QueryHelper = require('../helpers/QueryHelper');
 // Config
 const secret = require('../config/jwt').secret;
 const modifiableUserDetails = Users.schema.requestBodyParams;
@@ -51,10 +52,7 @@ router.get('/:userId', (req, res, next) => {
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-					'Your session has expired. Please log in again.' // Not needed
-				);
+				ResponseHelper.invalidToken(res);
 			} else {
 				const requesterId = decodedpayload.userId;
 
@@ -290,10 +288,7 @@ router.put('/deactivate/:userId', (req, res, next) => {
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-					'Your session has expired. Please log in again.' // Not needed
-				);
+				ResponseHelper.invalidToken(res);
 			} else {
 				const requesterRole = decodedpayload.userRole;
 				const requesterId = decodedpayload.userId;
@@ -379,10 +374,7 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 			} else {
 				Auth.verifyToken(token, (err, decodedpayload) => {
 					if(err) {
-						ResponseHelper.sendError(res, 401, 'invalid_token', 
-							'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-							'Your session has expired. Please log in again.' // Not needed
-						);
+						ResponseHelper.invalidToken(res);
 					} else {
 						const ownerId = userId;
 						const requesterId = decodedpayload.userId;

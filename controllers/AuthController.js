@@ -1,4 +1,4 @@
-  // Dependencies
+// Dependencies
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
@@ -14,6 +14,8 @@ const Menus = require('../models/Menus');
 const secret = require('../config/jwt').secret;
 const ResponseHelper = require('../helpers/ResponseHelper');
 
+const defaultUserMsg = 'An error occured. Please try again, and if the issue persists, contact support.';
+const SQLerrorMsg = 'There was an SQL error: ';
 /**
  * @api {get} /auth/login Login
  * @apiGroup Auth
@@ -95,51 +97,74 @@ router.get('/login', (req, res, next) => {
 	// CHeck that the email and password were set
 	if(!req.query.email || !req.query.password) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The request must contain an email address and password.');
+			'The request must contain "email" and "password" parameters.',
+			defaultUserMsg
+		);
 	} else {
 		const email = req.query.email;
 		const password = req.query.password;
 		// Check that the email address entered is registered
 		Users.doesUserExist(email, (err, user) => {
 			if(err) {
-				ResponseHelper.sendError(res, 500, 'get_user_query_error', err.code);
+				ResponseHelper.sendError(res, 500, 'get_user_query_error', 
+					SQLerrorMsg+err.code,
+					defaultUserMsg
+				);
 			} else if(user.length < 1) {
 				ResponseHelper.sendError(res, 401, 'invalid_login_credentials', 
-					'The email-password combination does not exist in the database.');
+					'The email-password combination does not exist in the database.',
+					'The username and password you entered did not match our records. Please double-check and try again.'
+				);
 			} else {
 				// Check if the user is active
 				if(user[0].isActive !== 1) {
 					ResponseHelper.sendError(res, 403, 'user_not_active', 
-						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.');
+						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.',
+						'This account is not currently active. You can restore your account by clicking here.'
+					);
 				} else {
 					// Ignore user verification for now
 					if(1 == 2 /**user[0].isVerified !== 1**/) {
 						ResponseHelper.sendError(res, 403, 'user_not_verified', 
-							'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.');
+							'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.',
+							'This account is not verified. Please check your email inbox for a verification email from waiter.'
+						);
 					} else  {
 						// Check that the user entered the correct password
 						const plainTextPassword = password;
 						const hashedPassword = user[0].password
 						Users.checkPassword(plainTextPassword, hashedPassword, (err, passwordsMatch) => {
 							if(err) {
-								ResponseHelper.sendError(res, 500, 'bcrypt_error', err);
+								ResponseHelper.sendError(res, 500, 'bcrypt_error', 
+									'There was an error with the bcrypt package: ' + err,
+									defaultUserMsg);
 							} else if(!passwordsMatch) {
 								ResponseHelper.sendError(res, 401, 'invalid_login_credentials', 
-									'The email-password combination does not exist in the database.');
+									'The email-password combination does not exist in the database.',
+									'The username and password you entered did not match our records. Please double-check and try again.'
+								);
 							} else if(passwordsMatch){
 								// Get the user's role to store in the token
 								UserRoles.getUserRole(user[0].userId, (err, userRole) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'get_user_role_query_error', err.code);
+										ResponseHelper.sendError(res, 500, 'get_user_role_query_error', 
+											SQLerrorMsg+err.code,
+											defaultUserMsg
+										);
 									} else {
 										const role = userRole[0].roleId;
 										// Generate token
 										Auth.createUserToken(user[0].userId, role, (err, token) => {
 											if(err) {
-												ResponseHelper.sendError(res, 500, 'jwt_error', err);
+												ResponseHelper.sendError(res, 500, 'jwt_error', 
+													'There was an error with the jwt package: ' + err,
+													defaultUserMsg
+												);
 											} else if(token == null) {
 												ResponseHelper.sendError(res, 500, 'jwt_token_null', 
-													'The server could not create a unique token.');
+													'The server could not create a unique token.',
+													defaultUserMsg
+												);
 											} else {
 												// Decode token and get userId and exp
 												const decodedToken = jwt.decode(token);
@@ -160,23 +185,36 @@ router.get('/login', (req, res, next) => {
 												// Add token to the db for reference
 												Auth.saveUserTokenReference(userToken, (err, result) => {
 													if(err) {
-														ResponseHelper.sendError(res, 500, 'token_not_added_to_db', err);
+														ResponseHelper.sendError(res, 500, 'token_not_added_to_db', 
+															SQLerrorMsg+err.code,
+															defaultUserMsg
+														);
 													} else {
 														// Get the user's restaurant
 														Restaurants.getRestaurantById(user[0].userId, (err, restaurant) => {
 															// Return the relevant user details to the client
 															if(err) {
-																ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', err);
+																ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', 
+																	SQLerrorMsg+err.code,
+																	defaultUserMsg
+																);
 															} else if(restaurant.length < 1) {
 																ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
-																	'The query returned zero results. This user does not have an associated restaurant.');
+																	'The query returned zero results. This user does not have an associated restaurant.',
+																	defaultUserMsg
+																);
 															} else {
 																Menus.getMenuByRestaurantId(restaurant[0].restaurantId, (err, menu) => {
 																	if(err) {
-																		ResponseHelper.sendError(res, 500, 'get_menu_query_error', err);
+																		ResponseHelper.sendError(res, 500, 'get_menu_query_error',
+																			SQLerrorMsg+err.code,
+																			defaultUserMsg
+																		);
 																	} else if(restaurant.length < 1) {
 																		ResponseHelper.sendError(res, 404, 'menu_not_found', 
-																			'The query returned zero results. This user\'s restaurant does not have an associated menu.');
+																			'The query returned zero results. This user\'s restaurant does not have an associated menu.',
+																			defaultUserMsg
+																		);
 																	} else {
 																		ResponseHelper.sendSuccess(res, 200, {
 																			user: {
@@ -255,7 +293,9 @@ router.get('/login', (req, res, next) => {
 router.get('/logout', (req, res, next) => {
 	if(!req.query.userId || !req.headers.authorization) {
 		ResponseHelper.sendError(res, 404, 'missing_required_data', 
-			'The server was expecting a userId and a token. At least one of these parameters was missing from the request.');
+			'The server was expecting the request param "userId" and the "Authorization" header.',
+			defaultUserMsg
+		);
 	} else {
 		const token = req.headers.authorization;
 		const userId = req.query.userId;
@@ -263,16 +303,23 @@ router.get('/logout', (req, res, next) => {
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
 				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
+					'Your session has expired. Please log in again.' // Not needed
+				);
 			} else {
 				// Delete the token from the DB (the token will be invalidated/deleted by the client)
 				Auth.deleteTokenReference(token, userId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'deleting_token_query_error', err);
+						ResponseHelper.sendError(res, 500, 'deleting_token_query_error', 
+							SQLerrorMsg+err.code,
+							defaultUserMsg
+						);
 					} else {
 						if(result.affectedRows < 1) {
 							ResponseHelper.sendError(res, 404, 'error_deleting_token_ref', 
-								'The server executed the query successfully, but nothing was deleted. It\'s likely that userId-token combination provided does not exist in the database.');
+								'The server executed the query successfully, but nothing was deleted. It\'s likely that userId-token combination provided does not exist in the database.',
+								defaultUserMsg
+							);
 						} else {
 							ResponseHelper.sendSuccess(res, 200);
 						}

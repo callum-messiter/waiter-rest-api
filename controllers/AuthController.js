@@ -14,8 +14,6 @@ const Menus = require('../models/Menus');
 const secret = require('../config/jwt').secret;
 const ResponseHelper = require('../helpers/ResponseHelper');
 
-const defaultUserMsg = 'An error occured. Please try again, and if the issue persists, contact support.';
-const SQLerrorMsg = 'There was an SQL error: ';
 /**
  * @api {get} /auth/login Login
  * @apiGroup Auth
@@ -98,7 +96,7 @@ router.get('/login', (req, res, next) => {
 	if(!req.query.email || !req.query.password) {
 		ResponseHelper.sendError(res, 404, 'missing_required_params', 
 			'The request must contain "email" and "password" parameters.',
-			defaultUserMsg
+			ResponseHelper.msg.default
 		);
 	} else {
 		const email = req.query.email;
@@ -107,8 +105,8 @@ router.get('/login', (req, res, next) => {
 		Users.doesUserExist(email, (err, user) => {
 			if(err) {
 				ResponseHelper.sendError(res, 500, 'get_user_query_error', 
-					SQLerrorMsg+err.code,
-					defaultUserMsg
+					ResponseHelper.msg.sql+err.code,
+					ResponseHelper.msg.default
 				);
 			} else if(user.length < 1) {
 				ResponseHelper.sendError(res, 401, 'invalid_login_credentials', 
@@ -137,7 +135,7 @@ router.get('/login', (req, res, next) => {
 							if(err) {
 								ResponseHelper.sendError(res, 500, 'bcrypt_error', 
 									'There was an error with the bcrypt package: ' + err,
-									defaultUserMsg);
+									ResponseHelper.msg.default);
 							} else if(!passwordsMatch) {
 								ResponseHelper.sendError(res, 401, 'invalid_login_credentials', 
 									'The email-password combination does not exist in the database.',
@@ -148,8 +146,8 @@ router.get('/login', (req, res, next) => {
 								UserRoles.getUserRole(user[0].userId, (err, userRole) => {
 									if(err) {
 										ResponseHelper.sendError(res, 500, 'get_user_role_query_error', 
-											SQLerrorMsg+err.code,
-											defaultUserMsg
+											ResponseHelper.msg.sql+err.code,
+											ResponseHelper.msg.default
 										);
 									} else {
 										const role = userRole[0].roleId;
@@ -158,12 +156,12 @@ router.get('/login', (req, res, next) => {
 											if(err) {
 												ResponseHelper.sendError(res, 500, 'jwt_error', 
 													'There was an error with the jwt package: ' + err,
-													defaultUserMsg
+													ResponseHelper.msg.default
 												);
 											} else if(token == null) {
 												ResponseHelper.sendError(res, 500, 'jwt_token_null', 
 													'The server could not create a unique token.',
-													defaultUserMsg
+													ResponseHelper.msg.default
 												);
 											} else {
 												// Decode token and get userId and exp
@@ -186,8 +184,8 @@ router.get('/login', (req, res, next) => {
 												Auth.saveUserTokenReference(userToken, (err, result) => {
 													if(err) {
 														ResponseHelper.sendError(res, 500, 'token_not_added_to_db', 
-															SQLerrorMsg+err.code,
-															defaultUserMsg
+															ResponseHelper.msg.sql+err.code,
+															ResponseHelper.msg.default
 														);
 													} else {
 														// Get the user's restaurant
@@ -195,25 +193,25 @@ router.get('/login', (req, res, next) => {
 															// Return the relevant user details to the client
 															if(err) {
 																ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', 
-																	SQLerrorMsg+err.code,
-																	defaultUserMsg
+																	ResponseHelper.msg.sql+err.code,
+																	ResponseHelper.msg.default
 																);
 															} else if(restaurant.length < 1) {
 																ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
 																	'The query returned zero results. This user does not have an associated restaurant.',
-																	defaultUserMsg
+																	ResponseHelper.msg.default
 																);
 															} else {
 																Menus.getMenuByRestaurantId(restaurant[0].restaurantId, (err, menu) => {
 																	if(err) {
 																		ResponseHelper.sendError(res, 500, 'get_menu_query_error',
-																			SQLerrorMsg+err.code,
-																			defaultUserMsg
+																			ResponseHelper.msg.sql+err.code,
+																			ResponseHelper.msg.default
 																		);
 																	} else if(restaurant.length < 1) {
 																		ResponseHelper.sendError(res, 404, 'menu_not_found', 
 																			'The query returned zero results. This user\'s restaurant does not have an associated menu.',
-																			defaultUserMsg
+																			ResponseHelper.msg.default
 																		);
 																	} else {
 																		ResponseHelper.sendSuccess(res, 200, {
@@ -294,7 +292,7 @@ router.get('/logout', (req, res, next) => {
 	if(!req.query.userId || !req.headers.authorization) {
 		ResponseHelper.sendError(res, 404, 'missing_required_data', 
 			'The server was expecting the request param "userId" and the "Authorization" header.',
-			defaultUserMsg
+			ResponseHelper.msg.default
 		);
 	} else {
 		const token = req.headers.authorization;
@@ -311,14 +309,14 @@ router.get('/logout', (req, res, next) => {
 				Auth.deleteTokenReference(token, userId, (err, result) => {
 					if(err) {
 						ResponseHelper.sendError(res, 500, 'deleting_token_query_error', 
-							SQLerrorMsg+err.code,
-							defaultUserMsg
+							ResponseHelper.msg.sql+err.code,
+							ResponseHelper.msg.default
 						);
 					} else {
 						if(result.affectedRows < 1) {
 							ResponseHelper.sendError(res, 404, 'error_deleting_token_ref', 
 								'The server executed the query successfully, but nothing was deleted. It\'s likely that userId-token combination provided does not exist in the database.',
-								defaultUserMsg
+								ResponseHelper.msg.default
 							);
 						} else {
 							ResponseHelper.sendSuccess(res, 200);

@@ -26,10 +26,7 @@ router.get('/:restaurantId', (req, res, next) => {
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-					'Your session has expired. Please log in again.' // Not needed
-				);
+				ResponseHelper.invalidToken(res);
 			} else {
 				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
 					if(err) {
@@ -112,10 +109,7 @@ router.post('/create/:userId', (req, res, next) => {
 			// Check that the token is valid
 			Auth.verifyToken(token, (err, decodedpayload) => {
 				if(err) {
-					ResponseHelper.sendError(res, 401, 'invalid_token', 
-						'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-						'Your session has expired. Please log in again.' // Not needed
-					);
+					ResponseHelper.invalidToken(res);
 				} else {
 					// Check that the user with the specified ID exists (we need to check that the user is who they say they are, using session)
 					Users.getUserById(userId, (err, result) => {
@@ -176,10 +170,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-					'Your session has expired. Please log in again.' // Not needed
-				);
+				ResponseHelper.invalidToken(res);
 			} else {
 				// Check that the requester owns the menu
 				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
@@ -240,10 +231,7 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-					ResponseHelper.msg.default
-				);
+				ResponseHelper.invalidToken(res);
 			} else {
 				// Check that the requester owns the menu
 				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {

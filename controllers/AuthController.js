@@ -300,10 +300,7 @@ router.get('/logout', (req, res, next) => {
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-					'Your session has expired. Please log in again.' // Not needed
-				);
+				ResponseHelper.invalidToken(res);
 			} else {
 				// Delete the token from the DB (the token will be invalidated/deleted by the client)
 				Auth.deleteTokenReference(token, userId, (err, result) => {

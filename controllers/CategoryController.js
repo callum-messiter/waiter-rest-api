@@ -108,10 +108,7 @@ router.post('/create', (req, res, next) => {
 				// Check that the token is valid
 				Auth.verifyToken(token, (err, decodedpayload) => {
 					if(err) {
-						ResponseHelper.sendError(res, 401, 'invalid_token', 
-							'The server determined that the token provided in the request is invalid. It likely expired - log the user out',
-							'Your session has expired. Please log in again.' // Not needed
-						);
+						ResponseHelper.invalidToken(res);
 					} else {
 						// Check that the requester owns the menu
 						Menus.getMenuOwnerId(menuId, (err, result) => {
@@ -236,10 +233,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 			// Check that the token is valid
 			Auth.verifyToken(token, (err, decodedpayload) => {
 				if(err) {
-					ResponseHelper.sendError(res, 401, 'invalid_token', 
-						'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-						'Your session has expired. Please log in again.' // Not needed
-					);
+					ResponseHelper.invalidToken(res);
 				} else {
 					// Check that the requester owns the menu
 					Categories.getCategoryOwnerId(categoryId, (err, result) => {
@@ -354,10 +348,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 		// Check that the token is valid
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-					'Your session has expired. Please log in again.' // Not needed
-				);
+				ResponseHelper.invalidToken(res);
 			} else {
 				// Check that the requester owns the menu
 				Categories.getCategoryOwnerId(categoryId, (err, result) => {

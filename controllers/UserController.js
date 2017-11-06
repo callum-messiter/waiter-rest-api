@@ -429,10 +429,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
-					'Your session has expired. Please log in again.' // Not needed'
-				);
+				ResponseHelper.invalidToken(res);
 			} else {
 				const ownerId = userId;
 				const requesterId = decodedpayload.userId;

@@ -81,12 +81,16 @@ router.post('/create', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization) {
 		ResponseHelper.sendError(res, 404, 'request_data_missing', 
-			"The server was expecting an 'authorization' header.");
+			"The server was expecting an 'authorization' header.",
+			ResponseHelper.msg.default
+		);
 	} else {
 		// Check required item data
 		if(!req.body.name || !req.body.menuId) {
 			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting a category name and menuId.');
+			'The server was expecting the params "name" and "menuId".',
+			ResponseHelper.msg.default
+		);
 		} else {
 			const token = req.headers.authorization;
 			const category = req.body;
@@ -96,34 +100,48 @@ router.post('/create', (req, res, next) => {
 			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(category, allowedCategoryParams, res);
 			if(requestDataIsValid !== true) {
 				ResponseHelper.sendError(res, 422, 'invalid_data_param', 
-					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
+					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
+					ResponseHelper.msg.default
+				);
 			} else {
 				category.categoryId = shortId.generate();
 				// Check that the token is valid
 				Auth.verifyToken(token, (err, decodedpayload) => {
 					if(err) {
 						ResponseHelper.sendError(res, 401, 'invalid_token', 
-							'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+							'The server determined that the token provided in the request is invalid. It likely expired - log the user out',
+							'Your session has expired. Please log in again.' // Not needed
+						);
 					} else {
 						// Check that the requester owns the menu
 						Menus.getMenuOwnerId(menuId, (err, result) => {
 							if(err) {
-								ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error', err);
+								ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error', 
+									ResponseHelper.msg.sql+err.code,
+									ResponseHelper.msg.default
+								);
 							} else if(result.length < 1) {
 								ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-									'The query returned zero results. It is likely that a menu with the specified ID does not exist');
+									'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
+									ResponseHelper.msg.default	
+								);
 							} else {
 								const ownerId = result[0].ownerId;
 								const requesterId = decodedpayload.userId;
 								// Menus can only be modified by the menu owner
 								if(requesterId != ownerId) {
 									ResponseHelper.sendError(res, 401, 'unauthorised', 
-										'A menu can be modified only by the menu owner.');
+										'A menu can be modified only by the menu owner.',
+										"Sorry, you don't have permission to do that!"
+									);
 								} else {
 									// Create category
 									Categories.createNewCategory(category, (err, result) => {
 										if(err) {
-											ResponseHelper.sendError(res, 500, 'create_category_query_error', err);
+											ResponseHelper.sendError(res, 500, 'create_category_query_error', 
+												ResponseHelper.msg.sql+err.code,
+												ResponseHelper.msg.default
+											);
 										} else {
 											// Return the ID of the new category
 											ResponseHelper.sendSuccess(res, 200, {createdCategoryId: category.categoryId});
@@ -199,7 +217,9 @@ router.put('/update/:categoryId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.categoryId) {
 		ResponseHelper.sendError(res, 404, 'request_data_missing', 
-			"The server was expecting an 'authorization' header, and a categoryId. At least one of these params was missing.");
+			"The server was expecting the req param 'categoryId', and the 'Authorization' header.",
+			ResponseHelper.msg.default
+		);
 	} else {
 		const token = req.headers.authorization;
 		const categoryId = req.params.categoryId;
@@ -209,33 +229,47 @@ router.put('/update/:categoryId', (req, res, next) => {
 		const requestDataIsValid = RequestHelper.checkRequestDataIsValid(categoryData, allowedCategoryParams, res);
 		if(requestDataIsValid !== true) {
 			ResponseHelper.sendError(res, 422, 'invalid_data_params', 
-				"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.");
+				"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
+				REsponseHelper.msg.default
+			);
 		} else {
 			// Check that the token is valid
 			Auth.verifyToken(token, (err, decodedpayload) => {
 				if(err) {
 					ResponseHelper.sendError(res, 401, 'invalid_token', 
-						'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+						'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
+						'Your session has expired. Please log in again.' // Not needed
+					);
 				} else {
 					// Check that the requester owns the menu
 					Categories.getCategoryOwnerId(categoryId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', err);
+							ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', 
+								ResponseHelper.msg.sql+err.code,
+								ResponseHelper.msg.default
+							);
 						} else if(result.length < 1) {
 							ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-								'The query returned zero results. It is likely that an item with the specified ID does not exist');
+								'The query returned zero results. It is likely that an item with the specified ID does not exist.',
+								ResponseHelper.msg.default
+							);
 						} else {
 							const ownerId = result[0].ownerId;
 							const requesterId = decodedpayload.userId;
 							// Menus can only be modified by the menu owner
 							if(requesterId != ownerId) {
 								ResponseHelper.sendError(res, 401, 'unauthorised', 
-									'A category can be modified only by the category (menu) owner.');
+									'A category can be modified only by the category (menu) owner.',
+									"Sorry, you don't have permission to do that!"
+								);
 							} else {
 								// Update category
 								Categories.updateCategoryDetails(categoryId, categoryData, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'update_category_query_error', err);
+										ResponseHelper.sendError(res, 500, 'update_category_query_error',
+											ResponseHelper.msg.sql+err.code,
+											ResponseHelper.msg.default
+										);
 									} else if(result.changedRows < 1) {
 										QueryHelper.diagnoseQueryError(result, res);
 									} else {
@@ -311,7 +345,9 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.categoryId) {
 		ResponseHelper.sendError(res, 404, 'request_data_missing', 
-			"The server was expecting an 'authorization' header, and a categoryId. At least one of these params was missing.");
+			"The server was expecting the 'category' req param, and the 'Authorization' header.",
+			ResponseHelper.msg.default
+		);
 	} else {
 		const token = req.headers.authorization;
 		const categoryId = req.params.categoryId;
@@ -319,27 +355,39 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 		Auth.verifyToken(token, (err, decodedpayload) => {
 			if(err) {
 				ResponseHelper.sendError(res, 401, 'invalid_token', 
-					'The server determined that the token provided in the request is invalid. It likely expired - try logging in again.');
+					'The server determined that the token provided in the request is invalid. It likely expired - log the user out.',
+					'Your session has expired. Please log in again.' // Not needed
+				);
 			} else {
 				// Check that the requester owns the menu
 				Categories.getCategoryOwnerId(categoryId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', err);
+						ResponseHelper.sendError(res, 500, 'get_category_owner_query_error',
+							ResponseHelper.msg.sql+err.code,
+							ResponseHelper.msg.default
+						);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-							'The query returned zero results. It is likely that a category with the specified ID does not exist');
+							'The query returned zero results. It is likely that a category with the specified ID does not exist.',
+							ResponseHelper.msg.default
+						);
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
 							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A category can be modified only by the menu owner.');
+								'A category can be modified only by the menu owner.',
+								"Sorry, you don't have permission to do that!"
+							);
 						} else {
 							// Deactivate item
 							Categories.deactivateCategory(categoryId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'deactivate_category_query_error', err);
+									ResponseHelper.sendError(res, 500, 'deactivate_category_query_error',
+										ResponseHelper.msg.sql+err.code,
+										ResponseHelper.msg.default
+									);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {

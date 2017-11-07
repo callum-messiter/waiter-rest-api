@@ -29,7 +29,7 @@ module.exports.unauthorised = function(res, resourceType) {
 	res.status(401).json({
 		success: false, 
 		errorKey: 'unauthorised', 
-		devMsg: 'This user account does not have permission to access or modify the specified ' + resourceType,
+		devMsg: 'This user account does not have permission to access or modify the specified '+resourceType,
 		userMsg: 'Sorry, you don\'t have permission to do that!'
 	});
 }
@@ -40,38 +40,82 @@ module.exports.sql = function(res, queryName, err) {
 		success: false, 
 		errorKey: queryType+'_sql_error', 
 		devMsg: 'There was an SQL error: '+err.code,
-		userMsg: 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.'
+		userMsg: this.msg.default.user
 	});
 }
 
+// When the request is missing the Auth header or a request parameter
 module.exports.invalidRequest = function(res, params=[]) {
-	res.status(404).json({
+	res.status(400).json({
 		success: false, 
 		errorKey: 'invalid_request', 
-		devMsg: 'The request must contain an Authorization header, and the following parameters: ' + params,
-		userMsg: 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.'
+		devMsg: 'The request must contain an Authorization header, and the following parameters: '+params,
+		userMsg: this.msg.default.user
 	});
 }
 
+// When the request is missing a required data parameter
 module.exports.missingRequiredData = function(res, params) {
-	res.status(404).json({
+	res.status(400).json({
 		success: false, 
 		errorKey: 'missing_required_data', 
-		devMsg: 'The request must contain the following data parameters: ' + params + '.',
-		userMsg: 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.'
+		devMsg: 'The request must contain the following data parameters: '+params+'.',
+		userMsg: this.msg.default.user
 	});
 }	
 
-module.exports.resourceNotFound = function(res, queryName, err) {
-	res.status(500).json({
+// When a query is performed to retrieve a resource, and the query returns zero matches
+module.exports.resourceNotFound = function(res, resourceType) {
+	res.status(404).json({
 		success: false, 
-		errorKey: '', 
-		devMsg: '',
-		userMsg: ''
+		errorKey: resourceType+'_not_found', 
+		devMsg: 'The query returned zero results. The '+resourceType+' could not be found in the database.',
+		userMsg: this.msg.default.user
 	});
 }
 
+/**
+	Predefined, reusable error messages
+**/	
 module.exports.msg = {
-	default: 'An error occured. Please try again, and if the issue persists, contact support.',
-	sql: 'There was an SQL error: '
+	default: {
+		dev: '',
+		user: 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.'
+	},
+	auth: {
+		invalidLogin: {
+			dev: 'The email-password combination does not exist in the database.',
+			user: 'The username and password you entered did not match our records. Please double-check and try again.'
+		},
+		inactiveUser: {
+			dev: 'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.',
+			user: 'This account is not currently active. You can restore your account by clicking here.'
+		},
+		unverifiedUser: {
+			dev: 'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.',
+			user: 'This account is not verified. Please check your email inbox for a verification email from waiter.'
+		}
+	},
+	category: {
+
+	},
+	item: {
+
+	},
+	menu: {
+
+	},
+	restaurant: {
+
+	},
+	user: {
+
+	},
+	liveKitchen: {
+
+	},
+	email: {
+
+	}
+
 }

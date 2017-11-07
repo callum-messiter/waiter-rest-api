@@ -7,15 +7,15 @@ const db = require('../config/database');
 /**
 	Get restaurant by owner (user) Id
 **/
-module.exports.getRestaurantById = function(userId, callback) {
+module.exports.getRestaurantByOwnerId = function(ownerId, callback) {
 	const query = 'SELECT * FROM restaurants WHERE OwnerId = ?';
-	db.query(query, userId, callback);
+	db.query(query, ownerId, callback);
 }
 
 /**
 	Get the ID of the restaurant's owner
 **/
-module.exports.getRestaurantOwnerId = function(restaurantId, callback) {
+module.exports.getRestaurantId = function(restaurantId, callback) {
 	const query = 'SELECT ownerId FROM restaurants WHERE restaurantId = ?';
 	db.query(query, restaurantId, callback);
 }

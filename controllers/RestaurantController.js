@@ -29,10 +29,7 @@ router.get('/:restaurantId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
-							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'restaurant');
 					} else {
 						const requesterId = decodedpayload.userId;
 						const ownerId = result[0].ownerId;
@@ -45,10 +42,7 @@ router.get('/:restaurantId', (req, res, next) => {
 								if(err) {
 									ResponseHelper.sql(res, 'getRestaurantById', err);
 								} else if(result.length < 1) {
-									ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
-										'The user appears to have zero registered restaurants.',
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.resourceNotFound(res, 'restaurant');
 								} else {
 									// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
 									const restaurant = {
@@ -98,10 +92,7 @@ router.post('/create/:userId', (req, res, next) => {
 						if(err) {
 							ResponseHelper.sql(res, 'getUserById', err);
 						} else if(result.length < 1) {
-							ResponseHelper.sendError(res, 404, 'user_not_found', 
-								'The query returned zero results. It is likely that a user with the specified ID does not exist.',
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.resourceNotFound(res, 'user');
 						} else {
 							const requesterId = decodedpayload.userId;
 							// Menus can only be modified by the menu owner
@@ -198,10 +189,7 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'restaurant');
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;

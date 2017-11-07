@@ -57,17 +57,11 @@ router.get('/:userId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getUserById', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'user_not_found', 
-							'There are no users matching the ID provided.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'user');
 					} else {
 						// User details can be accessed only by the owner, or by an internal admin
 						if(requesterId != userId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A user\'s details can be accessed only by the owner, or by admins.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'user account')
 						} else {
 							// Return only insensitive user information
 							user = {
@@ -268,20 +262,14 @@ router.put('/deactivate/:userId', (req, res, next) => {
 				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
 				// A user can be deactivated only by the owner, or by an internal admin
 				if(requesterId != userId && requesterRole != waiterAdmin) {
-					ResponseHelper.sendError(res, 401, 'unauthorised', 
-						'A user account can be deactivated only by the owner, or by an internal admin.',
-						"Sorry, you don't have permission to do that!"
-					);
+					ResponseHelper.unauthorised(res, 'user account');
 				} else {
 					// Before deactivating the user, check if the account is already active
 					Users.getUserById(userId, (err, user) => {
 						if(err) {
 							ResponseHelper.sql(res, 'getUserById', err);
 						} else if(user.length < 1) {
-							ResponseHelper.sendError(res, 404, 'user_not_found', 
-								'A user with the specified Id could not be found.',
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.resourceNotFound(res, 'user');
 						} else {
 							const IsActive = user[0].IsActive;
 							// Check if the user is active
@@ -341,10 +329,7 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A user can modify only their own details.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'user account');
 						} else {
 							// Update user details
 							Users.updateUserDetails(userId, userDetails, (err, result) => {
@@ -387,10 +372,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 				const requesterId = decodedpayload.userId;
 				// A user can update only their own password
 				if(requesterId != ownerId) {
-					ResponseHelper.sendError(res, 401, 'unauthorised', 
-						'A user can modify only their own details.',
-						"Sorry, you don't have permission to do that!"
-					);
+					ResponseHelper.unauthorised(res, 'user account');
 				} else {
 					// Check that the user has entered a password that is different from their current password
 					if(newPassword == currentPassword) {
@@ -404,10 +386,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 							if(err) {
 								ResponseHelper.sql(res, 'getUserById', err);
 							} else if(result.length < 1) {
-								ResponseHelper.sendError(res, 404, 'user_not_found', 
-									'The query returned zero results. It is likely that a user with the specified ID does not exist.',
-									ResponseHelper.msg.default
-								);
+								ResponseHelper.resourceNotFound(res, 'user');
 							} else {
 								const currentHashedPass = result[0].password;
 								const currentPlainTextPass = currentPassword;

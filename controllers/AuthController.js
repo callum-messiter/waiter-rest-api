@@ -177,24 +177,18 @@ router.get('/login', (req, res, next) => {
 														ResponseHelper.sql(res, 'saveUserTokenReference', err);
 													} else {
 														// Get the user's restaurant
-														Restaurants.getRestaurantById(user[0].userId, (err, restaurant) => {
+														Restaurants.getRestaurantByOwnerId(user[0].userId, (err, restaurant) => {
 															// Return the relevant user details to the client
 															if(err) {
 																ResponseHelper.sql(res, 'getRestaurantById', err);
 															} else if(restaurant.length < 1) {
-																ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
-																	'The query returned zero results. This user does not have an associated restaurant.',
-																	ResponseHelper.msg.default
-																);
+																ResponseHelper.resourceNotFound(res, 'restaurant');
 															} else {
 																Menus.getMenuByRestaurantId(restaurant[0].restaurantId, (err, menu) => {
 																	if(err) {
 																		ResponseHelper.sql(res, 'getMenuByRestaurantId', err);
 																	} else if(restaurant.length < 1) {
-																		ResponseHelper.sendError(res, 404, 'menu_not_found', 
-																			'The query returned zero results. This user\'s restaurant does not have an associated menu.',
-																			ResponseHelper.msg.default
-																		);
+																		ResponseHelper.resourceNotFound(res, 'menu');
 																	} else {
 																		ResponseHelper.sendSuccess(res, 200, {
 																			user: {

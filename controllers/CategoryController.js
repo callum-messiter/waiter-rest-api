@@ -109,10 +109,7 @@ router.post('/create', (req, res, next) => {
 							if(err) {
 								ResponseHelper.sql(res, 'getMenuOwnerId', err);
 							} else if(result.length < 1) {
-								ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-									'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
-									ResponseHelper.msg.default	
-								);
+								ResponseHelper.resourceNotFound(res, 'menu');
 							} else {
 								const ownerId = result[0].ownerId;
 								const requesterId = decodedpayload.userId;
@@ -222,10 +219,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 						if(err) {
 							ResponseHelper.sql(res, 'getCategoryOwnerId', err);
 						} else if(result.length < 1) {
-							ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-								'The query returned zero results. It is likely that an item with the specified ID does not exist.',
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.resourceNotFound(res, 'category');
 						} else {
 							const ownerId = result[0].ownerId;
 							const requesterId = decodedpayload.userId;

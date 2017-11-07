@@ -48,10 +48,7 @@ router.post('/create', (req, res, next) => {
 							if(err) {
 								ResponseHelper.sql(res, 'getCategoryOwnerId', err);
 							} else if(result.length < 1) {
-								ResponseHelper.sendError(res, 404, 'owner_id_not_found', 
-									'The query returned zero results. It is likely that a category with the specified ID does not exist.',
-									ResponseHelper.msg.default
-								);
+								ResponseHelper.resourceNotFound(res, 'category');
 							} else {
 								const ownerId = result[0].ownerId;
 								const requesterId = decodedpayload.userId;
@@ -108,10 +105,7 @@ router.put('/update/:itemId', (req, res, next) => {
 						if(err) {
 							ResponseHelper.sql(res, 'getItemOwnerId', err);
 						} else if(result.length < 1) {
-							ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-								'The query returned zero results. It is likely that an item with the specified ID does not exist.',
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.resourceNotFound(res, 'item');
 						} else {
 							const ownerId = result[0].ownerId;
 							const requesterId = decodedpayload.userId;
@@ -158,10 +152,7 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getItemOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-							'The query returned zero results. It is likely that an item with the specified ID does not exist.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'item');
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
@@ -206,10 +197,7 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getCategoryOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
-							'The query returned zero results. It is likely that a category with the specified ID does not exist.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'category');
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
@@ -221,10 +209,7 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 								if(err) {
 									ResponseHelper.sql(res, 'getAllItemsFromCategory', err);
 								} else if(result.length < 1) {
-									ResponseHelper.sendError(res, 404, 'no_items_found', 
-										'No items belonging to the specified category were found.',
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.resourceNotFound(res, 'item');
 								} else {
 									ResponseHelper.sendSuccess(res, 200, result);
 								}
@@ -256,10 +241,7 @@ router.get('/:itemId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getItemOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
-							'The query returned zero results. It is likely that an item with the specified ID does not exist.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'item');
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
@@ -270,11 +252,6 @@ router.get('/:itemId', (req, res, next) => {
 							Items.getItemById(itemId, (err, result) => {
 								if(err) {
 									ResponseHelper.sql(res, 'getItemById', err);
-								} else if(result.length < 1) {
-									ResponseHelper.sendError(res, 404, 'no_item_found', 
-										'The query returned zero results. This is a contradiction, since the ownerId of the item was found successfully. Contact the dev.',
-										ResponseHelper.msg.default
-									);
 								} else {
 									ResponseHelper.sendSuccess(res, 200, result);
 								}

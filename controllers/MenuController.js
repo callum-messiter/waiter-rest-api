@@ -30,10 +30,7 @@ router.get('/:menuId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getMenuOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
-							'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'menu');
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
@@ -45,10 +42,7 @@ router.get('/:menuId', (req, res, next) => {
 								if(err) {
 									ResponseHelper.sql(res, 'getMenuDetails', err);
 								} else if(result.length < 1) {
-									ResponseHelper.sendError(res, 404, 'menu_not_found', 
-										'There are no menus matching the ID provided.',
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.resourceNotFound(res, 'menu');
 								} else {
 									/**
 										The following is horribly inefficient and verbose. The queries with joins to get all items belonging to the menu
@@ -142,10 +136,7 @@ router.post('/create', (req, res, next) => {
 						if(err) {
 							ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
 						} else if(result.length < 1) {
-							ResponseHelper.sendError(res, 404, 'owner_id_not_found', 
-								'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.resourceNotFound(res, 'restaurant');
 						} else {
 							const ownerId = result[0].ownerId;
 							const requesterId = decodedpayload.userId;
@@ -196,10 +187,7 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getMenuOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-							'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'menu');
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;
@@ -247,10 +235,7 @@ router.put('/update/:menuId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getMenuOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
-							'The query returned zero results. It is likely that an item with the specified ID does not exist.',
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.resourceNotFound(res, 'menu');
 					} else {
 						const ownerId = result[0].ownerId;
 						const requesterId = decodedpayload.userId;

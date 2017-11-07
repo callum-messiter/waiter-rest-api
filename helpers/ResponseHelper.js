@@ -34,6 +34,15 @@ module.exports.unauthorised = function(res, resourceType) {
 	});
 }
 
+module.exports.sql = function(res, queryName, err) {
+	res.status(500).json({
+		success: false, 
+		errorKey: queryType+'_sql_error', 
+		devMsg: 'There was an SQL error: '+err.code,
+		userMsg: 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.'
+	});
+}
+
 module.exports.msg = {
 	default: 'An error occured. Please try again, and if the issue persists, contact support.',
 	sql: 'There was an SQL error: '

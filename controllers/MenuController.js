@@ -31,10 +31,7 @@ router.get('/:menuId', (req, res, next) => {
 			} else {
 				Menus.getMenuOwnerId(menuId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getMenuOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
 							'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
@@ -49,10 +46,7 @@ router.get('/:menuId', (req, res, next) => {
 						} else {
 							Menus.getMenuDetails(menuId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'get_menu_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'getMenuDetails', err);
 								} else if(result.length < 1) {
 									ResponseHelper.sendError(res, 404, 'menu_not_found', 
 										'There are no menus matching the ID provided.',
@@ -88,10 +82,7 @@ router.get('/:menuId', (req, res, next) => {
 											Menus.getMenuItems(menuId, (err, result) => {
 												console.log(result);
 												if(err) {
-													ResponseHelper.sendError(res, 500, 'get_menu_items_query_error',
-														ResponseHelper.msg.sql+err.code,
-														ResponseHelper.msg.default
-													);
+													ResponseHelper.sql(res, 'getMenuItems', err);
 												} else if(result.length < 1) {
 													ResponseHelper.sendSuccess(res, 200, menu);
 												} else {
@@ -158,10 +149,7 @@ router.post('/create', (req, res, next) => {
 					// Check that the requester owns the restaurant
 					Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error',
-								ResponseHelper.msg.sql+err.code,
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
 						} else if(result.length < 1) {
 							ResponseHelper.sendError(res, 404, 'owner_id_not_found', 
 								'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
@@ -177,10 +165,7 @@ router.post('/create', (req, res, next) => {
 								// Create menu
 								Menus.createNewMenu(menu, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'create_new_menu_query_error',
-											ResponseHelper.msg.sql+err.code,
-											ResponseHelper.msg.default
-										);
+										ResponseHelper.sql(res, 'createNewMenu', err);
 									} else {
 										// Return the ID of the new menu
 										ResponseHelper.sendSuccess(res, 200, {
@@ -221,10 +206,7 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 				// Check that the requester owns the menu
 				Menus.getMenuOwnerId(menuId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getMenuOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
@@ -240,10 +222,7 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 							// Deactivate menu
 							Menus.deactivateMenu(menuId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'deactivate_menu_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'deactivateMenu', err);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
@@ -281,10 +260,7 @@ router.put('/update/:menuId', (req, res, next) => {
 				// Check that the requester owns the menu
 				Menus.getMenuOwnerId(menuId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getMenuOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that an item with the specified ID does not exist.',
@@ -300,10 +276,7 @@ router.put('/update/:menuId', (req, res, next) => {
 							// Update Menu
 							Menus.updateMenuDetails(menuId, menuData, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'update_menu_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'updateMenuDetails', err);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {

@@ -58,10 +58,7 @@ router.get('/:userId', (req, res, next) => {
 
 				Users.getUserById(userId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_user_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getUserById', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'user_not_found', 
 							'There are no users matching the ID provided.',
@@ -128,10 +125,7 @@ router.post('/create', (req, res, next) => {
 				// Check if the email is already registered
 				Users.isEmailRegistered(req.body.email, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'email_registered_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'isEmailRegistered', err);
 					} else {
 						if(result[0].matches > 0) {
 							ResponseHelper.sendError(res, 409, 
@@ -156,10 +150,7 @@ router.post('/create', (req, res, next) => {
 									// Add the new user to the db
 									Users.createNewUser(user, (err, result) => {
 										if(err) {
-											ResponseHelper.sendError(res, 500, 'create_user_query_error',
-												ResponseHelper.msg.sql+err.code,
-												ResponseHelper.msg.default
-											);
+											ResponseHelper.sql(res, 'createNewUser', err);
 										} else {
 											const userId = user.userId;
 											// Set the user's role, which we get from the userRolesObject, using the specified userType
@@ -171,10 +162,7 @@ router.post('/create', (req, res, next) => {
 
 											UserRoles.setUserRole(userDetails, (err) => {
 												if(err) {
-													ResponseHelper.sendError(res, 500, 'set_user_role_query_error',
-														ResponseHelper.msg.sql+err.code,
-														ResponseHelper.msg.default
-													);
+													ResponseHelper.sql(res, 'setUserRole', err);
 												} else {
 													// Create the user's restaurant, and the default menu with default categories
 													const restaurant = {
@@ -190,10 +178,7 @@ router.post('/create', (req, res, next) => {
 
 													Restaurants.createRestaurantWithDefaultMenu(restaurant, menu, (err, result) => {
 														if(err) {
-															ResponseHelper.sendError(res, 500, 'create_restaurant_and_menu_query_error',
-																ResponseHelper.msg.sql+err.code,
-																ResponseHelper.msg.default
-															);
+															ResponseHelper.sql(res, 'createRestaurantWithDefaultMenu', err);
 														} else {
 															ResponseHelper.sendSuccess(res, 201, {
 																user: {
@@ -303,10 +288,7 @@ router.put('/deactivate/:userId', (req, res, next) => {
 					// Before deactivating the user, check if the account is already active
 					Users.getUserById(userId, (err, user) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_user_query_error',
-								ResponseHelper.msg.sql+err.code,
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.sql(res, 'getUserById', err);
 						} else if(user.length < 1) {
 							ResponseHelper.sendError(res, 404, 'user_not_found', 
 								'A user with the specified Id could not be found.',
@@ -323,10 +305,7 @@ router.put('/deactivate/:userId', (req, res, next) => {
 							} else {
 								Users.deactivateUser(userId, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'deactivate_user_query_error',
-											ResponseHelper.msg.sql+err.code,
-											ResponseHelper.msg.default
-										);
+										ResponseHelper.sql(res, 'deactivateUser', err);
 									} else if(result.affectedRows < 1) {
 										ResponseHelper.sendError(res, 404, 'user_not_deactivated', 
 											'The query was executed successfully but the user account was not deactivated.',
@@ -388,10 +367,7 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 							// Update user details
 							Users.updateUserDetails(userId, userDetails, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'update_user_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'updateUserDetails', err);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
@@ -450,10 +426,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 						// Get the user's current hashed password
 						Users.getUserById(userId, (err, result) => {
 							if(err) {
-								ResponseHelper.sendError(res, 500, 'get_user_query_error',
-									ResponseHelper.msg.sql+err.code,
-									ResponseHelper.msg.default
-								);
+								ResponseHelper.sql(res, 'getUserById', err);
 							} else if(result.length < 1) {
 								ResponseHelper.sendError(res, 404, 'user_not_found', 
 									'The query returned zero results. It is likely that a user with the specified ID does not exist.',
@@ -466,10 +439,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 								// Check that the user has entered their current password correctly
 								Users.checkPassword(currentPlainTextPass, currentHashedPass, (err, passwordsMatch) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'bcrypt_error',
-											ResponseHelper.msg.sql+err.code,
-											ResponseHelper.msg.default
-										);
+										ResponseHelper.sql(res, 'checkPassword', err);
 									} else if(!passwordsMatch) {
 										ResponseHelper.sendError(res, 401, 'invalid_password', 
 											'The currentPassword provided does not match the user\'s current password in the database.',
@@ -486,10 +456,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 												// Update user details
 												Users.updateUserPassword(userId, newHashedPassword, (err, result) => {
 													if(err) {
-														ResponseHelper.sendError(res, 500, 'update_password_query_error',
-															ResponseHelper.msg.sql+err.code,
-															ResponseHelper.msg.default
-														);
+														ResponseHelper.sql(res, 'updateUserPassword', err);
 													} else if(result.changedRows < 1) {
 														QueryHelper.diagnoseQueryError(result, res);
 													} else {

@@ -30,10 +30,7 @@ router.get('/:restaurantId', (req, res, next) => {
 			} else {
 				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
 							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
@@ -49,10 +46,7 @@ router.get('/:restaurantId', (req, res, next) => {
 							// Get the restaurant details
 							Restaurants.getRestaurantById(restaurantId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'get_restaurant_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'getRestaurantById', err);
 								} else if(result.length < 1) {
 									ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
 										'The user appears to have zero registered restaurants.',
@@ -111,10 +105,7 @@ router.post('/create/:userId', (req, res, next) => {
 					// Check that the user with the specified ID exists (we need to check that the user is who they say they are, using session)
 					Users.getUserById(userId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_user_query_error',
-								ResponseHelper.msg.sql+err.code,
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.sql(res, 'getUserById', err);
 						} else if(result.length < 1) {
 							ResponseHelper.sendError(res, 404, 'user_not_found', 
 								'The query returned zero results. It is likely that a user with the specified ID does not exist.',
@@ -129,10 +120,7 @@ router.post('/create/:userId', (req, res, next) => {
 								// Create restaurant
 								Restaurants.createNewRestaurant(restaurant, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'create_restaurant_query_error',
-											ResponseHelper.msg.sql+err.code,
-											ResponseHelper.msg.default
-										);
+										ResponseHelper.sql(res, 'createNewRestaurant', err);
 									} else {
 										// Return the ID of the new restaurant
 										ResponseHelper.sendSuccess(res, 200, {createdRestaurantId: restaurant.restaurantId});
@@ -169,10 +157,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 				// Check that the requester owns the menu
 				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
@@ -188,10 +173,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 							// Update Menu
 							Restaurants.updateRestaurantDetails(restaurantId, restaurantData, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'update_restaurant_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'updateRestaurantDetails', err);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
@@ -227,10 +209,7 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 				// Check that the requester owns the menu
 				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_restaurant_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
@@ -246,10 +225,7 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 							// Deactivate menu
 							Restaurants.deactivateRestaurant(restaurantId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'deactivate_menu_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'deactivateRestaurant', err);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {

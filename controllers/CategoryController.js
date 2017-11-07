@@ -113,10 +113,7 @@ router.post('/create', (req, res, next) => {
 						// Check that the requester owns the menu
 						Menus.getMenuOwnerId(menuId, (err, result) => {
 							if(err) {
-								ResponseHelper.sendError(res, 500, 'get_menu_owner_query_error', 
-									ResponseHelper.msg.sql+err.code,
-									ResponseHelper.msg.default
-								);
+								ResponseHelper.sql(res, 'getMenuOwnerId', err);
 							} else if(result.length < 1) {
 								ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 									'The query returned zero results. It is likely that a menu with the specified ID does not exist.',
@@ -132,10 +129,7 @@ router.post('/create', (req, res, next) => {
 									// Create category
 									Categories.createNewCategory(category, (err, result) => {
 										if(err) {
-											ResponseHelper.sendError(res, 500, 'create_category_query_error', 
-												ResponseHelper.msg.sql+err.code,
-												ResponseHelper.msg.default
-											);
+											ResponseHelper.sql(res, 'createNewCategory', err);
 										} else {
 											// Return the ID of the new category
 											ResponseHelper.sendSuccess(res, 200, {createdCategoryId: category.categoryId});
@@ -235,10 +229,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 					// Check that the requester owns the menu
 					Categories.getCategoryOwnerId(categoryId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', 
-								ResponseHelper.msg.sql+err.code,
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.sql(res, 'getCategoryOwnerId', err);
 						} else if(result.length < 1) {
 							ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 								'The query returned zero results. It is likely that an item with the specified ID does not exist.',
@@ -254,10 +245,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 								// Update category
 								Categories.updateCategoryDetails(categoryId, categoryData, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'update_category_query_error',
-											ResponseHelper.msg.sql+err.code,
-											ResponseHelper.msg.default
-										);
+										ResponseHelper.sql(res, 'updateCategoryDetails', err);
 									} else if(result.changedRows < 1) {
 										QueryHelper.diagnoseQueryError(result, res);
 									} else {
@@ -347,10 +335,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 				// Check that the requester owns the menu
 				Categories.getCategoryOwnerId(categoryId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_category_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getCategoryOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a category with the specified ID does not exist.',
@@ -366,10 +351,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 							// Deactivate item
 							Categories.deactivateCategory(categoryId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'deactivate_category_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'deactivateCategory', err);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {

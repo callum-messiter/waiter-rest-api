@@ -104,10 +104,7 @@ router.get('/login', (req, res, next) => {
 		// Check that the email address entered is registered
 		Users.doesUserExist(email, (err, user) => {
 			if(err) {
-				ResponseHelper.sendError(res, 500, 'get_user_query_error', 
-					ResponseHelper.msg.sql+err.code,
-					ResponseHelper.msg.default
-				);
+				ResponseHelper.sql(res, 'doesUserExist', err);
 			} else if(user.length < 1) {
 				ResponseHelper.sendError(res, 401, 'invalid_login_credentials', 
 					'The email-password combination does not exist in the database.',
@@ -145,10 +142,7 @@ router.get('/login', (req, res, next) => {
 								// Get the user's role to store in the token
 								UserRoles.getUserRole(user[0].userId, (err, userRole) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'get_user_role_query_error', 
-											ResponseHelper.msg.sql+err.code,
-											ResponseHelper.msg.default
-										);
+										ResponseHelper.sql(res, 'getUserRole', err);
 									} else {
 										const role = userRole[0].roleId;
 										// Generate token
@@ -183,19 +177,13 @@ router.get('/login', (req, res, next) => {
 												// Add token to the db for reference
 												Auth.saveUserTokenReference(userToken, (err, result) => {
 													if(err) {
-														ResponseHelper.sendError(res, 500, 'token_not_added_to_db', 
-															ResponseHelper.msg.sql+err.code,
-															ResponseHelper.msg.default
-														);
+														ResponseHelper.sql(res, 'saveUserTokenReference', err);
 													} else {
 														// Get the user's restaurant
 														Restaurants.getRestaurantById(user[0].userId, (err, restaurant) => {
 															// Return the relevant user details to the client
 															if(err) {
-																ResponseHelper.sendError(res, 500, 'get_restaurant_query_error', 
-																	ResponseHelper.msg.sql+err.code,
-																	ResponseHelper.msg.default
-																);
+																ResponseHelper.sql(res, 'getRestaurantById', err);
 															} else if(restaurant.length < 1) {
 																ResponseHelper.sendError(res, 404, 'restaurant_not_found', 
 																	'The query returned zero results. This user does not have an associated restaurant.',
@@ -204,10 +192,7 @@ router.get('/login', (req, res, next) => {
 															} else {
 																Menus.getMenuByRestaurantId(restaurant[0].restaurantId, (err, menu) => {
 																	if(err) {
-																		ResponseHelper.sendError(res, 500, 'get_menu_query_error',
-																			ResponseHelper.msg.sql+err.code,
-																			ResponseHelper.msg.default
-																		);
+																		ResponseHelper.sql(res, 'getMenuByRestaurantId', err);
 																	} else if(restaurant.length < 1) {
 																		ResponseHelper.sendError(res, 404, 'menu_not_found', 
 																			'The query returned zero results. This user\'s restaurant does not have an associated menu.',
@@ -305,10 +290,7 @@ router.get('/logout', (req, res, next) => {
 				// Delete the token from the DB (the token will be invalidated/deleted by the client)
 				Auth.deleteTokenReference(token, userId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'deleting_token_query_error', 
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'deleteTokenReference', err);
 					} else {
 						if(result.affectedRows < 1) {
 							ResponseHelper.sendError(res, 404, 'error_deleting_token_ref', 

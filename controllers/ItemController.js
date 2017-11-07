@@ -52,10 +52,7 @@ router.post('/create', (req, res, next) => {
 						// Check that the requester owns the menu
 						Categories.getCategoryOwnerId(item.categoryId, (err, result) => {
 							if(err) {
-								ResponseHelper.sendError(res, 500, 'get_category_owner_query_error', 
-									ResponseHelper.msg.sql+err.code,
-									ResponseHelper.msg.default
-								);
+								ResponseHelper.sql(res, 'getCategoryOwnerId', err);
 							} else if(result.length < 1) {
 								ResponseHelper.sendError(res, 404, 'owner_id_not_found', 
 									'The query returned zero results. It is likely that a category with the specified ID does not exist.',
@@ -71,10 +68,7 @@ router.post('/create', (req, res, next) => {
 									// Create item
 									Items.createNewItem(item, (err, result) => {
 										if(err) {
-											ResponseHelper.sendError(res, 500, 'create_new_item_query_error', 
-												ResponseHelper.msg.sql+err.code,
-												ResponseHelper.msg.default
-											);
+											ResponseHelper.sql(res, 'createNewItem', err);
 										} else {
 											// Return the ID of the new item
 											ResponseHelper.sendSuccess(res, 200, {createdItemId: item.itemId});
@@ -121,10 +115,7 @@ router.put('/update/:itemId', (req, res, next) => {
 					// Check that the requester owns the menu
 					Items.getItemOwnerId(itemId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_item_owner_query_error',
-								ResponseHelper.msg.sql+err.code,
-								ResponseHelper.msg.default
-							);
+							ResponseHelper.sql(res, 'getItemOwnerId', err);
 						} else if(result.length < 1) {
 							ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 								'The query returned zero results. It is likely that an item with the specified ID does not exist.',
@@ -140,10 +131,7 @@ router.put('/update/:itemId', (req, res, next) => {
 								// Update item
 								Items.updateItemDetails(itemId, itemData, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'update_item_query_error',
-											ResponseHelper.msg.sql+err.code,
-											ResponseHelper.msg.default
-										);
+										ResponseHelper.sql(res, 'updateItemDetails', err);
 									} else if(result.changedRows < 1) {
 										QueryHelper.diagnoseQueryError(result, res);
 									} else {
@@ -180,10 +168,7 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 				// Check that the requester owns the menu
 				Items.getItemOwnerId(itemId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_item_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getItemOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that an item with the specified ID does not exist.',
@@ -199,10 +184,7 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 							// Deactivate item
 							Items.deactivateItem(itemId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'deactivate_item_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'deactivateItem', err);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
@@ -237,10 +219,7 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 			} else {
 				Categories.getCategoryOwnerId(categoryId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_category_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getCategoryOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
 							'The query returned zero results. It is likely that a category with the specified ID does not exist.',
@@ -255,10 +234,7 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 						} else {
 							Items.getAllItemsFromCategory(categoryId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'get_category_items_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'getAllItemsFromCategory', err);
 								} else if(result.length < 1) {
 									ResponseHelper.sendError(res, 404, 'no_items_found', 
 										'No items belonging to the specified category were found.',
@@ -296,10 +272,7 @@ router.get('/:itemId', (req, res, next) => {
 			} else {
 				Items.getItemOwnerId(itemId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_item_owner_query_error',
-							ResponseHelper.msg.sql+err.code,
-							ResponseHelper.msg.default
-						);
+						ResponseHelper.sql(res, 'getItemOwnerId', err);
 					} else if(result.length < 1) {
 						ResponseHelper.sendError(res, 404, 'owner_id_not_found',
 							'The query returned zero results. It is likely that an item with the specified ID does not exist.',
@@ -314,10 +287,7 @@ router.get('/:itemId', (req, res, next) => {
 						} else {
 							Items.getItemById(itemId, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'get_item_query_error',
-										ResponseHelper.msg.sql+err.code,
-										ResponseHelper.msg.default
-									);
+									ResponseHelper.sql(res, 'getItemById', err);
 								} else if(result.length < 1) {
 									ResponseHelper.sendError(res, 404, 'no_item_found', 
 										'The query returned zero results. This is a contradiction, since the ownerId of the item was found successfully. Contact the dev.',

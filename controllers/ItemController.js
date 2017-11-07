@@ -20,17 +20,11 @@ const allowedItemParams = Items.schema.requestBodyParams;
 router.post('/create', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting an 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res);
 	} else {
 		// Check required item data
 		if(!req.body.name || !req.body.price || !req.body.categoryId) {
-			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-				'The server was expecting the params "name", "price", and "categoryId".',
-				ResponseHelper.msg.default
-			);
+			ResponseHelper.missingRequiredData(res, ['name', 'price', 'categoryId']);
 		} else {
 			const token = req.headers.authorization;
 			const item = req.body;
@@ -90,10 +84,7 @@ router.post('/create', (req, res, next) => {
 router.put('/update/:itemId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.itemId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the request param 'itemId' and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['itemId']);
 	} else {
 		const token = req.headers.authorization;
 		const itemId = req.params.itemId;
@@ -153,10 +144,7 @@ router.put('/update/:itemId', (req, res, next) => {
 router.put('/deactivate/:itemId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.itemId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the request param 'itemId' and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['itemId']);
 	} else {
 		const token = req.headers.authorization;
 		const itemId = req.params.itemId;
@@ -205,10 +193,7 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 router.get('/fromCategory/:categoryId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.categoryId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting the req param "categoryId" and the "Authorization" header.',
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['categoryId']);
 	} else {
 		const token = req.headers.authorization;
 		const categoryId = req.params.categoryId;
@@ -258,10 +243,7 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 router.get('/:itemId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.itemId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting the req param "itemId" and the "Authorization" header.',
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['itemId']);
 	} else {
 		const token = req.headers.authorization;
 		const itemId = req.params.itemId;

@@ -94,10 +94,7 @@ const ResponseHelper = require('../helpers/ResponseHelper');
 router.get('/login', (req, res, next) => {
 	// CHeck that the email and password were set
 	if(!req.query.email || !req.query.password) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The request must contain "email" and "password" parameters.',
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.missingRequiredData(res, ['email', 'password']);
 	} else {
 		const email = req.query.email;
 		const password = req.query.password;
@@ -274,11 +271,8 @@ router.get('/login', (req, res, next) => {
 }
 **/
 router.get('/logout', (req, res, next) => {
-	if(!req.query.userId || !req.headers.authorization) {
-		ResponseHelper.sendError(res, 404, 'missing_required_data', 
-			'The server was expecting the request param "userId" and the "Authorization" header.',
-			ResponseHelper.msg.default
-		);
+	if(!req.headers.authorization || !req.query.userId) {
+		ResponseHelper.invalidRequest(res, ['userId']);
 	} else {
 		const token = req.headers.authorization;
 		const userId = req.query.userId;

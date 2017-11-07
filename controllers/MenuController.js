@@ -17,10 +17,7 @@ const QueryHelper = require('../helpers/QueryHelper');
 router.get('/:menuId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.menuId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'menuId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['menuId']);
 	} else {
 		const menuId = req.params.menuId;
 		const token = req.headers.authorization;
@@ -125,17 +122,11 @@ router.get('/:menuId', (req, res, next) => {
 router.post('/create', (req, res, next) => {
 		// Check auth header and menuId param
 	if(!req.headers.authorization) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting an 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res);
 	} else {
 		// Check required item data
 		if(!req.body.name || !req.body.restaurantId) {
-			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-				'The server was expecting the req params "name" and "restaurantId".',
-				ResponseHelper.msg.default
-			);
+			ResponseHelper.missingRequiredData(res, ['name', 'restaurantId']);
 		} else {
 			const token = req.headers.authorization;
 			const restaurantId = req.body.restaurantId;
@@ -191,10 +182,7 @@ router.post('/create', (req, res, next) => {
 router.put('/deactivate/:menuId', (req, res, next) => {
 		// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.menuId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'menuId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['menuId']);
 	} else {
 		const token = req.headers.authorization;
 		const menuId = req.params.menuId;
@@ -243,10 +231,7 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 router.put('/update/:menuId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.menuId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'menuId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['menuId']);
 	} else {
 		const token = req.headers.authorization;
 		const menuId = req.params.menuId;

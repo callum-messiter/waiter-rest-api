@@ -16,10 +16,7 @@ const ResponseHelper = require('../helpers/ResponseHelper');
 router.get('/:restaurantId', (req, res, next) => {
 		// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.restaurantId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'restaurantId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['restaurantId']);
 	} else {
 		const restaurantId = req.params.restaurantId;
 		const token = req.headers.authorization;
@@ -78,17 +75,11 @@ router.get('/:restaurantId', (req, res, next) => {
 router.post('/create/:userId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'userId' an 'authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['userId']);
 	} else {
 		// Check required item data
 		if(!req.body.name || !req.body.description || !req.body.location || !req.body.phoneNumber || !req.body.emailAddress) {
-			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-				'The server was expecting the req params "name", "description", "location", "phone number" and "email address".',
-				ResponseHelper.msg.default
-			);
+			ResponseHelper.missingRequiredData(res, ['name', 'description', 'location', 'phoneNumber', 'emailAddress']);
 		} else {
 			const token = req.headers.authorization;
 			const userId = req.params.userId;
@@ -141,8 +132,7 @@ router.post('/create/:userId', (req, res, next) => {
 router.put('/update/:restaurantId', (req, res, next) => {
 	// Check auth header and restaurantId param
 	if(!req.headers.authorization || !req.params.restaurantId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting an 'authorization' header, and a restaurantId. At least one of these params was missing.");
+		ResponseHelper.invalidRequest(res, ['restaurantId']);
 	} else {
 		// Function for validating data: params must be valid, and required parmas must be provided
 		const token = req.headers.authorization;
@@ -194,10 +184,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 router.put('/deactivate/:restaurantId', (req, res, next) => {
 		// Check auth header and restaurantId param
 	if(!req.headers.authorization || !req.params.restaurantId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the 'restaurantId' req param, and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['restaurantId']);
 	} else {
 		const token = req.headers.authorization;
 		const restaurantId = req.params.restaurantId;

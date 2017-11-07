@@ -42,10 +42,7 @@ router.get('/', (req, res, next) => {
 router.get('/:userId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
 	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'userId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['userId']);
 	} else {
 		const userId = req.params.userId;
 		const token = req.headers.authorization;
@@ -98,10 +95,7 @@ router.post('/create', (req, res, next) => {
 	const userRolesObject = UserRoles.roleIDs;
 	// Check the subroute is set
 	if(!req.body.userType) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting the req param "userType".',
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.missingRequiredData(res, ['userType', 'email', 'password', 'firstName', 'lastName', 'restaurantName']);
 	} else {
 		const userType = req.body.userType;
 		// Check that the subroute is valid (the user has specified a valid user type)
@@ -117,10 +111,7 @@ router.post('/create', (req, res, next) => {
 			   !req.body.email || !req.body.password || 
 			   !req.body.firstName || !req.body.lastName || !req.body.restaurantName
 			) {
-				ResponseHelper.sendError(res, 404, 'missing_required_params', 
-					'The server was expecting the req params "email", "password", "firstName", "lastName", and "restaurantName".',
-					ResponseHelper.msg.default
-				);
+				ResponseHelper.missingRequiredData(res, ['userType', 'email', 'password', 'firstName', 'lastName', 'restaurantName']);
 			} else {
 				// Check if the email is already registered
 				Users.isEmailRegistered(req.body.email, (err, result) => {
@@ -263,10 +254,7 @@ Emails.createEmailVerificationToken(userId, hash, (err, token) => {
 router.put('/deactivate/:userId', (req, res, next) => {
 	// Check that the request contains a token, and the Id of the user whose details are to be deactivated
 	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'userId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['userId']);
 	} else {
 		const userId = req.params.userId;
 		const token = req.headers.authorization;
@@ -329,16 +317,10 @@ router.put('/deactivate/:userId', (req, res, next) => {
 **/
 router.put('/updateDetails/:userId', (req, res, next) => {
 	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'userId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['userId']);
 	} else {
 		if(!req.body.firstName && !req.body.lastName) {
-			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-				'The server received zero valid parameters to be updated.',
-				ResponseHelper.msg.default
-			);
+			ResponseHelper.missingRequiredData(res, ['firstName', 'lastName']);
 		} else {
 			const token = req.headers.authorization;
 			const userId = req.params.userId;
@@ -388,15 +370,9 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 router.put('/updatePassword/:userId', (req, res, next) => {
 	// Check the request contains the required data
 	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			"The server was expecting the req param 'userId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['userId']);
 	} else if(!req.body.currentPassword || !req.body.newPassword) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting the req params "newPassword" and "currentPassword".',
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.missingRequiredData(res, ['currentPassword', 'newPassword']);
 	} else {
 		const token = req.headers.authorization;
 		const userId = req.params.userId;

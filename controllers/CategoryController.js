@@ -80,17 +80,11 @@ const allowedCategoryParams = Categories.schema.requestBodyParams;
 router.post('/create', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization) {
-		ResponseHelper.sendError(res, 404, 'request_data_missing', 
-			"The server was expecting an 'authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res);
 	} else {
 		// Check required item data
 		if(!req.body.name || !req.body.menuId) {
-			ResponseHelper.sendError(res, 404, 'missing_required_params', 
-			'The server was expecting the params "name" and "menuId".',
-			ResponseHelper.msg.default
-		);
+			ResponseHelper.missingRequiredData(res, ['name', 'menuId']);
 		} else {
 			const token = req.headers.authorization;
 			const category = req.body;
@@ -204,10 +198,7 @@ router.post('/create', (req, res, next) => {
 router.put('/update/:categoryId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.categoryId) {
-		ResponseHelper.sendError(res, 404, 'request_data_missing', 
-			"The server was expecting the req param 'categoryId', and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['categoryId']);
 	} else {
 		const token = req.headers.authorization;
 		const categoryId = req.params.categoryId;
@@ -320,10 +311,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 router.put('/deactivate/:categoryId', (req, res, next) => {
 	// Check auth header and menuId param
 	if(!req.headers.authorization || !req.params.categoryId) {
-		ResponseHelper.sendError(res, 404, 'request_data_missing', 
-			"The server was expecting the 'categoryId' req param, and the 'Authorization' header.",
-			ResponseHelper.msg.default
-		);
+		ResponseHelper.invalidRequest(res, ['categoryId']);
 	} else {
 		const token = req.headers.authorization;
 		const categoryId = req.params.categoryId;

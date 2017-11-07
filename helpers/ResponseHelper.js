@@ -34,12 +34,40 @@ module.exports.unauthorised = function(res, resourceType) {
 	});
 }
 
+// Whenever SQL throws an error. The developer should specify the query name (the name of the (query) method called by the controller)
 module.exports.sql = function(res, queryName, err) {
 	res.status(500).json({
 		success: false, 
 		errorKey: queryType+'_sql_error', 
 		devMsg: 'There was an SQL error: '+err.code,
 		userMsg: 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.'
+	});
+}
+
+module.exports.invalidRequest = function(res, params=[]) {
+	res.status(404).json({
+		success: false, 
+		errorKey: 'invalid_request', 
+		devMsg: 'The request must contain an Authorization header, and the following parameters: ' + params,
+		userMsg: 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.'
+	});
+}
+
+module.exports.missingRequiredData = function(res, params) {
+	res.status(404).json({
+		success: false, 
+		errorKey: 'missing_required_data', 
+		devMsg: 'The request must contain the following data parameters: ' + params + '.',
+		userMsg: 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.'
+	});
+}	
+
+module.exports.resourceNotFound = function(res, queryName, err) {
+	res.status(500).json({
+		success: false, 
+		errorKey: '', 
+		devMsg: '',
+		userMsg: ''
 	});
 }
 

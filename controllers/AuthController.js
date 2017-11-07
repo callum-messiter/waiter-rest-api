@@ -103,21 +103,21 @@ router.get('/login', (req, res, next) => {
 			if(err) {
 				ResponseHelper.sql(res, 'doesUserExist', err);
 			} else if(user.length < 1) {
-				ResponseHelper.sendError(res, 401, 'invalid_login_credentials', 
+				ResponseHelper.customError(res, 401, 'invalid_login_credentials', 
 					'The email-password combination does not exist in the database.',
 					'The username and password you entered did not match our records. Please double-check and try again.'
 				);
 			} else {
 				// Check if the user is active
 				if(user[0].isActive !== 1) {
-					ResponseHelper.sendError(res, 403, 'user_not_active', 
+					ResponseHelper.customError(res, 403, 'user_not_active', 
 						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.',
 						'This account is not currently active. You can restore your account by clicking here.'
 					);
 				} else {
 					// Ignore user verification for now
 					if(1 == 2 /**user[0].isVerified !== 1**/) {
-						ResponseHelper.sendError(res, 403, 'user_not_verified', 
+						ResponseHelper.customError(res, 403, 'user_not_verified', 
 							'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.',
 							'This account is not verified. Please check your email inbox for a verification email from waiter.'
 						);
@@ -127,11 +127,11 @@ router.get('/login', (req, res, next) => {
 						const hashedPassword = user[0].password
 						Users.checkPassword(plainTextPassword, hashedPassword, (err, passwordsMatch) => {
 							if(err) {
-								ResponseHelper.sendError(res, 500, 'bcrypt_error', 
+								ResponseHelper.customError(res, 500, 'bcrypt_error', 
 									'There was an error with the bcrypt package: ' + err,
 									ResponseHelper.msg.default);
 							} else if(!passwordsMatch) {
-								ResponseHelper.sendError(res, 401, 'invalid_login_credentials', 
+								ResponseHelper.customError(res, 401, 'invalid_login_credentials', 
 									'The email-password combination does not exist in the database.',
 									'The username and password you entered did not match our records. Please double-check and try again.'
 								);
@@ -145,12 +145,12 @@ router.get('/login', (req, res, next) => {
 										// Generate token
 										Auth.createUserToken(user[0].userId, role, (err, token) => {
 											if(err) {
-												ResponseHelper.sendError(res, 500, 'jwt_error', 
+												ResponseHelper.customError(res, 500, 'jwt_error', 
 													'There was an error with the jwt package: ' + err,
 													ResponseHelper.msg.default
 												);
 											} else if(token == null) {
-												ResponseHelper.sendError(res, 500, 'jwt_token_null', 
+												ResponseHelper.customError(res, 500, 'jwt_token_null', 
 													'The server could not create a unique token.',
 													ResponseHelper.msg.default
 												);
@@ -190,7 +190,7 @@ router.get('/login', (req, res, next) => {
 																	} else if(restaurant.length < 1) {
 																		ResponseHelper.resourceNotFound(res, 'menu');
 																	} else {
-																		ResponseHelper.sendSuccess(res, 200, {
+																		ResponseHelper.customSuccess(res, 200, {
 																			user: {
 																				userId: user[0].userId,
 																				role: role,
@@ -281,12 +281,12 @@ router.get('/logout', (req, res, next) => {
 						ResponseHelper.sql(res, 'deleteTokenReference', err);
 					} else {
 						if(result.affectedRows < 1) {
-							ResponseHelper.sendError(res, 404, 'error_deleting_token_ref', 
+							ResponseHelper.customError(res, 404, 'error_deleting_token_ref', 
 								'The server executed the query successfully, but nothing was deleted. It\'s likely that userId-token combination provided does not exist in the database.',
 								ResponseHelper.msg.default
 							);
 						} else {
-							ResponseHelper.sendSuccess(res, 200);
+							ResponseHelper.customSuccess(res, 200);
 						}
 					}
 				});

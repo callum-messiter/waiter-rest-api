@@ -2,11 +2,11 @@
 	For custom errors
 **/
 
-module.exports.sendError = function(res, statusCode, errorKey, devMsg, userMsg, success=false) {
+module.exports.customError = function(res, statusCode, errorKey, devMsg, userMsg, success=false) {
 	res.status(statusCode).json({success, errorKey, devMsg, userMsg});
 }
 
-module.exports.sendSuccess = function(res, statusCode, data={}, success=true) {
+module.exports.customSuccess = function(res, statusCode, data={}, success=true) {
 	res.status(statusCode).json({success, data});
 }
 
@@ -95,27 +95,5 @@ module.exports.msg = {
 			dev: 'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.',
 			user: 'This account is not verified. Please check your email inbox for a verification email from waiter.'
 		}
-	},
-	category: {
-
-	},
-	item: {
-
-	},
-	menu: {
-
-	},
-	restaurant: {
-
-	},
-	user: {
-
-	},
-	liveKitchen: {
-
-	},
-	email: {
-
 	}
-
 }

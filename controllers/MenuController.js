@@ -58,10 +58,10 @@ router.get('/:menuId', (req, res, next) => {
 									// Get the menu's categories
 									Menus.getMenuCategories(menuId, (err, result) => {
 										if(err) {
-											ResponseHelper.sendError(res, 500, 'get_menu_categories_query_error', err);
+											ResponseHelper.customError(res, 500, 'get_menu_categories_query_error', err);
 										} else if(result.length < 1) {
 											// Return a menu object without categories
-											ResponseHelper.sendSuccess(res, 200, menu);
+											ResponseHelper.customSuccess(res, 200, menu);
 										} else {
 											// If there are categories, add them to the menu object
 											menu.categories = result;
@@ -75,7 +75,7 @@ router.get('/:menuId', (req, res, next) => {
 												if(err) {
 													ResponseHelper.sql(res, 'getMenuItems', err);
 												} else if(result.length < 1) {
-													ResponseHelper.sendSuccess(res, 200, menu);
+													ResponseHelper.customSuccess(res, 200, menu);
 												} else {
 													// Add the items from the query to their respective categories
 													result.forEach(function(item) {
@@ -95,7 +95,7 @@ router.get('/:menuId', (req, res, next) => {
 															}
 														});
 													});
-													ResponseHelper.sendSuccess(res, 200, menu);
+													ResponseHelper.customSuccess(res, 200, menu);
 												}
 											});
 										}
@@ -150,7 +150,7 @@ router.post('/create', (req, res, next) => {
 										ResponseHelper.sql(res, 'createNewMenu', err);
 									} else {
 										// Return the ID of the new menu
-										ResponseHelper.sendSuccess(res, 200, {
+										ResponseHelper.customSuccess(res, 200, {
 											createdMenu: {
 												menuId: menu.menuId,
 												menuName: menu.name
@@ -202,7 +202,7 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
-									ResponseHelper.sendSuccess(res, 200);
+									ResponseHelper.customSuccess(res, 200);
 								}
 							});
 						}
@@ -250,7 +250,7 @@ router.put('/update/:menuId', (req, res, next) => {
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
-									ResponseHelper.sendSuccess(res, 200);					
+									ResponseHelper.customSuccess(res, 200);					
 								}
 							});
 						}

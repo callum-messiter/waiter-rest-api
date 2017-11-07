@@ -52,7 +52,7 @@ router.get('/:restaurantId', (req, res, next) => {
 										phoneNumber: result[0].phoneNumber,
 										emailAddress: result[0].emailAddress
 									}
-									ResponseHelper.sendSuccess(res, 200, restaurant);
+									ResponseHelper.customSuccess(res, 200, restaurant);
 								}
 							});
 						}
@@ -105,7 +105,7 @@ router.post('/create/:userId', (req, res, next) => {
 										ResponseHelper.sql(res, 'createNewRestaurant', err);
 									} else {
 										// Return the ID of the new restaurant
-										ResponseHelper.sendSuccess(res, 200, {createdRestaurantId: restaurant.restaurantId});
+										ResponseHelper.customSuccess(res, 200, {createdRestaurantId: restaurant.restaurantId});
 									}
 								});
 							}
@@ -140,7 +140,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
+						ResponseHelper.customError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
 							ResponseHelper.msg.default
 						);
@@ -158,7 +158,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
-									ResponseHelper.sendSuccess(res, 200);					
+									ResponseHelper.customSuccess(res, 200);					
 								}
 							});
 						}
@@ -204,7 +204,7 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
-									ResponseHelper.sendSuccess(res, 200);
+									ResponseHelper.customSuccess(res, 200);
 								}
 							});
 						}

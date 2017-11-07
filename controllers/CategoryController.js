@@ -93,7 +93,7 @@ router.post('/create', (req, res, next) => {
 			// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
 			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(category, allowedCategoryParams, res);
 			if(requestDataIsValid !== true) {
-				ResponseHelper.sendError(res, 422, 'invalid_data_param', 
+				ResponseHelper.customError(res, 422, 'invalid_data_param', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
 					ResponseHelper.msg.default
 				);
@@ -123,7 +123,7 @@ router.post('/create', (req, res, next) => {
 											ResponseHelper.sql(res, 'createNewCategory', err);
 										} else {
 											// Return the ID of the new category
-											ResponseHelper.sendSuccess(res, 200, {createdCategoryId: category.categoryId});
+											ResponseHelper.customSuccess(res, 200, {createdCategoryId: category.categoryId});
 										}
 									});
 								}
@@ -204,7 +204,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 		// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
 		const requestDataIsValid = RequestHelper.checkRequestDataIsValid(categoryData, allowedCategoryParams, res);
 		if(requestDataIsValid !== true) {
-			ResponseHelper.sendError(res, 422, 'invalid_data_params', 
+			ResponseHelper.customError(res, 422, 'invalid_data_params', 
 				"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
 				REsponseHelper.msg.default
 			);
@@ -234,7 +234,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 									} else if(result.changedRows < 1) {
 										QueryHelper.diagnoseQueryError(result, res);
 									} else {
-										ResponseHelper.sendSuccess(res, 200)									
+										ResponseHelper.customSuccess(res, 200)									
 									}
 								});
 							}
@@ -319,7 +319,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 					if(err) {
 						ResponseHelper.sql(res, 'getCategoryOwnerId', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'ownerId_not_found', 
+						ResponseHelper.customError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a category with the specified ID does not exist.',
 							ResponseHelper.msg.default
 						);
@@ -337,7 +337,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
-									ResponseHelper.sendSuccess(res, 200);
+									ResponseHelper.customSuccess(res, 200);
 								}
 							});
 						}

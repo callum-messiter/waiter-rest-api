@@ -26,12 +26,12 @@ router.get('/', (req, res, next) => {
 	// Check that the user is a waiterAdmin
 	Users.getAllUsers((err, users) => {
 		if(err) {
-			ResponseHelper.sendError(res, 500, 'get_all_users_query_error',
+			ResponseHelper.customError(res, 500, 'get_all_users_query_error',
 				ResponseHelper.msg.sql+err.code,
 				ResponseHelper.msg.default
 			);
 		} else {
-			ResponseHelper.sendSuccess(res, 200, {users: users});
+			ResponseHelper.customSuccess(res, 200, {users: users});
 		}
 	})
 });
@@ -72,7 +72,7 @@ router.get('/:userId', (req, res, next) => {
 								isVerified: result[0].isVerified,
 								isActive: result[0].isActive
 							}
-							ResponseHelper.sendSuccess(res, 200, user);
+							ResponseHelper.customSuccess(res, 200, user);
 						}
 					}
 				});
@@ -94,7 +94,7 @@ router.post('/create', (req, res, next) => {
 		const userType = req.body.userType;
 		// Check that the subroute is valid (the user has specified a valid user type)
 		if(!userRolesObject.hasOwnProperty(userType)) {
-			ResponseHelper.sendError(res, 404, 'invalid_user_type', 
+			ResponseHelper.customError(res, 404, 'invalid_user_type', 
 				'" + ' + userType + '" is not a valid user type.',
 				ResponseHelper.msg.default
 			);
@@ -113,13 +113,13 @@ router.post('/create', (req, res, next) => {
 						ResponseHelper.sql(res, 'isEmailRegistered', err);
 					} else {
 						if(result[0].matches > 0) {
-							ResponseHelper.sendError(res, 409, 
+							ResponseHelper.customError(res, 409, 
 								'email_already_registered', 'The email address ' + req.body.email + ' is already registered.');
 						} else {
 							// Hash the password
 							Users.hashPassword(req.body.password, (err, hashedPassword) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'bcrypt_error', 
+									ResponseHelper.customError(res, 500, 'bcrypt_error', 
 										'There was an error with the bcrypt package: ' + err,
 										ResponseHelper.msg.default
 									);
@@ -165,7 +165,7 @@ router.post('/create', (req, res, next) => {
 														if(err) {
 															ResponseHelper.sql(res, 'createRestaurantWithDefaultMenu', err);
 														} else {
-															ResponseHelper.sendSuccess(res, 201, {
+															ResponseHelper.customSuccess(res, 201, {
 																user: {
 																	userId: userId, 
 																	userRole: userRole,
@@ -206,7 +206,7 @@ const hash = md5(string);
 
 Emails.createEmailVerificationToken(userId, hash, (err, token) => {
 	if(err) {
-		ResponseHelper.sendError(res, 500, 'create_email_ver_token_query_error', err);
+		ResponseHelper.customError(res, 500, 'create_email_ver_token_query_error', err);
 	} else {
 		const recipient = {
 			email: user.email,
@@ -216,7 +216,7 @@ Emails.createEmailVerificationToken(userId, hash, (err, token) => {
 		// Send email
 		Emails.sendSingleEmail(res, 'emailVerification', recipient, (err, result) => {
 			if(err) {
-				ResponseHelper.sendError(res, 500, 'send_email_error', err);
+				ResponseHelper.customError(res, 500, 'send_email_error', err);
 			} else {
 				// Add the verification token to the database
 				const data = {
@@ -225,14 +225,14 @@ Emails.createEmailVerificationToken(userId, hash, (err, token) => {
 				}
 				Emails.storeVerificationToken(data, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'store_email_ver_token_query_error', err);
+						ResponseHelper.customError(res, 500, 'store_email_ver_token_query_error', err);
 					} else {
 						response.user = {
 							userId: userId, 
 							userRole: userRole,
 							isVerified: false,
 						};
-						ResponseHelper.sendSuccess(res, 201, response);
+						ResponseHelper.customSuccess(res, 201, response);
 					}
 				});
 			}
@@ -274,7 +274,7 @@ router.put('/deactivate/:userId', (req, res, next) => {
 							const IsActive = user[0].IsActive;
 							// Check if the user is active
 							if(!IsActive) {
-								ResponseHelper.sendError(res, 409, 'user_already_inactive', 
+								ResponseHelper.customError(res, 409, 'user_already_inactive', 
 									'The server determined that the specified user account is aready inactive. You cannot deactivate an inactive account.',
 									'This account has already been deactivated. To re-activate it, click here.'
 								);
@@ -283,12 +283,12 @@ router.put('/deactivate/:userId', (req, res, next) => {
 									if(err) {
 										ResponseHelper.sql(res, 'deactivateUser', err);
 									} else if(result.affectedRows < 1) {
-										ResponseHelper.sendError(res, 404, 'user_not_deactivated', 
+										ResponseHelper.customError(res, 404, 'user_not_deactivated', 
 											'The query was executed successfully but the user account was not deactivated.',
 											ResponseHelper.msg.default
 										);
 									} else {
-										ResponseHelper.sendSuccess(res, 200);
+										ResponseHelper.customSuccess(res, 200);
 									}	
 								});
 							}
@@ -316,7 +316,7 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 			// Check that the body params are allowed; write an external helper function for this
 			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(userDetails, modifiableUserDetails, res);
 			if(requestDataIsValid !== true) {
-				ResponseHelper.sendError(res, 422, 'invalid_data_params', 
+				ResponseHelper.customError(res, 422, 'invalid_data_params', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
 					ResponseHelper.msg.default
 				);
@@ -338,7 +338,7 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
-									ResponseHelper.sendSuccess(res, 200);					
+									ResponseHelper.customSuccess(res, 200);					
 								}
 							});
 						}
@@ -376,7 +376,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 				} else {
 					// Check that the user has entered a password that is different from their current password
 					if(newPassword == currentPassword) {
-						ResponseHelper.sendError(res, 409, 'password_conflict', 
+						ResponseHelper.customError(res, 409, 'password_conflict', 
 							'The new password provided is the same as the user\'s current password.',
 							'The new password you entered is already assigned to your account. Please log in, or provide a different new password.'
 						);
@@ -396,14 +396,14 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 									if(err) {
 										ResponseHelper.sql(res, 'checkPassword', err);
 									} else if(!passwordsMatch) {
-										ResponseHelper.sendError(res, 401, 'invalid_password', 
+										ResponseHelper.customError(res, 401, 'invalid_password', 
 											'The currentPassword provided does not match the user\'s current password in the database.',
 											'The password you entered is incorrect. Please enter your current password, or reset it.');
 									} else if(passwordsMatch){
 										// Hash the new password
 										Users.hashPassword(newPassword, (err, newHashedPassword) => {
 											if(err) {
-												ResponseHelper.sendError(res, 500, 'bcrypt_error',
+												ResponseHelper.customError(res, 500, 'bcrypt_error',
 													'There was an error with the bcrypt package: ' + err,
 													ResponseHelper.msg.default
 												);
@@ -416,7 +416,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 														QueryHelper.diagnoseQueryError(result, res);
 													} else {
 														// Invalidate the current token
-														ResponseHelper.sendSuccess(res, 200);					
+														ResponseHelper.customSuccess(res, 200);					
 													}
 												});
 											}

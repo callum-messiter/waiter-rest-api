@@ -23,13 +23,13 @@ router.get('/verifyEmail', (req, res, next) => {
 	const vtoken = req.query.v;
 
 	if(!vtoken) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+		ResponseHelper.customError(res, 404, 'missing_required_params', 
 			'The server was expecting a userId and a verification token. At least one of these params was missing.');
 	} else {
 		// Check that the token is not expired, and that is is the correct type
 		Auth.verifyToken(vtoken, (err, decodedPayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 500, 'vtoken_verification_error', err);
+				ResponseHelper.customError(res, 500, 'vtoken_verification_error', err);
 			} else {
 				// Get claims
 				const oldHash = decodedPayload.hash;
@@ -39,18 +39,18 @@ router.get('/verifyEmail', (req, res, next) => {
 				const now = new Date().getTime();
 
 				if(now > exp) {
-					ResponseHelper.sendError(res, 401, 'ver_token_expired', 
+					ResponseHelper.customError(res, 401, 'ver_token_expired', 
 						'This verification token has expired. Encourage the user to request another email.');
 				} else if(!tokenType || !tokenType == 'verifyEmail') {
-						ResponseHelper.sendError(res, 401, 'invalid_ver_token_type', 
+						ResponseHelper.customError(res, 401, 'invalid_ver_token_type', 
 							'The decoded payload did not contain the "action" claim with the correct value.');
 				} else {
 					// Get the user's current hashed password
 					Users.getUserById(userId, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+							ResponseHelper.customError(res, 500, 'get_user_query_error', err);
 						} else if(result.length < 1) {
-							ResponseHelper.sendError(res, 404, 'user_not_found', 
+							ResponseHelper.customError(res, 404, 'user_not_found', 
 								'The query returned zero results. It is likely that a user with the specified ID does not exist.');
 						} else {
 							const userCurrentVerifiedStatus = result[0].isVerified;
@@ -59,15 +59,15 @@ router.get('/verifyEmail', (req, res, next) => {
 							// Generate the new hash and compare it with the old one: they will be the same unless the user has already verified their email account
 							const newHash = md5(string);
 							if(oldHash != newHash) {
-								ResponseHelper.sendError(res, 401, 'invalid_email_ver_token', 
+								ResponseHelper.customError(res, 401, 'invalid_email_ver_token', 
 									'It is likely that the user has already used this email-verification token, by clicking the url we emailed to them, and successfully verifying their email account.');
 							} else {
 								// Set the user as verified
 								Users.setUserAsVerified(userId, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'verify_user_query_error', err);
+										ResponseHelper.customError(res, 500, 'verify_user_query_error', err);
 									} else {
-										ResponseHelper.sendSuccess(res, 200, {userId: userId, isVerified: true});
+										ResponseHelper.customSuccess(res, 200, {userId: userId, isVerified: true});
 									}
 								});
 							}
@@ -90,9 +90,9 @@ router.get('/requestPasswordReset', (req, res, next) => {
 	Users.getUserById(userId, (err, result) => {
 		const user = result[0];
 		if(err) {
-			ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+			ResponseHelper.customError(res, 500, 'get_user_query_error', err);
 		} else if(result.length < 1) {
-			ResponseHelper.sendError(res, 404, 'user_not_found', 
+			ResponseHelper.customError(res, 404, 'user_not_found', 
 				'The query returned zero results. It is likely that a user with the specified ID does not exist.');
 		} else {
 			const userCurrentHashedPass = user.password;
@@ -105,7 +105,7 @@ router.get('/requestPasswordReset', (req, res, next) => {
 
 			Emails.createResetPasswordToken(userId, hash, (err, token) => {
 				if(err) {
-					ResponseHelper.sendError(res, 500, 'bcrypt_error', err);
+					ResponseHelper.customError(res, 500, 'bcrypt_error', err);
 				} else {
 					// Build the url
 					const url = 'http://localhost:3000/api/email/verifyPasswordReset?v='+token;
@@ -117,9 +117,9 @@ router.get('/requestPasswordReset', (req, res, next) => {
 					}
 					Emails.sendSingleEmail(res, 'passwordReset', recipient, (err, result) => {
 						if(err) {
-							ResponseHelper.sendError(res, 500, 'send_email_error', err);
+							ResponseHelper.customError(res, 500, 'send_email_error', err);
 						} else {
-							ResponseHelper.sendSuccess(res, 200, {userId: userId, passResetEmailSent: true});
+							ResponseHelper.customSuccess(res, 200, {userId: userId, passResetEmailSent: true});
 						}
 					});
 				}
@@ -137,7 +137,7 @@ router.get('/verifyPasswordReset', (req, res, next) => {
 
 	Auth.verifyToken(vtoken, (err, decodedPayload) => {
 		if(err) {
-			ResponseHelper.sendError(res, 500, 'vtoken_verification_error', err);
+			ResponseHelper.customError(res, 500, 'vtoken_verification_error', err);
 		} else {
 			const oldHash = decodedPayload.hash;
 			const userId = decodedPayload.userId;
@@ -146,18 +146,18 @@ router.get('/verifyPasswordReset', (req, res, next) => {
 			const now = new Date().getTime();
 
 			if(now > exp) {
-				ResponseHelper.sendError(res, 401, 'ver_token_expired', 
+				ResponseHelper.customError(res, 401, 'ver_token_expired', 
 					'This verification token has expired. Encourage the user to request another email.');
 			} else if(!tokenType || !tokenType == 'resetPassword') {
-				ResponseHelper.sendError(res, 401, 'invalid_ver_token_type', 
+				ResponseHelper.customError(res, 401, 'invalid_ver_token_type', 
 					'The decoded payload did not contain the "action" claim with the correct value.');
 			} else {
 				// Get the user's current hashed password
 				Users.getUserById(userId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+						ResponseHelper.customError(res, 500, 'get_user_query_error', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'user_not_found', 
+						ResponseHelper.customError(res, 404, 'user_not_found', 
 							'The query returned zero results. It is likely that a user with the specified ID does not exist.');
 					} else {
 						const userCurrentHashedPass = result[0].password;
@@ -166,10 +166,10 @@ router.get('/verifyPasswordReset', (req, res, next) => {
 						// Generate the new hash and compare it with the old one: they will be the same unless the user has already reset their password
 						const newHash = md5(string);
 						if(oldHash != newHash) {
-							ResponseHelper.sendError(res, 401, 'invalid_reset_pass_token', 
+							ResponseHelper.customError(res, 401, 'invalid_reset_pass_token', 
 								'It is likely that the user has already used this resetPassword token, by clicking the url we emailed to them, and successfully updating their password.');
 						} else {
-							ResponseHelper.sendSuccess(res, 200, {userId: userId});
+							ResponseHelper.customSuccess(res, 200, {userId: userId});
 						}
 					}
 				});
@@ -184,10 +184,10 @@ router.get('/verifyPasswordReset', (req, res, next) => {
 **/
 router.post('/requestEmailAddressUpdate', (req, res, next) => {
 	if(!req.headers.authorization) {
-		ResponseHelper.sendError(res, 404, 'missing_required_params', 
+		ResponseHelper.customError(res, 404, 'missing_required_params', 
 			"The server was expecting an 'authorization' header.");
 	} else if(!req.body.newEmailAddress) {
-			ResponseHelper.sendError(res, 404, 'missing_required_params', 
+			ResponseHelper.customError(res, 404, 'missing_required_params', 
 				"The server was expecting a newEmailAddress parameter.");
 	} else {
 		const token = req.headers.authorization;
@@ -195,15 +195,15 @@ router.post('/requestEmailAddressUpdate', (req, res, next) => {
 		// Verify token, and get the userId
 		Auth.verifyToken(token, (err, decodedPayload) => {
 			if(err) {
-				ResponseHelper.sendError(res, 500, 'token_verification_error', err);
+				ResponseHelper.customError(res, 500, 'token_verification_error', err);
 			} else {
 				const userId = decodedPayload.userId;
 				// Get the user's current email address
 				Users.getUserById(userId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+						ResponseHelper.customError(res, 500, 'get_user_query_error', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'user_not_found', 
+						ResponseHelper.customError(res, 404, 'user_not_found', 
 							'A user with the specified Id could not be found.');
 					} else {
 						// Generate a hash containg the user's current email address, and add it as a claim to the new new_email-verification jwt. When the user clicks the url in the email we send them,
@@ -214,7 +214,7 @@ router.post('/requestEmailAddressUpdate', (req, res, next) => {
 						const hash = md5(string);
 						Emails.createUpdateEmailVerificationToken(userId, hash, newEmailAddress, (err, vtoken) => {
 							if(err) {
-								ResponseHelper.sendError(res, 500, 'create_email_ver_token_query_error', err);
+								ResponseHelper.customError(res, 500, 'create_email_ver_token_query_error', err);
 							} else {
 								const recipient = {
 									email: newEmailAddress,
@@ -224,9 +224,9 @@ router.post('/requestEmailAddressUpdate', (req, res, next) => {
 								// Send email
 								Emails.sendSingleEmail(res, 'updateEmailAddress', recipient, (err, result) => {
 									if(err) {
-										ResponseHelper.sendError(res, 500, 'send_email_error', err);
+										ResponseHelper.customError(res, 500, 'send_email_error', err);
 									} else {
-										ResponseHelper.sendSuccess(res, 200, {userId: userId, verifyNewEmailAddressEmailSent: true});
+										ResponseHelper.customSuccess(res, 200, {userId: userId, verifyNewEmailAddressEmailSent: true});
 									}
 								});
 							}
@@ -249,7 +249,7 @@ router.get('/verifyNewEmailAddress', (req, res, next) => {
 
 	Auth.verifyToken(vtoken, (err, decodedPayload) => {
 		if(err) {
-			ResponseHelper.sendError(res, 500, 'vtoken_verification_error', err);
+			ResponseHelper.customError(res, 500, 'vtoken_verification_error', err);
 		} else {
 			const oldHash = decodedPayload.hash;
 			const userId = decodedPayload.userId;
@@ -259,18 +259,18 @@ router.get('/verifyNewEmailAddress', (req, res, next) => {
 			const now = new Date().getTime();
 
 			if(now > exp) {
-				ResponseHelper.sendError(res, 401, 'ver_token_expired', 
+				ResponseHelper.customError(res, 401, 'ver_token_expired', 
 					'This verification token has expired. Encourage the user to request another email.');
 			} else if(!tokenType || !tokenType == 'verifyNewEmailAddress') {
-				ResponseHelper.sendError(res, 401, 'invalid_ver_token_type', 
+				ResponseHelper.customError(res, 401, 'invalid_ver_token_type', 
 					'The decoded payload did not contain the "action" claim with the correct value.');
 			} else {
 				// Get the user's current email
 				Users.getUserById(userId, (err, result) => {
 					if(err) {
-						ResponseHelper.sendError(res, 500, 'get_user_query_error', err);
+						ResponseHelper.customError(res, 500, 'get_user_query_error', err);
 					} else if(result.length < 1) {
-						ResponseHelper.sendError(res, 404, 'user_not_found', 
+						ResponseHelper.customError(res, 404, 'user_not_found', 
 							'The query returned zero results. It is likely that a user with the specified ID does not exist.');
 					} else {
 						const userCurrentEmail = result[0].email;
@@ -279,18 +279,18 @@ router.get('/verifyNewEmailAddress', (req, res, next) => {
 						// Generate the new hash and compare it with the old one: they will be the same unless the user has already verified their email account
 						const newHash = md5(string);
 						if(oldHash != newHash) {
-							ResponseHelper.sendError(res, 401, 'invalid_update_email_token', 
+							ResponseHelper.customError(res, 401, 'invalid_update_email_token', 
 								'It is likely that the user has already used this updateEmailAddress token, by clicking the url we emailed to them, and successfully verifying the new email address.');
 						} else {
 							const isVerified = 1;
 							// Update the user's email address, and verify the new account in the database
 							Users.updateUserEmailAddress(userId, newEmailAddress, isVerified, (err, result) => {
 								if(err) {
-									ResponseHelper.sendError(res, 500, 'update_user_email_query_error', err);
+									ResponseHelper.customError(res, 500, 'update_user_email_query_error', err);
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
-									ResponseHelper.sendSuccess(res, 200, {
+									ResponseHelper.customSuccess(res, 200, {
 										userId: userId, 
 										newEmail: newEmailAddress,
 										isVerified: true

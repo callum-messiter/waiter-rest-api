@@ -32,7 +32,7 @@ router.post('/create', (req, res, next) => {
 			// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
 			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(item, allowedItemParams, res);
 			if(requestDataIsValid !== true) {
-				ResponseHelper.sendError(res, 422, 'invalid_data_params', 
+				ResponseHelper.customError(res, 422, 'invalid_data_params', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
 					ResponseHelper.msg.default
 				);
@@ -62,7 +62,7 @@ router.post('/create', (req, res, next) => {
 											ResponseHelper.sql(res, 'createNewItem', err);
 										} else {
 											// Return the ID of the new item
-											ResponseHelper.sendSuccess(res, 200, {createdItemId: item.itemId});
+											ResponseHelper.customSuccess(res, 200, {createdItemId: item.itemId});
 										}
 									});
 								}
@@ -90,7 +90,7 @@ router.put('/update/:itemId', (req, res, next) => {
 		// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
 		const requestDataIsValid = RequestHelper.checkRequestDataIsValid(itemData, allowedItemParams, res);
 		if(requestDataIsValid !== true) {
-			ResponseHelper.sendError(res, 422, 'invalid_data_params', 
+			ResponseHelper.customError(res, 422, 'invalid_data_params', 
 				"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
 				ResponseHelper.msg.default
 			);
@@ -120,7 +120,7 @@ router.put('/update/:itemId', (req, res, next) => {
 									} else if(result.changedRows < 1) {
 										QueryHelper.diagnoseQueryError(result, res);
 									} else {
-										ResponseHelper.sendSuccess(res, 200);
+										ResponseHelper.customSuccess(res, 200);
 									}
 								});
 							}
@@ -167,7 +167,7 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 								} else if(result.changedRows < 1) {
 									QueryHelper.diagnoseQueryError(result, res);
 								} else {
-									ResponseHelper.sendSuccess(res, 200);
+									ResponseHelper.customSuccess(res, 200);
 								}
 							});
 						}
@@ -211,7 +211,7 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 								} else if(result.length < 1) {
 									ResponseHelper.resourceNotFound(res, 'item');
 								} else {
-									ResponseHelper.sendSuccess(res, 200, result);
+									ResponseHelper.customSuccess(res, 200, result);
 								}
 							});
 						}
@@ -253,7 +253,7 @@ router.get('/:itemId', (req, res, next) => {
 								if(err) {
 									ResponseHelper.sql(res, 'getItemById', err);
 								} else {
-									ResponseHelper.sendSuccess(res, 200, result);
+									ResponseHelper.customSuccess(res, 200, result);
 								}
 							});
 						}

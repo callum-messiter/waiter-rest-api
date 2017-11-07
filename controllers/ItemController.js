@@ -66,10 +66,7 @@ router.post('/create', (req, res, next) => {
 								const requesterId = decodedpayload.userId;
 								// Menus can only be modified by the menu owner
 								if(requesterId != ownerId) {
-									ResponseHelper.sendError(res, 401, 'unauthorised', 
-										'A menu can be modified only by the menu owner.',
-										"Sorry, you don't have permission to do that!"
-									);
+									ResponseHelper.unauthorised(res, 'menu');
 								} else {
 									// Create item
 									Items.createNewItem(item, (err, result) => {
@@ -138,10 +135,7 @@ router.put('/update/:itemId', (req, res, next) => {
 							const requesterId = decodedpayload.userId;
 							// Menus can only be modified by the menu owner
 							if(requesterId != ownerId) {
-								ResponseHelper.sendError(res, 401, 'unauthorised', 
-									'An item can be modified only by the item (menu) owner.',
-									"Sorry, you don't have permission to do that!"
-								);
+								ResponseHelper.unauthorised(res, 'item');
 							} else {
 								// Update item
 								Items.updateItemDetails(itemId, itemData, (err, result) => {
@@ -200,10 +194,7 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'An item can be modified only by the item (menu) owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'item');
 						} else {
 							// Deactivate item
 							Items.deactivateItem(itemId, (err, result) => {
@@ -260,10 +251,7 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// User details can be accessed only by the owner, or by an internal admin
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A user\'s details can be accessed only by the owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'category');
 						} else {
 							Items.getAllItemsFromCategory(categoryId, (err, result) => {
 								if(err) {
@@ -322,10 +310,7 @@ router.get('/:itemId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// User details can be accessed only by the owner, or by an internal admin
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A resource can be accessed only by the owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'item');
 						} else {
 							Items.getItemById(itemId, (err, result) => {
 								if(err) {

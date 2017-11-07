@@ -44,10 +44,7 @@ router.get('/:restaurantId', (req, res, next) => {
 						const ownerId = result[0].ownerId;
 						// User details can be accessed only by the owner, or by an internal admin. Future: restaurant details accessible to users granted access by restaurant owner
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A restaurant\'s details can be accessed only by the owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'restaurant');
 						} else {
 							// Get the restaurant details
 							Restaurants.getRestaurantById(restaurantId, (err, result) => {
@@ -127,10 +124,7 @@ router.post('/create/:userId', (req, res, next) => {
 							const requesterId = decodedpayload.userId;
 							// Menus can only be modified by the menu owner
 							if(requesterId != userId) {
-								ResponseHelper.sendError(res, 401, 'unauthorised', 
-									'A restaurant cannot be created for a user on another user\'s behalf.',
-									"Sorry, you don't have permission to do that!"
-								);
+								ResponseHelper.unauthorised(res, 'user account');
 							} else {
 								// Create restaurant
 								Restaurants.createNewRestaurant(restaurant, (err, result) => {
@@ -189,10 +183,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A restaurant can be modified only by its owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'restaurant');
 						} else {
 							// Update Menu
 							Restaurants.updateRestaurantDetails(restaurantId, restaurantData, (err, result) => {
@@ -250,10 +241,7 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A restaurant can only be deactivated by its owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'restaurant');
 						} else {
 							// Deactivate menu
 							Restaurants.deactivateRestaurant(restaurantId, (err, result) => {

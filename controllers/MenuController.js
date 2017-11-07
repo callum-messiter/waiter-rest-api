@@ -45,10 +45,7 @@ router.get('/:menuId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// User details can be accessed only by the owner, or by an internal admin
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A user\'s details can be accessed only by the owner, or by admins.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'menu');
 						} else {
 							Menus.getMenuDetails(menuId, (err, result) => {
 								if(err) {
@@ -175,10 +172,7 @@ router.post('/create', (req, res, next) => {
 							const requesterId = decodedpayload.userId;
 							// Menus can only be modified by the menu owner
 							if(requesterId != ownerId) {
-								ResponseHelper.sendError(res, 401, 'unauthorised', 
-									'A menu can be created only by the restaurant owner.',
-									ResponseHelper.msg.default
-								);
+								ResponseHelper.unauthorised(res, 'restaurant');
 							} else {
 								// Create menu
 								Menus.createNewMenu(menu, (err, result) => {
@@ -241,10 +235,7 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A menu can only be deactivated by its owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'menu');
 						} else {
 							// Deactivate menu
 							Menus.deactivateMenu(menuId, (err, result) => {
@@ -304,10 +295,7 @@ router.put('/update/:menuId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A menu can be modified only by its owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'menu');
 						} else {
 							// Update Menu
 							Menus.updateMenuDetails(menuId, menuData, (err, result) => {

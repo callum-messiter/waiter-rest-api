@@ -127,10 +127,7 @@ router.post('/create', (req, res, next) => {
 								const requesterId = decodedpayload.userId;
 								// Menus can only be modified by the menu owner
 								if(requesterId != ownerId) {
-									ResponseHelper.sendError(res, 401, 'unauthorised', 
-										'A menu can be modified only by the menu owner.',
-										"Sorry, you don't have permission to do that!"
-									);
+									ResponseHelper.unauthorised(res, 'menu');
 								} else {
 									// Create category
 									Categories.createNewCategory(category, (err, result) => {
@@ -252,10 +249,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 							const requesterId = decodedpayload.userId;
 							// Menus can only be modified by the menu owner
 							if(requesterId != ownerId) {
-								ResponseHelper.sendError(res, 401, 'unauthorised', 
-									'A category can be modified only by the category (menu) owner.',
-									"Sorry, you don't have permission to do that!"
-								);
+								ResponseHelper.unauthorised(res, 'category');
 							} else {
 								// Update category
 								Categories.updateCategoryDetails(categoryId, categoryData, (err, result) => {
@@ -367,10 +361,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 						const requesterId = decodedpayload.userId;
 						// Menus can only be modified by the menu owner
 						if(requesterId != ownerId) {
-							ResponseHelper.sendError(res, 401, 'unauthorised', 
-								'A category can be modified only by the menu owner.',
-								"Sorry, you don't have permission to do that!"
-							);
+							ResponseHelper.unauthorised(res, 'category');
 						} else {
 							// Deactivate item
 							Categories.deactivateCategory(categoryId, (err, result) => {

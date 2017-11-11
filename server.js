@@ -103,7 +103,7 @@ io.on('connection', (socket) => {
 				const customerId = order.customerId;
 				const restaurantId = order.restaurantId;
 				// The recipient restaurant will be listening for events following this naming convention
-				const orderName = 'order-' + restaurantId; // Use the restaurantId so that restaurants only listen for their own orders
+				const orderName = 'order_' + restaurantId; // Use the restaurantId so that restaurants only listen for their own orders
 				/** 
 					2) Add the order to the database	
 				**/
@@ -124,7 +124,7 @@ io.on('connection', (socket) => {
 							for them
 						**/
 						console.log('ORDER NAME: ' + orderName);
-						socket.broadcast.emit('order', order);
+						socket.broadcast.emit(orderName, order);
 						console.log('New room created: "' +roomName+ '".');
 						console.log(io.sockets.adapter.rooms); // Room { sockets: { 'dDv-s07qFkbz3aEXAAAA': true }, length: 1 }
 						/**

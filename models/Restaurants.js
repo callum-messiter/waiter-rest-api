@@ -15,7 +15,7 @@ module.exports.getRestaurantByOwnerId = function(ownerId, callback) {
 /**
 	Get the ID of the restaurant's owner
 **/
-module.exports.getRestaurantId = function(restaurantId, callback) {
+module.exports.getRestaurantOwnerId = function(restaurantId, callback) {
 	const query = 'SELECT ownerId FROM restaurants WHERE restaurantId = ?';
 	db.query(query, restaurantId, callback);
 }

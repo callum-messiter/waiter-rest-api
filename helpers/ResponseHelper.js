@@ -38,7 +38,7 @@ module.exports.unauthorised = function(res, resourceType) {
 module.exports.sql = function(res, queryName, err) {
 	res.status(500).json({
 		success: false, 
-		errorKey: queryType+'_sql_error', 
+		errorKey: queryName+'_sql_error', 
 		devMsg: 'There was an SQL error: '+err.code,
 		userMsg: this.msg.default.user
 	});

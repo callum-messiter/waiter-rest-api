@@ -28,7 +28,7 @@
 					const output = document.getElementById('output');
 
 					// 3) We listen for events that are specific to our restaurant. On the server, the order it receives from a client (iOS app) will contain the restaurantId. The server will then emit the event to us - the web app - using the same naming convention as orderName. As such, each restaurant will only receive orders placed to *their* kitchen
-					socket.on(orderName, function(order) {
+					socket.on('order', function(order) {
 						window.customerId = order.customerId;
 						window.orderId = order.orderId;
 						// 4) Upon receiving an order, we will add it to our orders list

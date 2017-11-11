@@ -39,21 +39,19 @@
 						MOCK ORDER DATA
 					**/ 	
 					const customerId = 'customer1';
-					const restaurantId = 'burgerking';
+					const restaurantId = 'SkxjHgNYRb';
 					// The user's jwt token that is provided to the client by the server should be sent so we can verify orders. The client will be disconnected if the token is invalid
 					const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbGdvcml0aG0iOiJIUzI1NiIsImlzc3VlciI6Imh0dHA6Ly9hcGkud2FpdGVyLmNvbSIsImlhdCI6MTUwNzIzNjc5MjU4MSwiZXhwIjoxNTA3ODQxNTkyNTgxLCJ1c2VySWQiOjEsInVzZXJSb2xlIjoyMDB9.tNkcHIq988_UGB5062Emb-sPVFXAkFnjAkWUu7JO1sw';
 					// The item data should be retrievable by the menu loaded in the client app
 					const items = [
 						{
 							itemId: 1,
+							name: 'Fish and Chips',
 							itemPrice: 5.00
 						},
 						{
 							itemId: 2,
-							itemPrice: 5.00
-						},
-						{
-							itemId: 3,
+							name: 'Chicken Curry',
 							itemPrice: 5.00
 						}
 					];

@@ -119,11 +119,12 @@ io.on('connection', (socket) => {
 						const roomName = 'transaction-'+customerId+'-'+restaurantId;
 						socket.join(roomName);
 						/** 
-							4) Emit the order to the kitchen (web app). The web app will listen to events 
+							4) Emit the order to all other connected sockets. The web app will listen to events 
 							whose name == said restaurant's ID. This way restaurants will only receive orders intended
 							for them
 						**/
-						socket.broadcast.emit(orderName, order);
+						console.log('ORDER NAME: ' + orderName);
+						socket.broadcast.emit('order', order);
 						console.log('New room created: "' +roomName+ '".');
 						console.log(io.sockets.adapter.rooms); // Room { sockets: { 'dDv-s07qFkbz3aEXAAAA': true }, length: 1 }
 						/**

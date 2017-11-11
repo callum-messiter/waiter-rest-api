@@ -42,6 +42,9 @@ module.exports.deactivateRestaurant = function(restaurantId, callback) {
 	db.query(query, restaurantId, callback);
 }
 
+/**
+	Upon user registration, create the user's restaurant with a default menu
+**/
 module.exports.createRestaurantWithDefaultMenu = function(restaurant, menu, callback) {
 	// Default categories
 	const categories = [
@@ -70,4 +73,12 @@ module.exports.createRestaurantWithDefaultMenu = function(restaurant, menu, call
 			callback;
 		}
 	});
+}
+
+/**
+	Get all restaurants, and later we will filter this result by location (vicitiny to user's location)
+**/
+module.exports.getNearbyRestaurants = function(callback) {
+	const query = 'SELECT * FROM restaurants';
+	db.query(query, callback);
 }

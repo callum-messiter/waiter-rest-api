@@ -8,6 +8,7 @@ const RestaurantController = require('../controllers/RestaurantController');
 const MenuController = require('../controllers/MenuController');
 const CategoryController = require('../controllers/CategoryController');
 const ItemController = require('../controllers/ItemController');
+const OrderController = require('../controllers/OrderController');
 const EmailController = require('../controllers/EmailController');
 
 // Append controller routes to the '/api' endpoint here
@@ -17,6 +18,7 @@ router.use('/restaurant', RestaurantController);
 router.use('/menu', MenuController);
 router.use('/category', CategoryController);
 router.use('/item', ItemController);
+router.use('/order', OrderController);
 router.use('/email', EmailController);
 
 module.exports = router;

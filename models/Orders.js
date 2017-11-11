@@ -19,8 +19,8 @@ module.exports.schema = {
 module.exports.statuses = {
 	receivedByServer: 100,
 	sentToKitchen: 200,
-	// receivedByKitchen: 300,
-	acceptedByKitchen: 300,
+	receivedByKitchen: 300,
+	acceptedByKitchen: 400,
 	rejectedByKitchen: 999,
 	enRouteToCustomer: 1000,
 	// returnedByCustomer: 666,

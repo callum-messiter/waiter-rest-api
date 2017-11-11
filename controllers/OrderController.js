@@ -11,11 +11,27 @@ const ResponseHelper = require('../helpers/ResponseHelper');
 
 router.get('/test', (req, res, next) => {
 	const restaurantId = 'SkxjHgNYRb';
-	Orders.getAllLiveOrdersForRestaurant(restaurantId, (err, result) => {
+	Orders.getAllLiveOrdersForRestaurant(restaurantId, (err, orders) => {
 		if(err) {
-			res.json(err);
+			ResponseHelper.sql(res, 'getAllLiveOrdersForRestaurant', err);
 		} else {
-			res.json(result);
+			Orders.getItemsFromLiveOrders(restaurantId, (err, orderItems) => {
+				if(err) {
+					ResponseHelper.sql(res, 'getItemsFromLiveOrders', err);
+				} else {
+					// Loop through the orderitems and assign them to their order
+					orderItems.forEach(function(item) {
+						const newItem = {itemId: item.itemId, name: item.name}
+						orders.forEach(function(order) {
+							// If there is an order with the item's orderId, add the item to this order's array of items
+							if(item.orderId == order.orderId) {
+								(order.items) ? order.items.push(newItem) : order.items = [newItem];
+							}
+						});
+					});
+					res.json(orders);
+				}	
+			});
 		}
 	});
 });

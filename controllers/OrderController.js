@@ -10,7 +10,8 @@ const secret = require('../config/jwt').secret;
 const ResponseHelper = require('../helpers/ResponseHelper');
 
 router.get('/test', (req, res, next) => {
-	Orders.getAllLiveOrdersForARestaurant(req.params.restaurantId, (err, result) => {
+	const restaurantId = 'SkxjHgNYRb';
+	Orders.getAllLiveOrdersForRestaurant(restaurantId, (err, result) => {
 		if(err) {
 			res.json(err);
 		} else {
@@ -18,3 +19,5 @@ router.get('/test', (req, res, next) => {
 		}
 	});
 });
+
+module.exports = router;

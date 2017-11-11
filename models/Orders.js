@@ -94,10 +94,10 @@ module.exports.wasOrderUpdated = function(result) {
 **/
 module.exports.getAllLiveOrdersForRestaurant = function(restaurantId, callback) {
 	const query = 'SELECT orders.orderId, orders.customerId, orders.restaurantId, ' +
-				  'orders.price, orders.status, orders.time, items.itemId, items.name' +
+				  'orders.price, orders.status, orders.time, items.itemId, items.name ' +
 				  'FROM orders ' +
-				  'JOIN orderitems ON orders.orderId = orderitems.orderId ' +,
-				  'JOIN items ON orderitems.itemId = items.itemId ' +
+				  'LEFT JOIN orderitems ON orders.orderId = orderitems.orderId ' +
+				  'LEFT JOIN items ON orderitems.itemId = items.itemId ' +
 				  'WHERE orders.restaurantId = ?';
 	db.query(query, restaurantId, callback);
 }

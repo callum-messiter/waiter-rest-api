@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
 
-// Import any api-specific controllers here
+/**
+	 Import any api-specific controllers here. 
+
+	 Remember to add ```module.exports = router;``` to the bottom of the controller
+**/
 const UserController = require('../controllers/UserController');
 const AuthController = require('../controllers/AuthController');
 const RestaurantController = require('../controllers/RestaurantController');

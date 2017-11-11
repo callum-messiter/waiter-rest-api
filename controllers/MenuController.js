@@ -47,7 +47,7 @@ router.get('/:menuId', (req, res, next) => {
 									/**
 										The following is horribly inefficient and verbose. The queries with joins to get all items belonging to the menu
 										didn't work if there were zero items (if the menu has empty categories, the query returns nothing.). I can't yet figure
-										out how to do this with a single query.
+										out how to do this with a single query. Think we need a LEFT JOIN.
 									**/
 
 									// Build response object skeleton

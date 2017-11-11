@@ -73,6 +73,7 @@ io.on('connection', (socket) => {
 	
 	// Listen for new orders placed by the diner
 	socket.on('newOrder', (order) => {
+		order.data.orderId = uuidv4();
 		/**
 			0) Verify order.headers.token
 		**/
@@ -90,25 +91,24 @@ io.on('connection', (socket) => {
 
 				// Verify the price of the items by retrieving them from the database (user each itemId)
 
-				// Construct the order object to be passed to the query
-				const orderId = uuidv4();
-				order = {
-					orderId: orderId,
+				// Construct the order object to be passed to the query ( we don't want to pass the items to the query)
+				const orderData = {
+					orderId: order.data.orderId,
 					customerId: order.data.customerId,
 					restaurantId: order.data.restaurantId,
-					price: order.data.price,
-					status: Orders.statuses.receivedByServer
-				}
+					price: order.data.price
+				};
+
 				// The customerId and restaurantId are needed to create the exlusive customer-restaurant WebSockets channel (room)
-				const customerId = order.customerId;
-				const restaurantId = order.restaurantId;
+				const customerId = orderData.customerId;
+				const restaurantId = orderData.restaurantId;
 				// The recipient restaurant will be listening for events following this naming convention
 				const orderName = 'order_' + restaurantId; // Use the restaurantId so that restaurants only listen for their own orders
 				/** 
 					2) Add the order to the database	
 				**/
-				console.log('ORDER: ' +order);
-				Orders.storeOrder(order, (err, result) => {
+				
+				Orders.storeOrder(orderData, (err, result) => {
 					if(err) {
 						console.log(err);
 					} else {
@@ -124,7 +124,8 @@ io.on('connection', (socket) => {
 							for them
 						**/
 						console.log('ORDER NAME: ' + orderName);
-						socket.broadcast.emit(orderName, order);
+						console.log('ORDER: ' +JSON.stringify(orderData));
+						socket.broadcast.emit(orderName, order.data); // pass in the original order.data object which contains the items
 						console.log('New room created: "' +roomName+ '".');
 						console.log(io.sockets.adapter.rooms); // Room { sockets: { 'dDv-s07qFkbz3aEXAAAA': true }, length: 1 }
 						/**
@@ -132,7 +133,7 @@ io.on('connection', (socket) => {
 								a) We generate a random orerId before inserting it into the db
 								b) then once the order is sent to the kitchen, we can use this unique id to query the db and update the order's status to "sent"
 						**/
-						const orderId = order.orderId;
+						const orderId = order.data.orderId;
 						const newStatus = Orders.statuses.sentToKitchen;
 						console.log("STATUS-UPDATE, NEW STATUS: " + newStatus);
 						Orders.updateOrderStatus(orderId, newStatus, (err, result) => {

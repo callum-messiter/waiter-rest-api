@@ -36,7 +36,6 @@ module.exports.statuses = {
 **/
 module.exports.storeOrder = function(order, callback) {
 	// Remove the items (later we will add the items to the orderItems table in this very query)
-	delete order.items;
 	const query = 'INSERT INTO orders SET ?';
 	db.query(query, order, callback);
 }

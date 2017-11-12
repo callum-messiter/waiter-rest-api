@@ -37,31 +37,40 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 							Orders.getAllLiveOrdersForRestaurant(restaurantId, (err, orders) => {
 								if(err) {
 									ResponseHelper.sql(res, 'getAllLiveOrdersForRestaurant', err);
-								} else if(orders.length > 0) {
-									// Add an empty items array to all the live orders
-									for(i = 0; i < orders.length; i++) {
-										orders[i].items = [];
-									}
-
-									Orders.getItemsFromLiveOrders(restaurantId, (err, orderItems) => {
-										if(err) {
-											ResponseHelper.sql(res, 'getItemsFromLiveOrders', err);
-										} else if(orderItems.length > 0) {
-											// Loop through the orderitems and assign them to their order
-											orderItems.forEach(function(item) {
-												const newItem = {itemId: item.itemId, name: item.name}
-												orders.forEach(function(order) {
-													// If there is an order with the item's orderId, add the item to this order's array of items
-													if(item.orderId == order.orderId) {
-														order.items.push(newItem);
-													}
-												});
-											});
-											ResponseHelper.customSuccess(res, 200, orders);
-										}	
-									});
 								} else {
-									ResponseHelper.customSuccess(res, 200, orders);
+									if(orders.length < 1) {
+										// If there are no live orders, send an empty array
+										ResponseHelper.customSuccess(res, 200, []);
+									} else {
+										// Add an empty items array to all the live orders
+										for(i = 0; i < orders.length; i++) {
+											orders[i].items = [];
+										}
+
+										Orders.getItemsFromLiveOrders(restaurantId, (err, orderItems) => {
+											if(err) {
+												ResponseHelper.sql(res, 'getItemsFromLiveOrders', err);
+											} else {
+												if(orderItems.length < 1) {
+													// If there are no orderItems (weird), send the orders array
+													ResponseHelper.customSuccess(res, 200, orders);
+												} else {
+													res.json(orderItems);
+													// Loop through the orderitems and assign them to their order
+													orderItems.forEach(function(item) {
+														const newItem = {itemId: item.itemId, name: item.name}
+														orders.forEach(function(order) {
+															// If there is an order with the item's orderId, add the item to this order's array of items
+															if(item.orderId == order.orderId) {
+																order.items.push(newItem);
+															}
+														});
+													});
+													ResponseHelper.customSuccess(res, 200, orders);
+												}
+											}
+										});
+									}
 								}
 							});
 						}

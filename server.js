@@ -196,7 +196,7 @@ io.on('connection', (socket) => {
 					restaurantId: order.restaurantId, 
 					status: order.status
 				});
-				if(io.sockets.adapter.rooms['transaction-customer1-SkxjHgNYRb'].length > 1) {
+				if(io.sockets.adapter.rooms[roomName].length > 1) {
 					// Then broadcast the status update to the room, to inform the customer (iOS client)
 				}
 			}

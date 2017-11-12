@@ -55,7 +55,6 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 													// If there are no orderItems (weird), send the orders array
 													ResponseHelper.customSuccess(res, 200, orders);
 												} else {
-													res.json(orderItems);
 													// Loop through the orderitems and assign them to their order
 													orderItems.forEach(function(item) {
 														const newItem = {itemId: item.itemId, name: item.name}

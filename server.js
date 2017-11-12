@@ -96,6 +96,7 @@ io.on('connection', (socket) => {
 					orderId: order.data.orderId,
 					customerId: order.data.customerId,
 					restaurantId: order.data.restaurantId,
+					tableNo: order.data.tableNo,
 					price: order.data.price
 				};
 
@@ -107,11 +108,12 @@ io.on('connection', (socket) => {
 				/** 
 					2) Add the order to the database	
 				**/
-				
+				// Default status in db table is 100 - receivedByServer (set by mysql)
 				Orders.storeOrder(orderData, (err, result) => {
 					if(err) {
 						console.log(err);
 					} else {
+						order.data.status = Orders.statuses.sentToKitchen;
 						/**
 							3) Create and join a room that is created exclusively for this customer and the recipient restaurant 
 							(the restaurant will join the room later)
@@ -142,7 +144,6 @@ io.on('connection', (socket) => {
 							} else {
 								// Check that at least one row was changed
 								Orders.wasOrderUpdated(result);
-								console.log(result);
 							}
 						});
 					}
@@ -152,16 +153,13 @@ io.on('connection', (socket) => {
 	});
 
 	// Listen to order-status updates made by the restauraut
-	socket.on('orderStatusUpdate', (status) => {
+	socket.on('orderStatusUpdate', (order) => {
 		/** 
 			4) Look for the restaurant-customer specific room that was created when the server received
-			the customer's order. Now add the restaurant (which has sent the status update) to this room, so
+			the customer's order. Now add the restaurant (which has sent the order update) to this room, so
 			that the customer and restaurant can communicate in a private channel of their own
 		**/ 
-		const orderId = status.orderId;
-		const customerId = status.customerId;
-		const restaurantId = status.restaurantId;
-		const roomName = 'transaction-'+customerId+'-'+restaurantId;
+		const roomName = 'transaction-'+order.customerId+'-'+order.restaurantId;
 
 		/**
 			5) First check if this socket is already a part of the room
@@ -175,22 +173,32 @@ io.on('connection', (socket) => {
 		console.log(io.sockets.adapter.rooms);
 
 		/**
-			6) Emit the new order status to the rest of the room [e.g the single customer (iOS client)]
-			Upon receiving the new status, The iOS client should push a notification to the customer.
+			6) The web-app client (restaurant) will use the order.statuses object, and send the status code. We will update the order's
+			status in the database.
 
-			The web-app client (restaurant) will use the order.statuses object, and send the status code.
-			We will pass it directly to the query, without having to set the status ourselves as we do below
+			Then, we first want to inform the restaurant (the sender socket) that the status update they sent has been received by the server,
+			and the status of the order has been updated in the database accordingly. Then the client-side state will be updated.
+
+			Then, Emit the new order status to the rest of the room [e.g the single customer (iOS client)]
+			Upon receiving the new status, The iOS client should push a notification to the customer.
 		**/
-		const newStatus = Orders.statuses.acceptedByKitchen;
-		console.log("STATUS-UPDATE, NEW STATUS: " + newStatus);
-		Orders.updateOrderStatus(orderId, newStatus, (err, result) => {
+		console.log("STATUS-UPDATE, NEW STATUS: " + order.status);
+		Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
 			if(err) {
 				console.log(err);
 			} else {
 				// Check that at least one row was changed
 				Orders.wasOrderUpdated(result);
-				console.log(result);
-				socket.broadcast.to(roomName).emit('newStatus', status.status); 
+				// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
+				socket.emit('orderStatusUpdated', {
+					orderId: order.orderId, 
+					customerId: order.customerId,
+					restaurantId: order.restaurantId, 
+					status: order.status
+				});
+				if(io.sockets.adapter.rooms['transaction-customer1-SkxjHgNYRb'].length > 1) {
+					// Then broadcast the status update to the room, to inform the customer (iOS client)
+				}
 			}
 		});
 

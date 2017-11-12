@@ -94,7 +94,7 @@ module.exports.wasOrderUpdated = function(result) {
 **/
 module.exports.getAllLiveOrdersForRestaurant = function(restaurantId, callback) {
 	// Orders with the below statuses are those that are visible to the restaurant kitchen
-	const query = 'SELECT orderId, customerId, restaurantId, price, status, time ' +
+	const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
 				  'FROM orders ' +
 				  'WHERE orders.restaurantId = ? ' +
 				  'AND status = ' + this.statuses.sentToKitchen + ' ' +

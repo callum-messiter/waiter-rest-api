@@ -32,7 +32,7 @@ module.exports.statuses = {
 // Add method for creating the room name (WebSockets) using the userId and restaurantId
 
 module.exports.createNewOrder = function(order, items, callback) {
-	// Loop through order.items, grab the itemId, and add it to the items array
+	// Create the array of orderitems, formatted correctly
 	orderItems = [];
 	for(var i = 0; i < items.length; i++) {
 		// Each order item should have an orderId and itemId (the row ID is auto-incremented)
@@ -49,16 +49,6 @@ module.exports.createNewOrder = function(order, items, callback) {
 			callback;
 		}
 	});
-}
-
-
-/**
-	Once an order has been received by the server, call this method to add it to the database
-**/
-module.exports.storeOrder = function(order, callback) {
-	// Remove the items (later we will add the items to the orderItems table in this very query)
-	const query = 'INSERT INTO orders SET ?';
-	db.query(query, order, callback);
 }
 
 /**

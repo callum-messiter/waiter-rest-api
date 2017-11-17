@@ -117,7 +117,9 @@ io.on('connection', (socket) => {
 							whose name == said restaurant's ID. This way restaurants will only receive orders intended
 							for them
 						**/
-						socket.broadcast.emit(orderName, order.metaData); // pass in the original order.metaData object which contains the items
+						orderForRestaurant = order.metaData;
+						orderForRestaurant.items = order.items;
+						socket.broadcast.emit(orderName, orderForRestaurant); // pass in the original order.metaData object which contains the items
 						console.log('[2]: New room created: "' +roomName+ '".');
 						console.log(io.sockets.adapter.rooms); // Room { sockets: { 'dDv-s07qFkbz3aEXAAAA': true }, length: 1 }
 						/**

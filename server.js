@@ -73,7 +73,8 @@ io.on('connection', (socket) => {
 	
 	// Listen for new orders placed by the diner
 	socket.on('newOrder', (order) => {
-		order.data.orderId = uuidv4();
+		order.metaData.orderId = uuidv4();
+
 		/**
 			0) Verify order.headers.token
 		**/
@@ -84,36 +85,27 @@ io.on('connection', (socket) => {
 				console.log('TOKEN IS DODGY');
 				socket.disconnect();
 			} else {
-				console.log('Server received an order from ' + order.data.customerId + '. \r\n' + JSON.stringify(order));
+				console.log('[1]: Server received an order from ' + order.metaData.customerId + '. \r\n' + JSON.stringify(order.metaData));
 				/** 
 					1) The customer (iOS client) has sent a new order to the server: now get the details
 				**/
 
 				// Verify the price of the items by retrieving them from the database (user each itemId)
 
-				// Construct the order object to be passed to the query ( we don't want to pass the items to the query)
-				const orderData = {
-					orderId: order.data.orderId,
-					customerId: order.data.customerId,
-					restaurantId: order.data.restaurantId,
-					tableNo: order.data.tableNo,
-					price: order.data.price
-				};
-
 				// The customerId and restaurantId are needed to create the exlusive customer-restaurant WebSockets channel (room)
-				const customerId = orderData.customerId;
-				const restaurantId = orderData.restaurantId;
+				const customerId = order.metaData.customerId;
+				const restaurantId = order.metaData.restaurantId;
 				// The recipient restaurant will be listening for events following this naming convention
 				const orderName = 'order_' + restaurantId; // Use the restaurantId so that restaurants only listen for their own orders
 				/** 
 					2) Add the order to the database	
 				**/
 				// Default status in db table is 100 - receivedByServer (set by mysql)
-				Orders.storeOrder(orderData, (err, result) => {
+				Orders.createNewOrder(order.metaData, order.items, (err, result) => {
 					if(err) {
 						console.log(err);
 					} else {
-						order.data.status = Orders.statuses.sentToKitchen;
+						order.metaData.status = Orders.statuses.sentToKitchen;
 						/**
 							3) Create and join a room that is created exclusively for this customer and the recipient restaurant 
 							(the restaurant will join the room later)
@@ -125,19 +117,17 @@ io.on('connection', (socket) => {
 							whose name == said restaurant's ID. This way restaurants will only receive orders intended
 							for them
 						**/
-						console.log('ORDER NAME: ' + orderName);
-						console.log('ORDER: ' +JSON.stringify(orderData));
-						socket.broadcast.emit(orderName, order.data); // pass in the original order.data object which contains the items
-						console.log('New room created: "' +roomName+ '".');
+						socket.broadcast.emit(orderName, order.metaData); // pass in the original order.metaData object which contains the items
+						console.log('[2]: New room created: "' +roomName+ '".');
 						console.log(io.sockets.adapter.rooms); // Room { sockets: { 'dDv-s07qFkbz3aEXAAAA': true }, length: 1 }
 						/**
 							5) Once the order is sent to the kitchen, update the order status in the db
 								a) We generate a random orerId before inserting it into the db
 								b) then once the order is sent to the kitchen, we can use this unique id to query the db and update the order's status to "sent"
 						**/
-						const orderId = order.data.orderId;
+						const orderId = order.metaData.orderId;
 						const newStatus = Orders.statuses.sentToKitchen;
-						console.log("STATUS-UPDATE, NEW STATUS: " + newStatus);
+						console.log("[3]: STATUS-UPDATE, NEW STATUS: " + newStatus);
 						Orders.updateOrderStatus(orderId, newStatus, (err, result) => {
 							if(err) {
 								console.log(err);
@@ -165,12 +155,12 @@ io.on('connection', (socket) => {
 			5) First check if this socket is already a part of the room
 		**/
 		if(io.sockets.adapter.rooms[roomName] != undefined) {
-			console.log([roomName] + ' exists');
+			console.log('[4]: ' + [roomName] + ' exists');
 		} else {
-			console.log([roomName] + ' does not exist');
+			console.log('[4]: ' + [roomName] + ' does not exist');
 		}
 		socket.join(roomName);
-		console.log(io.sockets.adapter.rooms);
+		console.log('[5] ROOMS: ' + io.sockets.adapter.rooms);
 
 		/**
 			6) The web-app client (restaurant) will use the order.statuses object, and send the status code. We will update the order's
@@ -182,7 +172,7 @@ io.on('connection', (socket) => {
 			Then, Emit the new order status to the rest of the room [e.g the single customer (iOS client)]
 			Upon receiving the new status, The iOS client should push a notification to the customer.
 		**/
-		console.log("STATUS-UPDATE, NEW STATUS: " + order.status);
+		console.log("[6]: STATUS-UPDATE, NEW STATUS: " + order.status);
 		Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
 			if(err) {
 				console.log(err);

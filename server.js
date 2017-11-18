@@ -63,6 +63,7 @@ app.get('/', (req, res, next) => {
 const io = socket(server);
 // Dependences
 const uuidv4 = require('uuid/v4');
+const moment = require('moment');
 // Models
 const Orders = require('./models/Orders');
 const Auth = require('./models/Auth');
@@ -74,7 +75,7 @@ io.on('connection', (socket) => {
 	// Listen for new orders placed by the diner
 	socket.on('newOrder', (order) => {
 		order.metaData.orderId = uuidv4();
-
+		order.metaData.time = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
 		/**
 			0) Verify order.headers.token
 		**/

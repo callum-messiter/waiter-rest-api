@@ -45,35 +45,34 @@
 					// The item data should be retrievable by the menu loaded in the client app
 					const items = [
 						{
-							itemId: 1,
+							itemId: 'asdasd3',
 							name: 'Fish and Chips',
-							price: 5.00
+							price: 8.50
 						},
 						{
-							itemId: 2,
-							name: 'Chicken Curry',
-							price: 5.00
+							itemId: 'B1a5MQCRb',
+							name: 'Ham, Egg and Chips',
+							price: 4.00
 						}
 					];
-
-					const order = {
-						headers: {
-							token: token
-						},
-						data: {
-							items: items,
-							customerId: customerId,
-							restaurantId: restaurantId,
-							tableNo: Math.floor(Math.random() * (40 - 1 + 1)) + 1, // random number just for simulation purposes
-							price: 15.00 // The price woul be calculated by the client app (by iterating over the array perhaps)
-						}
-					}
 
 					/**
 						3) Send the order to the server 
 					**/
 					btn.addEventListener('click', function() {
-						socket.emit('newOrder', order);
+						socket.emit('newOrder', {
+							headers: {
+								token: token
+							},
+							metaData: {
+								customerId: customerId,
+								restaurantId: restaurantId,
+								tableNo: Math.floor(Math.random() * 50) + 1 ,
+								price: 15.00,
+								time: new Date().getTime()
+							},
+							items: items
+						});
 					});
 
 					/**

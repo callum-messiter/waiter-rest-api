@@ -1,3 +1,5 @@
+// Dependencies
+const uuidv4 = require('uuid/v4');
 // Config
 const db = require('../config/database');
 
@@ -27,17 +29,26 @@ module.exports.statuses = {
 	// eaten: 500 // May be set once the user has sent feedback
 }
 
-// Add method for creating the unique orderId
-
 // Add method for creating the room name (WebSockets) using the userId and restaurantId
 
-/**
-	Once an order has been received by the server, call this method to add it to the database
-**/
-module.exports.storeOrder = function(order, callback) {
-	// Remove the items (later we will add the items to the orderItems table in this very query)
-	const query = 'INSERT INTO orders SET ?';
-	db.query(query, order, callback);
+module.exports.createNewOrder = function(order, items, callback) {
+	// Create the array of orderitems, formatted correctly
+	orderItems = [];
+	for(var i = 0; i < items.length; i++) {
+		// Each order item should have an orderId and itemId (the row ID is auto-incremented)
+		orderItems[i] = [items[i].itemId, order.orderId]
+	}
+	// Queries
+	const insertOrder = 'INSERT INTO orders SET ?';
+	const insertOrderItems = 'INSERT INTO orderitems (itemId, orderId) VALUES ?';
+	
+	db.query(insertOrder, order, (err, result) => {
+		if(!err) {
+			db.query(insertOrderItems, [orderItems], callback);
+		} else {
+			callback;
+		}
+	});
 }
 
 /**
@@ -64,7 +75,7 @@ module.exports.wasOrderUpdated = function(result) {
 		if(!msg.includes(orderUpdated)) {
 			console.log('Order found but not updated, because it already has this status.');
 		} else {
-			console.log('Order status updated!');
+			console.log('[' + new Date().getTime() + '] Confirmtion: Order status updated!');
 		}
 	}
 }

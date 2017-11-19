@@ -56,25 +56,23 @@
 						}
 					];
 
-					const order = {
-						headers: {
-							token: token
-						},
-						metaData: {
-							customerId: customerId,
-							restaurantId: restaurantId,
-							tableNo: Math.floor(Math.random() * (40 - 1 + 1)) + 1, // random number just for simulation purposes
-							price: 15.00, // The price woul be calculated by the client app (by iterating over the array perhaps)
-						},
-						items: items
-					}
-
 					/**
 						3) Send the order to the server 
 					**/
 					btn.addEventListener('click', function() {
-						order.metaData.time = new Date().getTime();
-						socket.emit('newOrder', order);
+						socket.emit('newOrder', {
+							headers: {
+								token: token
+							},
+							metaData: {
+								customerId: customerId,
+								restaurantId: restaurantId,
+								tableNo: Math.floor(Math.random() * 50) + 1 ,
+								price: 15.00,
+								time: new Date().getTime()
+							},
+							items: items
+						});
 					});
 
 					/**

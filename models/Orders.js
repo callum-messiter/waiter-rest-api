@@ -75,7 +75,7 @@ module.exports.wasOrderUpdated = function(result) {
 		if(!msg.includes(orderUpdated)) {
 			console.log('Order found but not updated, because it already has this status.');
 		} else {
-			console.log('-- Confirmtion: Order status updated!');
+			console.log('[' + new Date().getTime() + '] Confirmtion: Order status updated!');
 		}
 	}
 }

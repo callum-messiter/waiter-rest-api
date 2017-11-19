@@ -69,73 +69,42 @@ const Orders = require('./models/Orders');
 const Auth = require('./models/Auth');
 
 io.on('connection', (socket) => {
-	// Note when a new client connects
 	console.log('Client "' + socket.id + '" connected.');
 	
-	// Listen for new orders placed by the diner
 	socket.on('newOrder', (order) => {
+		// Immediately set the unique orderId, and convert the UNIX timestamp to a DATETIME for the DB
 		order.metaData.orderId = uuidv4();
 		order.metaData.time = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
-		/**
-			0) Verify order.headers.token
-		**/
-		const token = order.headers.token;
-		Auth.verifyToken(token, (err, decodedpayload) => {
+		
+		// Verify the auth token
+		Auth.verifyToken(order.headers.token, (err, decodedpayload) => {
 			if(err) {
-				// Log the error, and disconnect the client
-				console.log('TOKEN IS DODGY');
+				console.log(err);
 				socket.disconnect();
 			} else {
-				console.log('[1]: Server received an order from ' + order.metaData.customerId + '. \r\n' + JSON.stringify(order.metaData));
-				/** 
-					1) The customer (iOS client) has sent a new order to the server: now get the details
-				**/
+				// Create the restaurant-specific event name, such that only the recipient restaurant will listen for it
+				const eventName = 'order_'+order.metaData.restaurantId; 
 
-				// Verify the price of the items by retrieving them from the database (user each itemId)
-
-				// The customerId and restaurantId are needed to create the exlusive customer-restaurant WebSockets channel (room)
-				const customerId = order.metaData.customerId;
-				const restaurantId = order.metaData.restaurantId;
-				// The recipient restaurant will be listening for events following this naming convention
-				const orderName = 'order_' + restaurantId; // Use the restaurantId so that restaurants only listen for their own orders
-				/** 
-					2) Add the order to the database	
-				**/
-				// Default status in db table is 100 - receivedByServer (set by mysql)
+				// Store the order, and the order items
 				Orders.createNewOrder(order.metaData, order.items, (err, result) => {
 					if(err) {
 						console.log(err);
 					} else {
-						order.metaData.status = Orders.statuses.sentToKitchen;
-						/**
-							3) Create and join a room that is created exclusively for this customer and the recipient restaurant 
-							(the restaurant will join the room later)
-						**/
-						const roomName = 'transaction-'+customerId+'-'+restaurantId;
+						// Create a room exclusively for the specific customer and the specific restaurant
+						const roomName = 'transaction-'+order.metaData.customerId+'-'+order.metaData.restaurantId;
 						socket.join(roomName);
-						/** 
-							4) Emit the order to all other connected sockets. The web app will listen to events 
-							whose name == said restaurant's ID. This way restaurants will only receive orders intended
-							for them
-						**/
-						orderForRestaurant = order.metaData;
+
+						// Unify the order metaData and order items as a single object, and emit the order to the restaurant
+						const orderForRestaurant = order.metaData;
 						orderForRestaurant.items = order.items;
-						socket.broadcast.emit(orderName, orderForRestaurant); // pass in the original order.metaData object which contains the items
-						console.log('[2]: New room created: "' +roomName+ '".');
-						console.log(io.sockets.adapter.rooms); // Room { sockets: { 'dDv-s07qFkbz3aEXAAAA': true }, length: 1 }
-						/**
-							5) Once the order is sent to the kitchen, update the order status in the db
-								a) We generate a random orerId before inserting it into the db
-								b) then once the order is sent to the kitchen, we can use this unique id to query the db and update the order's status to "sent"
-						**/
-						const orderId = order.metaData.orderId;
-						const newStatus = Orders.statuses.sentToKitchen;
-						console.log("[3]: STATUS-UPDATE, NEW STATUS: " + newStatus);
-						Orders.updateOrderStatus(orderId, newStatus, (err, result) => {
+						order.metaData.status = Orders.statuses.sentToKitchen; // Set the status of the order object to 'sentToKitchen'
+						socket.broadcast.emit(eventName, orderForRestaurant);
+
+						// Once the event has been emitted, update the status of the order to 'sentToKitchen'
+						Orders.updateOrderStatus(order.metaData.orderId, Orders.statuses.sentToKitchen, (err, result) => {
 							if(err) {
 								console.log(err);
 							} else {
-								// Check that at least one row was changed
 								Orders.wasOrderUpdated(result);
 							}
 						});

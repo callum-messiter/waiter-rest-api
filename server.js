@@ -116,55 +116,35 @@ io.on('connection', (socket) => {
 
 	// Listen to order-status updates made by the restauraut
 	socket.on('orderStatusUpdate', (order) => {
-		/** 
-			4) Look for the restaurant-customer specific room that was created when the server received
-			the customer's order. Now add the restaurant (which has sent the order update) to this room, so
-			that the customer and restaurant can communicate in a private channel of their own
-		**/ 
 		const roomName = 'transaction-'+order.customerId+'-'+order.restaurantId;
 
-		/**
-			5) First check if this socket is already a part of the room
-		**/
-		if(io.sockets.adapter.rooms[roomName] != undefined) {
-			console.log('[4]: ' + [roomName] + ' exists');
+	 	// First check if this socket is already a part of the room
+		if(io.sockets.adapter.rooms[roomName] == undefined) {
+			console.log('ERROR: ' + [roomName] + ' does not exist.');
 		} else {
-			console.log('[4]: ' + [roomName] + ' does not exist');
-		}
-		socket.join(roomName);
-		console.log('[5] ROOMS: ' + io.sockets.adapter.rooms);
+			// If the room exists, add the restaurant to it (the customer should already be in it)
+			socket.join(roomName);
 
-		/**
-			6) The web-app client (restaurant) will use the order.statuses object, and send the status code. We will update the order's
-			status in the database.
+			Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
+				if(err) {
+					console.log(err);
+				} else {
+					// Check that at least one row was changed
+					Orders.wasOrderUpdated(result);
+					
+					// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
+					socket.emit('orderStatusUpdated', {
+						orderId: order.orderId, 
+						status: order.status
+					});
 
-			Then, we first want to inform the restaurant (the sender socket) that the status update they sent has been received by the server,
-			and the status of the order has been updated in the database accordingly. Then the client-side state will be updated.
-
-			Then, Emit the new order status to the rest of the room [e.g the single customer (iOS client)]
-			Upon receiving the new status, The iOS client should push a notification to the customer.
-		**/
-		console.log("[6]: STATUS-UPDATE, NEW STATUS: " + order.status);
-		Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
-			if(err) {
-				console.log(err);
-			} else {
-				// Check that at least one row was changed
-				Orders.wasOrderUpdated(result);
-				// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
-				socket.emit('orderStatusUpdated', {
-					orderId: order.orderId, 
-					status: order.status
-				});
-				if(io.sockets.adapter.rooms[roomName].length > 1) {
-					// Then broadcast the status update to the room, to inform the customer (iOS client)
+					// Check that the restaurant is in the room, and is not alone (in other words, the customer is also in the room)
+					if(io.sockets.adapter.rooms[roomName].length > 1) {
+						// Then broadcast the status update to the room, to inform the customer (iOS client)
+					}
 				}
-			}
-		});
-
-		/**
-			7) Process the transaction
-		**/
+			});
+		}
 	});
 
 	// Note when a client disconnects

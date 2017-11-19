@@ -116,6 +116,9 @@ io.on('connection', (socket) => {
 
 	// Listen to order-status updates made by the restauraut
 	socket.on('orderStatusUpdate', (order) => {
+		/** TODO: Verify user (restaurant) **/
+
+		// Build the room name that we are looking for (created in the newOrder logic above)
 		const roomName = 'transaction-'+order.customerId+'-'+order.restaurantId;
 
 	 	// First check if this socket is already a part of the room
@@ -140,7 +143,7 @@ io.on('connection', (socket) => {
 
 					// Check that the restaurant is in the room, and is not alone (in other words, the customer is also in the room)
 					if(io.sockets.adapter.rooms[roomName].length > 1) {
-						// Then broadcast the status update to the room, to inform the customer (iOS client)
+						/** TODO: Then broadcast the status update to the room, to inform the customer (iOS client) **/
 					}
 				}
 			});

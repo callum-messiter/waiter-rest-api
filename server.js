@@ -154,8 +154,6 @@ io.on('connection', (socket) => {
 				// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
 				socket.emit('orderStatusUpdated', {
 					orderId: order.orderId, 
-					customerId: order.customerId,
-					restaurantId: order.restaurantId, 
 					status: order.status
 				});
 				if(io.sockets.adapter.rooms[roomName].length > 1) {

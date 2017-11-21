@@ -95,9 +95,9 @@ io.on('connection', (socket) => {
 						socket.join(roomName);
 
 						// Unify the order metaData and order items as a single object, and emit the order to the restaurant
+						order.metaData.status = Orders.statuses.sentToKitchen; // Set the status of the order object to 'sentToKitchen'
 						const orderForRestaurant = order.metaData;
 						orderForRestaurant.items = order.items;
-						order.metaData.status = Orders.statuses.sentToKitchen; // Set the status of the order object to 'sentToKitchen'
 						socket.broadcast.emit(eventName, orderForRestaurant);
 
 						// Once the event has been emitted, update the status of the order to 'sentToKitchen'
@@ -116,38 +116,45 @@ io.on('connection', (socket) => {
 
 	// Listen to order-status updates made by the restauraut
 	socket.on('orderStatusUpdate', (order) => {
-		/** TODO: Verify user (restaurant) **/
+		// Verify the auth token
+		Auth.verifyToken(order.headers.token, (err, decodedpayload) => {
+			if(err) {
+				console.log(err);
+				socket.disconnect();
+			} else {
+				order = order.metaData;
+				// Build the room name that we are looking for (created in the newOrder logic above)
+				const roomName = 'transaction-'+order.customerId+'-'+order.restaurantId;
 
-		// Build the room name that we are looking for (created in the newOrder logic above)
-		const roomName = 'transaction-'+order.customerId+'-'+order.restaurantId;
-
-	 	// First check if this socket is already a part of the room
-		if(io.sockets.adapter.rooms[roomName] == undefined) {
-			console.log('ERROR: ' + [roomName] + ' does not exist.');
-		} else {
-			// If the room exists, add the restaurant to it (the customer should already be in it)
-			socket.join(roomName);
-
-			Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
-				if(err) {
-					console.log(err);
+			 	// First check if this socket is already a part of the room
+				if(io.sockets.adapter.rooms[roomName] == undefined) {
+					console.log('ERROR: ' + [roomName] + ' does not exist.');
 				} else {
-					// Check that at least one row was changed
-					Orders.wasOrderUpdated(result);
-					
-					// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
-					socket.emit('orderStatusUpdated', {
-						orderId: order.orderId, 
-						status: order.status
-					});
+					// If the room exists, add the restaurant to it (the customer should already be in it)
+					socket.join(roomName);
 
-					// Check that the restaurant is in the room, and is not alone (in other words, the customer is also in the room)
-					if(io.sockets.adapter.rooms[roomName].length > 1) {
-						/** TODO: Then broadcast the status update to the room, to inform the customer (iOS client) **/
-					}
+					Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
+						if(err) {
+							console.log(err);
+						} else {
+							// Check that at least one row was changed
+							Orders.wasOrderUpdated(result);
+							
+							// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
+							socket.emit('orderStatusUpdated', {
+								orderId: order.orderId, 
+								status: order.status
+							});
+
+							// Check that the restaurant is in the room, and is not alone (in other words, the customer is also in the room)
+							if(io.sockets.adapter.rooms[roomName].length > 1) {
+								/** TODO: Then broadcast the status update to the room, to inform the customer (iOS client) **/
+							}
+						}
+					});
 				}
-			});
-		}
+			}
+		});
 	});
 
 	// Note when a client disconnects

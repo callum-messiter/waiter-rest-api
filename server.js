@@ -126,7 +126,7 @@ io.on('connection', (socket) => {
 				// Build the room name that we are looking for (created in the newOrder logic above)
 				const roomName = 'transaction-'+order.customerId+'-'+order.restaurantId;
 
-			 	// First check if this socket is already a part of the room
+			 	// First check that the room exists
 				if(io.sockets.adapter.rooms[roomName] == undefined) {
 					console.log('ERROR: ' + [roomName] + ' does not exist.');
 				} else {
@@ -145,12 +145,6 @@ io.on('connection', (socket) => {
 							} else {
 								// Check that at least one row was changed
 								Orders.wasOrderUpdated(result);
-								
-								// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
-								socket.emit('orderStatusUpdated', {
-									orderId: order.orderId, 
-									status: order.status
-								});
 
 								// Check that the restaurant is still in the room, and is not alone (in other words, the customer is also in the room)
 								if(io.sockets.adapter.rooms[roomName].sockets[socket.id] != true || 
@@ -158,8 +152,8 @@ io.on('connection', (socket) => {
 								{
 									console.log('ERROR sending status update to customer: ' + {roomName});
 								} else {
-									// Send the status update to the customer
-									socket.broadcast.to(roomName).emit('orderStatusUpdated', {
+									// Broadcast the update confirmation; send to restaurant and customer
+									io.sockets.in(roomName).emit('orderStatusUpdated', {
 										orderId: order.orderId, 
 										status: order.status,
 										userMsg: Orders.setStatusUpdateMsg(order.status)

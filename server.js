@@ -162,7 +162,7 @@ io.on('connection', (socket) => {
 									socket.broadcast.to(roomName).emit('orderStatusUpdated', {
 										orderId: order.orderId, 
 										status: order.status,
-										userMsg: 'Order status updated: '+order.status // switch statement, msg dependent on new status
+										userMsg: setUserMsg(order.status) // switch statement, msg dependent on new status
 									});
 								}
 							}
@@ -178,6 +178,31 @@ io.on('connection', (socket) => {
 		console.log('Client "' + socket.id + '" disconnected.');	
 	});
 });
+
+/**
+	LiveKitchen functions
+**/
+function setUserMsg(status) {
+	var userMsg;
+	switch(status) {
+		case 300:
+			userMsg = 'Your order has been received by the kitchen!';
+			break;
+		case 400:
+			userMsg = 'Your order has been accepted!';
+			break;
+		case 999:
+			userMsg = 'Your order has been rejected. A member of staff will see you shortly.';
+			break;
+		case 1000:
+		 	userMsg = 'Your order is on its way!';
+		 	break;
+		default:
+			userMsg = 'An error occured with your order. A member of staff will see you shortly.';
+			break;
+	}
+	return userMsg;
+}
 
 // The following routes are used to demo and test the liveKitchen system
 app.get('/mcdonalds', (req, res, next) => {

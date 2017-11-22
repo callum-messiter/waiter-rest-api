@@ -133,25 +133,32 @@ io.on('connection', (socket) => {
 					// If the room exists, add the restaurant to it (the customer should already be in it)
 					socket.join(roomName);
 
-					Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
-						if(err) {
-							console.log(err);
-						} else {
-							// Check that at least one row was changed
-							Orders.wasOrderUpdated(result);
-							
-							// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
-							socket.emit('orderStatusUpdated', {
-								orderId: order.orderId, 
-								status: order.status
-							});
+					// Check if the customer or restaurant is missing from the room
+					if(io.sockets.adapter.rooms[roomName].length < 2) {
+						console.log('ERROR: ' + {roomName} + ' is empty - the customer is missing.');
+					} else if(io.sockets.adapter.rooms[roomName].length > 2) {
+						console.log('ERROR: ' + {roomName} + ' somehow the room contains more than 2 sockets!');
+					} else {
+						Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
+							if(err) {
+								console.log(err);
+							} else {
+								// Check that at least one row was changed
+								Orders.wasOrderUpdated(result);
+								
+								// Send confirmation to the kitchen of the order-status update (so it can update the client-side state)
+								socket.emit('orderStatusUpdated', {
+									orderId: order.orderId, 
+									status: order.status
+								});
 
-							// Check that the restaurant is in the room, and is not alone (in other words, the customer is also in the room)
-							if(io.sockets.adapter.rooms[roomName].length > 1) {
-								/** TODO: Then broadcast the status update to the room, to inform the customer (iOS client) **/
+								// Check that the restaurant is in the room, and is not alone (in other words, the customer is also in the room)
+								if(io.sockets.adapter.rooms[roomName].length > 1) {
+									/** TODO: Then broadcast the status update to the room, to inform the customer (iOS client) **/
+								}
 							}
-						}
-					});
+						});
+					}
 				}
 			}
 		});

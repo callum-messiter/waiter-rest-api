@@ -80,8 +80,8 @@
 
 						The restaurant will be added to the customer's socket.io "room" when the server receives from the restaurant the first status update of the customer's order. Then the server will broadcast the status update to everyone in that room, except for the sender (the restaurant)
 					**/
-					socket.on('newStatus', function(orderStatus) {
-						output.innerHTML = '<p>Your order has been '+orderStatus+'</p>'; // e.g. "accepted"
+					socket.on('orderStatusUpdated', function(orderStatus) {
+						output.innerHTML = orderStatus.userMsg; // e.g. "accepted"
 					});
 
 					/**

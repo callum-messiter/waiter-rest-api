@@ -125,3 +125,25 @@ module.exports.getItemsFromLiveOrders = function(restaurantId, callback) {
 				  'OR orders.status = ' + this.statuses.acceptedByKitchen;
 	db.query(query, restaurantId, callback);
 }
+
+module.exports.setStatusUpdateMsg = function(status) {
+	var userMsg;
+	switch(status) {
+		case 300:
+			userMsg = 'Your order has been received by the kitchen!';
+			break;
+		case 400:
+			userMsg = 'Your order has been accepted!';
+			break;
+		case 999:
+			userMsg = 'Your order has been rejected. A member of staff will see you shortly.';
+			break;
+		case 1000:
+		 	userMsg = 'Your order is on its way!';
+		 	break;
+		default:
+			userMsg = 'An error occured with your order. A member of staff will see you shortly.';
+			break;
+	}
+	return userMsg;
+}

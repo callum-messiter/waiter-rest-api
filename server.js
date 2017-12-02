@@ -68,9 +68,13 @@ const moment = require('moment');
 const Orders = require('./models/Orders');
 const Auth = require('./models/Auth');
 
+
 io.on('connection', (socket) => {
 	console.log('Client "' + socket.id + '" connected.');
-	
+	console.log(socket.handshake);
+
+
+	/**
 	socket.on('newOrder', (order) => {
 		// Immediately set the unique orderId, and convert the UNIX timestamp to a DATETIME for the DB
 		order.metaData.orderId = uuidv4();
@@ -85,11 +89,11 @@ io.on('connection', (socket) => {
 				// Create the restaurant-specific event name, such that only the recipient restaurant will listen for it
 				const eventName = 'order_'+order.metaData.restaurantId; 
 
-				// Store the order, and the order items
-				Orders.createNewOrder(order.metaData, order.items, (err, result) => {
-					if(err) {
-						console.log(err);
-					} else {
+					// Store the order, and the order items
+					Orders.createNewOrder(order.metaData, order.items, (err, result) => {
+						if(err) {
+							console.log(err);
+						} else {
 						// Create a room exclusively for the specific customer and the specific restaurant
 						const roomName = 'transaction-'+order.metaData.customerId+'-'+order.metaData.restaurantId;
 						socket.join(roomName);
@@ -166,6 +170,7 @@ io.on('connection', (socket) => {
 			}
 		});
 	});
+	**/
 
 	// Note when a client disconnects
 	socket.on('disconnect', function () {

@@ -71,7 +71,6 @@ router.get('/:menuId', (req, res, next) => {
 											}
 											// Get all menu items
 											Menus.getMenuItems(menuId, (err, result) => {
-												console.log(result);
 												if(err) {
 													ResponseHelper.sql(res, 'getMenuItems', err);
 												} else if(result.length < 1) {
@@ -85,13 +84,12 @@ router.get('/:menuId', (req, res, next) => {
 															// If the item from the query has the same categoryId as the category...
 															if(category.categoryId == categoryId) {
 																// ...add the item to this category
-																const newItem = {
+																category.items.push({
 																	itemId: item.itemId,
 																	name: item.name,
 																	price: item.price,
 																	description: item.description
-																};
-																category.items.push(newItem);
+																});
 															}
 														});
 													});

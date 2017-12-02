@@ -45,14 +45,13 @@ router.get('/:restaurantId', (req, res, next) => {
 									ResponseHelper.resourceNotFound(res, 'restaurant');
 								} else {
 									// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
-									const restaurant = {
+									ResponseHelper.customSuccess(res, 200, {
 										name: result[0].name,
 										description: result[0].description,
 										location: result[0].location,
 										phoneNumber: result[0].phoneNumber,
 										emailAddress: result[0].emailAddress
-									}
-									ResponseHelper.customSuccess(res, 200, restaurant);
+									});
 								}
 							});
 						}

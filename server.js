@@ -67,12 +67,31 @@ const moment = require('moment');
 // Models
 const Orders = require('./models/Orders');
 const Auth = require('./models/Auth');
-
+const Sockets = require('./models/Sockets');
 
 io.on('connection', (socket) => {
 	console.log('Client "' + socket.id + '" connected.');
-	console.log(socket.handshake);
+	const query = socket.handshake.query;
+	const data = {socketId: socket.id}
 
+	if(query.hasOwnProperty('restaurantId')) {
+		data.restaurantId = query.restaurantId;
+	} else if(query.hasOwnProperty('customerId')) {
+		data.customerId = query.customerId;
+	} else {
+		// ToDO: Log to server, inform client
+		console.log('customerId/restaurantId not found.');
+		socket.disconnect();
+	}
+
+	Sockets.addSocket(data, (err, result) => {
+		if(err) {
+			// ToDO: Log to server, inform client
+			console.log(err);
+		} else {
+			console.log('CONN: ' + result);
+		}
+	});
 
 	/**
 	socket.on('newOrder', (order) => {
@@ -174,7 +193,25 @@ io.on('connection', (socket) => {
 
 	// Note when a client disconnects
 	socket.on('disconnect', function () {
-		console.log('Client "' + socket.id + '" disconnected.');	
+		var type;
+		console.log('Client "' + socket.id + '" disconnected.');
+		if(query.hasOwnProperty('restaurantId')) {
+			type = 'restaurant';
+		} else if(query.hasOwnProperty('customerId')) {
+			type = 'customer';
+		} else {
+			// ToDO: log to server
+			console.log('customerId/restaurantId not found.');
+			// ToDO: Inform client
+			socket.disconnect();
+		}
+
+		Sockets.removeSocket(socket.id, type, (err, result) => {
+			if(err) {
+				// ToDO: log to server, inform client
+				console.log(err);
+			}
+		});
 	});
 });
 

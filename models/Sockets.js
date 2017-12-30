@@ -32,8 +32,14 @@ module.exports.addSocketToRestaurantCustomers = function(data, callback) {
 	db.query(query, data, callback);
 }
 
-module.exports.getRecipientRestaurantSocket = function(restaurantId, callback) {
+module.exports.getRecipientRestaurantSockets = function(restaurantId, callback) {
 	const query = 'SELECT socketId FROM socketsrestaurants ' + 
 				  'WHERE restaurantId = ?';
 	db.query(query, restaurantId, callback);
+}
+
+module.exports.getRecipientCustomerSockets = function(customerId, callback) {
+	const query = 'SELECT socketId FROM socketscustomers ' + 
+				  'WHERE customerId = ?';
+	db.query(query, customerId, callback);
 }

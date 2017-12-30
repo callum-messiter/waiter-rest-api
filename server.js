@@ -207,19 +207,40 @@ io.on('connection', (socket) => {
 							status: order.status,
 							userMsg: Orders.setStatusUpdateMsg(order.status)
 						});
+						
 
-						// Retrieve all connected sockets associated with the recipient customer (who placed the order)
-						Sockets.getRecipientCustomerSockets(order.customerId, (err, result) => {
+						// Retrieve all connected sockets associated with the recipient restaurant (who updated the order's status)
+						Sockets.getRecipientRestaurantSockets(order.restaurantId, (err, result) => {
 							if(err) {
-								// ToDO: log to server, inform client
 								console.log(err);
 							} else {
-								// Emit the order-status update to all connected sockets representing the recipient customer
-								for(i = 0; i < result.length; i++) {
-									socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
-										orderId: order.orderId, 
-										status: order.status,
-										userMsg: Orders.setStatusUpdateMsg(order.status)
+								if(result.length < 1) {
+									console.log('restaurant not found');
+								} else {
+									// Emit order-status=update confirmation to all connected sockets representing the recipient restaurant
+									for(i = 0; i < result.length; i++) {
+										socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
+											orderId: order.orderId, 
+											status: order.status,
+											userMsg: Orders.setStatusUpdateMsg(order.status)
+										});
+									}
+
+									// Retrieve all connected sockets associated with the recipient customer (who placed the order)
+									Sockets.getRecipientCustomerSockets(order.customerId, (err, result) => {
+										if(err) {
+											// ToDO: log to server, inform client
+											console.log(err);
+										} else {
+											// Emit the order-status update to all connected sockets representing the recipient customer
+											for(i = 0; i < result.length; i++) {
+												socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
+													orderId: order.orderId, 
+													status: order.status,
+													userMsg: Orders.setStatusUpdateMsg(order.status)
+												});
+											}
+										}
 									});
 								}
 							}

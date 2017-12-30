@@ -118,6 +118,9 @@ io.on('connection', (socket) => {
 		});
 	});
 
+	/**
+		Listen to new orders sent by a customer
+	**/
 	socket.on('newOrder', (order) => {
 		// Immediately set the unique orderId, and convert the UNIX timestamp to a DATETIME for the DB
 		order.metaData.orderId = uuidv4();
@@ -179,6 +182,9 @@ io.on('connection', (socket) => {
 		});
 	});
 
+	/**
+		Listen to order-status updates made by the restauraut, e.g. "accepted", "rejected", and "enroute"
+	**/
 	socket.on('orderStatusUpdate', (order) => {
 		// Verify the auth token
 		Auth.verifyToken(order.headers.token, (err, decodedpayload) => {
@@ -187,59 +193,30 @@ io.on('connection', (socket) => {
 				socket.disconnect();
 			} else {
 				order = order.metaData;
-				Sockets.getRecipientCustomerSockets(order.customerId, (err, result) => {
+				Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
 					if(err) {
-						// ToDO: log to server, inform client
 						console.log(err);
 					} else {
-						console.log(result);
-					}
-				});
-			}
-		});
-	});
+						// Check that at least one row was changed
+						Orders.wasOrderUpdated(result);
 
-	/**
-	// Listen to order-status updates made by the restauraut
-	socket.on('orderStatusUpdate', (order) => {
-		// Verify the auth token
-		Auth.verifyToken(order.headers.token, (err, decodedpayload) => {
-			if(err) {
-				console.log(err);
-				socket.disconnect();
-			} else {
-				order = order.metaData;
-				// Build the room name that we are looking for (created in the newOrder logic above)
-				const roomName = 'transaction-'+order.customerId+'-'+order.restaurantId;
+						// Emit the order-status confirmation to the sender socket (the restaurant 
+						// that sent the order-status update)
+						socket.emit('orderStatusUpdated', {
+							orderId: order.orderId, 
+							status: order.status,
+							userMsg: Orders.setStatusUpdateMsg(order.status)
+						});
 
-			 	// First check that the room exists
-				if(io.sockets.adapter.rooms[roomName] == undefined) {
-					console.log('ERROR: ' + [roomName] + ' does not exist.');
-				} else {
-					// If the room exists, add the restaurant to it (the customer should already be in it)
-					socket.join(roomName);
-
-					// Check if the customer or restaurant is missing from the room
-					if(io.sockets.adapter.rooms[roomName].length < 2) {
-						console.log('ERROR: ' + {roomName} + ' is empty - the customer is missing.');
-					} else if(io.sockets.adapter.rooms[roomName].length > 2) {
-						console.log('ERROR: ' + {roomName} + ' somehow the room contains more than 2 sockets!');
-					} else {
-						Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
+						// Retrieve all connected sockets associated with the recipient customer (who placed the order)
+						Sockets.getRecipientCustomerSockets(order.customerId, (err, result) => {
 							if(err) {
+								// ToDO: log to server, inform client
 								console.log(err);
 							} else {
-								// Check that at least one row was changed
-								Orders.wasOrderUpdated(result);
-
-								// Check that the restaurant is still in the room, and is not alone (in other words, the customer is also in the room)
-								if(io.sockets.adapter.rooms[roomName].sockets[socket.id] != true || 
-								   io.sockets.adapter.rooms[roomName].length < 2) 
-								{
-									console.log('ERROR sending status update to customer: ' + {roomName});
-								} else {
-									// Broadcast the update confirmation; send to restaurant and customer
-									io.sockets.in(roomName).emit('orderStatusUpdated', {
+								// Emit the order-status update to all connected sockets representing the recipient customer
+								for(i = 0; i < result.length; i++) {
+									socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
 										orderId: order.orderId, 
 										status: order.status,
 										userMsg: Orders.setStatusUpdateMsg(order.status)
@@ -248,54 +225,10 @@ io.on('connection', (socket) => {
 							}
 						});
 					}
-				}
-			}
-		});
-	});
-
-	socket.on('newOrder', (order) => {
-		// Immediately set the unique orderId, and convert the UNIX timestamp to a DATETIME for the DB
-		order.metaData.orderId = uuidv4();
-		order.metaData.time = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
-		
-		// Verify the auth token
-		Auth.verifyToken(order.headers.token, (err, decodedpayload) => {
-			if(err) {
-				console.log(err);
-				socket.disconnect();
-			} else {
-				// Create the restaurant-specific event name, such that only the recipient restaurant will listen for it
-				const eventName = 'order_'+order.metaData.restaurantId; 
-
-					// Store the order, and the order items
-					Orders.createNewOrder(order.metaData, order.items, (err, result) => {
-						if(err) {
-							console.log(err);
-						} else {
-						// Create a room exclusively for the specific customer and the specific restaurant
-						const roomName = 'transaction-'+order.metaData.customerId+'-'+order.metaData.restaurantId;
-						socket.join(roomName);
-
-						// Unify the order metaData and order items as a single object, and emit the order to the restaurant
-						order.metaData.status = Orders.statuses.sentToKitchen; // Set the status of the order object to 'sentToKitchen'
-						const orderForRestaurant = order.metaData;
-						orderForRestaurant.items = order.items;
-						socket.broadcast.emit(eventName, orderForRestaurant);
-
-						// Once the event has been emitted, update the status of the order to 'sentToKitchen'
-						Orders.updateOrderStatus(order.metaData.orderId, Orders.statuses.sentToKitchen, (err, result) => {
-							if(err) {
-								console.log(err);
-							} else {
-								Orders.wasOrderUpdated(result);
-							}
-						});
-					}
 				});
 			}
 		});
 	});
-	**/
 });
 
 /**

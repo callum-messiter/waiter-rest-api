@@ -154,8 +154,15 @@ io.on('connection', (socket) => {
 										if(result.length < 1) {
 											console.log('restaurant not found');
 										} else {
-											// Emit the order to the recipient restaurant
-											console.log(result);
+											// Unify the order metaData and order items as a single object
+											order.metaData.status = Orders.statuses.sentToKitchen; // Set the status of the order object to 'sentToKitchen'
+											const orderForRestaurant = order.metaData;
+											orderForRestaurant.items = order.items;
+
+											// Emit the order to all connected sockets representing the recipient retaurant
+											for(i = 0; i < result.length; i++) {
+												socket.broadcast.to(result[i].socketId).emit('newOrder', orderForRestaurant);
+											}
 										}
 									}
 								});

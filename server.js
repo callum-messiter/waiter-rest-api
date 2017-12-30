@@ -139,10 +139,16 @@ io.on('connection', (socket) => {
 					hostRestaurantId: order.metaData.restaurantId
 				}
 
+				// Associate the customer socket with the restaurantId. Later the server will query the same table for any
+				// sockets associated to the restaurant, such that we can route the order-status update (e.g. "order accepted") 
+				// to the correct customer(s)
 				Sockets.addSocketToRestaurantCustomers(socketData, (err, result) => {
 					if(err) {
 						// ToDO: log to server, inform client
-						console.log(err);
+						if(err.errno == 1062) {
+							console.log('A customer cannot make more than one order during the same session.');
+							socket.disconnect();
+						}
 					} else {
 						// Store the order
 						Orders.createNewOrder(order.metaData, order.items, (err, result) => {
@@ -207,7 +213,6 @@ io.on('connection', (socket) => {
 							status: order.status,
 							userMsg: Orders.setStatusUpdateMsg(order.status)
 						});
-						
 
 						// Retrieve all connected sockets associated with the recipient restaurant (who updated the order's status)
 						Sockets.getRecipientRestaurantSockets(order.restaurantId, (err, result) => {
@@ -226,7 +231,7 @@ io.on('connection', (socket) => {
 										});
 									}
 
-									// Retrieve all connected sockets associated with the recipient customer (who placed the order)
+									// Retrieve all connected customer sockets who have placed orders with the restaurant
 									Sockets.getRecipientCustomerSockets(order.customerId, (err, result) => {
 										if(err) {
 											// ToDO: log to server, inform client

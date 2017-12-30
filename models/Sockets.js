@@ -38,6 +38,27 @@ module.exports.getRecipientRestaurantSockets = function(restaurantId, callback) 
 	db.query(query, restaurantId, callback);
 }
 
+/**
+	TODO: Here we should be querying the socketsrestaurantcustomers table, which is a list
+	of customer sockets that are currently connected and ordering at a given restaurant.
+
+	But is this useful, vs. querying the list of *all* connected sockets using the customerId?
+
+	The lists should be equal in size.
+
+	Would it be better to abolish the socketsrestaurantcustomers table? And just have a list of
+	all connected sockets in the process of ordering? Each socket would be added to this list 
+	when an order is placed (id, socketId, customerId, recipientRestaurantId, date). 
+
+	Then we don't need to add the customer sockets to the database when they *connect* to the server.
+
+	Then this query would be better: when the restaurant updates the order status, and we need to find the customer socket
+	to send the update to, we would query this list with the restaurantId from the orderStatusUpdate payload, and grab all
+	socketIds from the rows with this restaurantId.
+
+	The restaurantId column will be indexed, making this faster.
+
+**/
 module.exports.getRecipientCustomerSockets = function(customerId, callback) {
 	const query = 'SELECT socketId FROM socketscustomers ' + 
 				  'WHERE customerId = ?';

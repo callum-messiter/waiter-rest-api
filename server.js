@@ -146,7 +146,19 @@ io.on('connection', (socket) => {
 							if(err) {
 								console.log(err);
 							} else {
-								console.log('alles gut');
+								// Find all currently connected sockets representing the recipient retaurant
+								Sockets.getRecipientRestaurantSocket(order.metaData.restaurantId, (err, result) => {
+									if(err) {
+										console.log(err);
+									} else {
+										if(result.length < 1) {
+											console.log('restaurant not found');
+										} else {
+											// Emit the order to the recipient restaurant
+											console.log(result);
+										}
+									}
+								});
 							}
 						});
 					}

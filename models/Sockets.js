@@ -31,3 +31,9 @@ module.exports.addSocketToRestaurantCustomers = function(data, callback) {
 	const query = 'INSERT INTO socketsrestaurantcustomers SET?';
 	db.query(query, data, callback);
 }
+
+module.exports.getRecipientRestaurantSocket = function(restaurantId, callback) {
+	const query = 'SELECT socketId FROM socketsrestaurants ' + 
+				  'WHERE restaurantId = ?';
+	db.query(query, restaurantId, callback);
+}

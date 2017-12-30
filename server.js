@@ -93,6 +93,68 @@ io.on('connection', (socket) => {
 		}
 	});
 
+	// Note when a client disconnects
+	socket.on('disconnect', function () {
+		var type;
+		console.log('Client "' + socket.id + '" disconnected.');
+		if(query.hasOwnProperty('restaurantId')) {
+			type = 'restaurant';
+		} else if(query.hasOwnProperty('customerId')) {
+			type = 'customer';
+		} else {
+			// ToDO: log to server
+			console.log('customerId/restaurantId not found.');
+			// ToDO: Inform client
+			socket.disconnect();
+		}
+
+		Sockets.removeSocket(socket.id, type, (err, result) => {
+			if(err) {
+				// ToDO: log to server, inform client
+				console.log(err);
+			} else {
+				console.log(result);
+			}
+		});
+	});
+
+	socket.on('newOrder', (order) => {
+		// Immediately set the unique orderId, and convert the UNIX timestamp to a DATETIME for the DB
+		order.metaData.orderId = uuidv4();
+		order.metaData.time = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
+
+		// Verify the auth token
+		Auth.verifyToken(order.headers.token, (err, decodedpayload) => {
+			if(err) {
+				console.log(err);
+				socket.disconnect(); // can we emit a message to the sender upon disconnection?
+			} else {
+				// Add the customer socket to the RestaurantCustomers table
+				// **TODO: check that the below properties are provided in the order object**
+				const socketData = {
+					customerSocketId: socket.id,
+					hostRestaurantId: order.metaData.restaurantId
+				}
+
+				Sockets.addSocketToRestaurantCustomers(socketData, (err, result) => {
+					if(err) {
+						// ToDO: log to server, inform client
+						console.log(err);
+					} else {
+						// Store the order
+						Orders.createNewOrder(order.metaData, order.items, (err, result) => {
+							if(err) {
+								console.log(err);
+							} else {
+								console.log('alles gut');
+							}
+						});
+					}
+				});
+			}
+		});
+	});
+
 	/**
 	socket.on('newOrder', (order) => {
 		// Immediately set the unique orderId, and convert the UNIX timestamp to a DATETIME for the DB
@@ -190,29 +252,6 @@ io.on('connection', (socket) => {
 		});
 	});
 	**/
-
-	// Note when a client disconnects
-	socket.on('disconnect', function () {
-		var type;
-		console.log('Client "' + socket.id + '" disconnected.');
-		if(query.hasOwnProperty('restaurantId')) {
-			type = 'restaurant';
-		} else if(query.hasOwnProperty('customerId')) {
-			type = 'customer';
-		} else {
-			// ToDO: log to server
-			console.log('customerId/restaurantId not found.');
-			// ToDO: Inform client
-			socket.disconnect();
-		}
-
-		Sockets.removeSocket(socket.id, type, (err, result) => {
-			if(err) {
-				// ToDO: log to server, inform client
-				console.log(err);
-			}
-		});
-	});
 });
 
 /**

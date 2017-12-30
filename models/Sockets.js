@@ -26,3 +26,8 @@ module.exports.removeSocket = function(socketId, type, callback) {
 				  ' WHERE socketId = ?';
 	db.query(query, socketId, callback);
 }
+
+module.exports.addSocketToRestaurantCustomers = function(data, callback) {
+	const query = 'INSERT INTO socketsrestaurantcustomers SET?';
+	db.query(query, data, callback);
+}

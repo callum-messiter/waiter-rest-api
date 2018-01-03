@@ -51,7 +51,7 @@ module.exports.createNewUser = function(user, callback) {
 	Checks if a user exists by running an email address against the db. Returns the match if found
 **/
 module.exports.doesUserExist = function(email, callback) {
-	const query = 'SELECT * FROM Users WHERE email = ?';
+	const query = 'SELECT * FROM users WHERE email = ?';
 	db.query(query, email, callback);
 }
 

@@ -141,7 +141,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 					} else if(result.length < 1) {
 						ResponseHelper.customError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
-							ResponseHelper.msg.default
+							ResponseHelper.msg.default.user
 						);
 					} else {
 						const ownerId = result[0].ownerId;

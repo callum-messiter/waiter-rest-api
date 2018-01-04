@@ -129,7 +129,7 @@ router.get('/login', (req, res, next) => {
 							if(err) {
 								ResponseHelper.customError(res, 500, 'bcrypt_error', 
 									'There was an error with the bcrypt package: ' + err,
-									ResponseHelper.msg.default);
+									ResponseHelper.msg.default.user);
 							} else if(!passwordsMatch) {
 								ResponseHelper.customError(res, 401, 'invalid_login_credentials', 
 									'The email-password combination does not exist in the database.',
@@ -147,12 +147,12 @@ router.get('/login', (req, res, next) => {
 											if(err) {
 												ResponseHelper.customError(res, 500, 'jwt_error', 
 													'There was an error with the jwt package: ' + err,
-													ResponseHelper.msg.default
+													ResponseHelper.msg.default.user
 												);
 											} else if(token == null) {
 												ResponseHelper.customError(res, 500, 'jwt_token_null', 
 													'The server could not create a unique token.',
-													ResponseHelper.msg.default
+													ResponseHelper.msg.default.user
 												);
 											} else {
 												// Decode token and get userId and exp
@@ -283,7 +283,7 @@ router.get('/logout', (req, res, next) => {
 						if(result.affectedRows < 1) {
 							ResponseHelper.customError(res, 404, 'error_deleting_token_ref', 
 								'The server executed the query successfully, but nothing was deleted. It\'s likely that userId-token combination provided does not exist in the database.',
-								ResponseHelper.msg.default
+								ResponseHelper.msg.default.user
 							);
 						} else {
 							ResponseHelper.customSuccess(res, 200);

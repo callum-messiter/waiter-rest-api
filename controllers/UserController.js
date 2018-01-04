@@ -28,7 +28,7 @@ router.get('/', (req, res, next) => {
 		if(err) {
 			ResponseHelper.customError(res, 500, 'get_all_users_query_error',
 				ResponseHelper.msg.sql+err.code,
-				ResponseHelper.msg.default
+				ResponseHelper.msg.default.user
 			);
 		} else {
 			ResponseHelper.customSuccess(res, 200, {users: users});
@@ -96,7 +96,7 @@ router.post('/create', (req, res, next) => {
 		if(!userRolesObject.hasOwnProperty(userType)) {
 			ResponseHelper.customError(res, 404, 'invalid_user_type', 
 				'" + ' + userType + '" is not a valid user type.',
-				ResponseHelper.msg.default
+				ResponseHelper.msg.default.user
 			);
 		} else {
 			userRole = userRolesObject[userType]; // e.g. roleIDs['admin'] = 900
@@ -121,7 +121,7 @@ router.post('/create', (req, res, next) => {
 								if(err) {
 									ResponseHelper.customError(res, 500, 'bcrypt_error', 
 										'There was an error with the bcrypt package: ' + err,
-										ResponseHelper.msg.default
+										ResponseHelper.msg.default.user
 									);
 								} else {
 									// Create user object with hashed password
@@ -285,7 +285,7 @@ router.put('/deactivate/:userId', (req, res, next) => {
 									} else if(result.affectedRows < 1) {
 										ResponseHelper.customError(res, 404, 'user_not_deactivated', 
 											'The query was executed successfully but the user account was not deactivated.',
-											ResponseHelper.msg.default
+											ResponseHelper.msg.default.user
 										);
 									} else {
 										ResponseHelper.customSuccess(res, 200);
@@ -318,7 +318,7 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 			if(requestDataIsValid !== true) {
 				ResponseHelper.customError(res, 422, 'invalid_data_params', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
-					ResponseHelper.msg.default
+					ResponseHelper.msg.default.user
 				);
 			} else {
 				Auth.verifyToken(token, (err, decodedpayload) => {
@@ -405,7 +405,7 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 											if(err) {
 												ResponseHelper.customError(res, 500, 'bcrypt_error',
 													'There was an error with the bcrypt package: ' + err,
-													ResponseHelper.msg.default
+													ResponseHelper.msg.default.user
 												);
 											} else {
 												// Update user details

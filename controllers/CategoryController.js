@@ -95,7 +95,7 @@ router.post('/create', (req, res, next) => {
 			if(requestDataIsValid !== true) {
 				ResponseHelper.customError(res, 422, 'invalid_data_param', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
-					ResponseHelper.msg.default
+					ResponseHelper.msg.default.user
 				);
 			} else {
 				category.categoryId = shortId.generate();
@@ -206,7 +206,7 @@ router.put('/update/:categoryId', (req, res, next) => {
 		if(requestDataIsValid !== true) {
 			ResponseHelper.customError(res, 422, 'invalid_data_params', 
 				"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
-				REsponseHelper.msg.default
+				REsponseHelper.msg.default.user
 			);
 		} else {
 			// Check that the token is valid
@@ -321,7 +321,7 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 					} else if(result.length < 1) {
 						ResponseHelper.customError(res, 404, 'ownerId_not_found', 
 							'The query returned zero results. It is likely that a category with the specified ID does not exist.',
-							ResponseHelper.msg.default
+							ResponseHelper.msg.default.user
 						);
 					} else {
 						const ownerId = result[0].ownerId;

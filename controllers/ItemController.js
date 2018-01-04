@@ -34,7 +34,7 @@ router.post('/create', (req, res, next) => {
 			if(requestDataIsValid !== true) {
 				ResponseHelper.customError(res, 422, 'invalid_data_params', 
 					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
-					ResponseHelper.msg.default
+					ResponseHelper.msg.default.user
 				);
 			} else {
 				item.itemId = shortId.generate();
@@ -92,7 +92,7 @@ router.put('/update/:itemId', (req, res, next) => {
 		if(requestDataIsValid !== true) {
 			ResponseHelper.customError(res, 422, 'invalid_data_params', 
 				"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
-				ResponseHelper.msg.default
+				ResponseHelper.msg.default.user
 			);
 		} else {
 			// Check that the token is valid

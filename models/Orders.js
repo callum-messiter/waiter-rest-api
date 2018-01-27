@@ -107,10 +107,10 @@ module.exports.getAllLiveOrdersForRestaurant = function(restaurantId, callback) 
 	// Orders with the below statuses are those that are visible to the restaurant kitchen
 	const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
 				  'FROM orders ' +
-				  'WHERE orders.restaurantId = ? ' +
-				  'AND status = ' + this.statuses.sentToKitchen + ' ' +
+				  'WHERE restaurantId = ? ' +
+				  'AND (status = ' + this.statuses.sentToKitchen + ' ' +
 				  'OR status = ' + this.statuses.receivedByKitchen + ' ' +
-				  'OR status = ' + this.statuses.acceptedByKitchen;
+				  'OR status = ' + this.statuses.acceptedByKitchen + ')';
 	db.query(query, restaurantId, callback);
 }
 
@@ -120,9 +120,9 @@ module.exports.getItemsFromLiveOrders = function(restaurantId, callback) {
 				  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
 				  'JOIN orders ON orders.orderId = orderitems.orderId ' +
 				  'WHERE orders.restaurantId = ? ' +
-				  'AND orders.status = ' + this.statuses.sentToKitchen + ' ' +
+				  'AND (orders.status = ' + this.statuses.sentToKitchen + ' ' +
 				  'OR orders.status = ' + this.statuses.receivedByKitchen + ' ' +
-				  'OR orders.status = ' + this.statuses.acceptedByKitchen;
+				  'OR orders.status = ' + this.statuses.acceptedByKitchen + ')';
 	db.query(query, restaurantId, callback);
 }
 

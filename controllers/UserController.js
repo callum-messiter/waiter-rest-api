@@ -114,7 +114,9 @@ router.post('/create', (req, res, next) => {
 					} else {
 						if(result[0].matches > 0) {
 							ResponseHelper.customError(res, 409, 
-								'email_already_registered', 'The email address ' + req.body.email + ' is already registered.');
+								'email_already_registered', 'The email address ' + req.body.email + ' is already registered.',
+								'It looks like ' + req.body.email + 'is already registered to an account! If you\'ve forgotten your password, contact support.'
+							);
 						} else {
 							// Hash the password
 							Users.hashPassword(req.body.password, (err, hashedPassword) => {

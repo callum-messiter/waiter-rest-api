@@ -14,6 +14,16 @@ module.exports.customSuccess = function(res, statusCode, data={}, success=true) 
 	Predfined errors, which are sent multiple times througout the API
 **/
 
+// When the request is missing a required header
+module.exports.missingHeaders = function(res, headerType) {
+	res.status(401).json({
+		success: false, 
+		errorKey: 'missing_headers', 
+		devMsg: 'The following header was missing from the request: ' + headerType + '. Please update the client-side codebase to include this header in the request.', 
+		userMsg: this.msg.default.user
+	});
+}
+
 // When the user's auth token is found to be invalid
 module.exports.invalidToken = function(res) {
 	res.status(401).json({

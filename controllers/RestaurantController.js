@@ -11,6 +11,29 @@ const Users = require('../models/Users');
 const ResponseHelper = require('../helpers/ResponseHelper');
 
 /**
+	Get all active restaurants
+**/
+router.get('/', (req, res, next) => {
+	if(!req.headers.authorization) {
+		ResponseHelper.missingHeaders(res, 'authorization');
+	}
+
+	const token = req.headers.authorization;
+	Auth.verifyToken(token, (err, decodedpayload) => {
+		if(err) ResponseHelper.invalidToken(res);
+		Restaurants.getAllRestaurants((err, restaurants) => {
+			if(err) {
+				ResponseHelper.sql(res, 'getAllRestaurants', err); 
+			} else if(restaurants.length < 1) {
+				ResponseHelper.resourceNotFound(res, 'restaurants');
+			} else {
+				ResponseHelper.customSuccess(res, 200, restaurants);
+			}
+		});
+	});
+});
+
+/**
 	Get a restaurant and its details
 **/
 router.get('/:restaurantId', (req, res, next) => {

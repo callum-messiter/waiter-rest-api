@@ -78,7 +78,8 @@ module.exports.createRestaurantWithDefaultMenu = function(restaurant, menu, call
 /**
 	Get all restaurants, and later we will filter this result by location (vicitiny to user's location)
 **/
-module.exports.getNearbyRestaurants = function(callback) {
-	const query = 'SELECT * FROM restaurants';
+module.exports.getAllRestaurants = function(callback) {
+	const query = 'SELECT * FROM restaurants ' + 
+				  'WHERE active = 1';
 	db.query(query, callback);
 }

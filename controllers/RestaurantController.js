@@ -4,6 +4,7 @@ const router = express.Router();
 const shortId = require('shortid');
 // Models
 const Restaurants = require('../models/Restaurants');
+const Menus = require('../models/Menus');
 const Auth = require('../models/Auth');
 const Users = require('../models/Users');
 
@@ -27,7 +28,36 @@ router.get('/', (req, res, next) => {
 			} else if(restaurants.length < 1) {
 				ResponseHelper.resourceNotFound(res, 'restaurants');
 			} else {
-				ResponseHelper.customSuccess(res, 200, restaurants);
+				/**
+					HORRIBLE HACK:
+
+					I need each object in the restaurants array to contain
+					an array of the restaurant's menu.
+
+					This surely can be done using one SQL query, but I don't know how.
+				**/
+
+				for(var i = 0; i < restaurants.length; i++) {
+					restaurants[i].menus = [];
+				}
+
+				Menus.getAllMenus((err, menus) => {
+					if(err) {
+						ResponseHelper.sql(res, 'getAllMenus', err); 
+					} else {
+						restaurants.forEach((r) => {
+							menus.forEach((m) => {
+								if(r.restaurantId == m.restaurantId) {
+									r.menus.push({
+										menuId: m.menuId,
+										name: m.name
+									});
+								}
+							});
+						});
+						ResponseHelper.customSuccess(res, 200, restaurants);
+					}
+				});
 			}
 		});
 	});

@@ -79,7 +79,17 @@ module.exports.createRestaurantWithDefaultMenu = function(restaurant, menu, call
 	Get all restaurants, and later we will filter this result by location (vicitiny to user's location)
 **/
 module.exports.getAllRestaurants = function(callback) {
-	const query = 'SELECT * FROM restaurants ' + 
+	const query = 'SELECT restaurantId, name FROM restaurants ' + 
 				  'WHERE active = 1';
 	db.query(query, callback);
+}
+
+/**
+	Get all the menus of a specific restaurant
+**/
+module.exports.getMenusForRestaurant = function(restaurantId, callback) {
+	const query = 'SELECT menuId, name, restaurantId FROM menus ' + 
+				  'WHERE restaurantId = ? ' +
+				  'AND active = 1';
+	db.query(query, restaurantId, callback);
 }

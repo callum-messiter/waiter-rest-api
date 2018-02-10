@@ -78,3 +78,8 @@ module.exports.updateMenuDetails = function(menuId, menuData, callback) {
 				  'WHERE menuId = ?';
 	db.query(query, [menuData, menuId], callback);
 }
+
+module.exports.getAllMenus = function(callback) {
+	const query = 'SELECT menuId, name, restaurantId FROM menus';
+	db.query(query, callback);
+}

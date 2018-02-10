@@ -129,7 +129,8 @@ router.get('/login', (req, res, next) => {
 							if(err) {
 								ResponseHelper.customError(res, 500, 'bcrypt_error', 
 									'There was an error with the bcrypt package: ' + err,
-									ResponseHelper.msg.default.user);
+									ResponseHelper.msg.default.user
+								);
 							} else if(!passwordsMatch) {
 								ResponseHelper.customError(res, 401, 'invalid_login_credentials', 
 									'The email-password combination does not exist in the database.',

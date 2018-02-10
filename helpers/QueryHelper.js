@@ -11,19 +11,19 @@ module.exports.diagnoseQueryError = function(result, res) {
 		if(!msg.includes(itemUpdated)) {
 			ResponseHelper.customError(res, 409, 'data_already_exists', 
 				'The resource was found but not changed. This is likely because the new resource details provided already exist in the database.',
-				ResponseHelper.msg.default
+				ResponseHelper.msg.default.user
 			);
 		} else {
 			// Since this function is only called when MySQL says zero rows were changed, this is a contradiction that should never arise
 			ResponseHelper.customError(res, 500, 'schroedingers_error', 
 				'The server determined that zero rows were changed, and one row was changed. Contact the dev.',
-				ResponseHelper.msg.default
+				ResponseHelper.msg.default.user
 			);
 		}
 	} else {
 		ResponseHelper.customError(res, 404, 'resource_not_found', 
 			'A resource with the specified ID was not found.',
-			ResponseHelper.msg.default
+			ResponseHelper.msg.default.user
 		);
 	}
 }

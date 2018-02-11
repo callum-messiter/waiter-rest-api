@@ -33,9 +33,10 @@ router.get('/:menuId', (req, res, next) => {
 						ResponseHelper.resourceNotFound(res, 'menu');
 					} else {
 						const ownerId = result[0].ownerId;
-						const requesterId = decodedpayload.userId;
-						// User details can be accessed only by the owner, or by an internal admin
-						if(requesterId != ownerId) {
+						const requester = decodedpayload;
+						// User details can be accessed only by the owner, and by diners and admins
+						if(requester.role == UserRoles.roleIDs.restaurateur 
+					    && requester.userId != ownerId) {
 							ResponseHelper.unauthorised(res, 'menu');
 						} else {
 							Menus.getMenuDetails(menuId, (err, result) => {

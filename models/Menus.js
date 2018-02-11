@@ -5,7 +5,10 @@ const db = require('../config/database');
 	Get the menu details
 **/
 module.exports.getMenuDetails = function(menuId, callback) {
-	const query = 'SELECT menuId, name FROM menus WHERE menuId = ?';
+	const query = 'SELECT menus.menuId, menus.name, restaurants.restaurantId, restaurants.name AS restaurantName ' +
+				  'FROM menus ' +
+				  'JOIN restaurants on restaurants.restaurantId = menus.restaurantId ' + 
+				  'WHERE menuId = ?';
 	db.query(query, menuId, callback);
 }
 

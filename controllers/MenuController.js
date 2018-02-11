@@ -53,6 +53,8 @@ router.get('/:menuId', (req, res, next) => {
 
 									// Build response object skeleton
 									const menu = {
+										restaurantId: result[0].restaurantId,
+										restaurantName: result[0].restaurantName,
 										menuId: result[0].menuId,
 										menuName: result[0].name,
 									};

@@ -37,14 +37,24 @@ module.exports.saveUserTokenReference = function(userToken, callback) {
 /**
 	Check if token is valid (jwt.verify + check if token has been revoked)
 **/
-module.exports.verifyToken = function(token, callback) {
-	jwt.verify(token, secret, callback);
+module.exports.verifyToken = function(token) {
+	return new Promise((resolve, reject) => {
+		jwt.verify(token, secret, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }
 
 /**
 	Delete a token from the db upon logout
 **/
-module.exports.deleteTokenReference = function(token, userId, callback) {
-	const query = 'DELETE FROM tokens WHERE userId = ? AND token = ?';
-	db.query(query, [userId, token], callback);
+module.exports.deleteTokenReference = function(token, userId) {
+	return new Promise((resolve, reject) => {
+		const query = 'DELETE FROM tokens WHERE userId = ? AND token = ?';
+		db.query(query, [userId, token], (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }

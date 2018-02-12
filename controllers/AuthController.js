@@ -272,26 +272,22 @@ router.get('/logout', (req, res, next) => {
 		const token = req.headers.authorization;
 		const userId = req.query.userId;
 		// Check that the token is valid
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.invalidToken(res);
+		Auth.verifyToken(token).then((result) => {
+			// Delete token reference from database
+			return Auth.deleteTokenReference(token, userId);
+		}).then((result) => {
+			// MySQL returns true even if no row was actually deleted; check deletion succeeded
+			if(result.affectedRows < 1) {
+				ResponseHelper.customError(res, 404, 'error_deleting_token_ref', 
+					'The server executed the query successfully, but nothing was deleted. It\'s likely that userId-token combination provided does not exist in the database.',
+					ResponseHelper.msg.default.user
+				);
 			} else {
-				// Delete the token from the DB (the token will be invalidated/deleted by the client)
-				Auth.deleteTokenReference(token, userId, (err, result) => {
-					if(err) {
-						ResponseHelper.sql(res, 'deleteTokenReference', err);
-					} else {
-						if(result.affectedRows < 1) {
-							ResponseHelper.customError(res, 404, 'error_deleting_token_ref', 
-								'The server executed the query successfully, but nothing was deleted. It\'s likely that userId-token combination provided does not exist in the database.',
-								ResponseHelper.msg.default.user
-							);
-						} else {
-							ResponseHelper.customSuccess(res, 200);
-						}
-					}
-				});
+				res.send(result);
 			}
+		}).catch((err) => {
+			// TODO: think about how to handle errors with optimal transparency for the client-side dev
+			res.status(500).json(err);
 		});
 	}
 });

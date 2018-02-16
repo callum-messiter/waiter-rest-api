@@ -13,6 +13,7 @@ const Menus = require('../models/Menus');
 // Config
 const secret = require('../config/jwt').secret;
 const ResponseHelper = require('../helpers/ResponseHelper');
+const error = require('../helpers/error');
 
 /**
 	Login for restaurateur accounts
@@ -25,15 +26,15 @@ router.get('/login', (req, res, next) => {
 		Users.getUserByEmail(req.query.email)
 		.then((result) => {
 
-			if(result.length < 1) return res.status(404).json({errorKey: 'email_not_registered'});
-			if(result[0].isActive !== 1) return res.status(403).json({errorKey: 'user_not_active'});
+			if(result.length < 1) return res.status(404).json(error.emailNotRegistered);
+			if(result[0].isActive !== 1) return res.status(403).json(error.userNotActive);
 			// Add the user to the response-local var, accessible throughout the chain
 			res.locals = { user: JSON.parse(JSON.stringify(result[0])) };
 			return Users.checkPassword(req.query.password, result[0].password);
 
 		}).then((passIsValid) => {
 
-			if(passIsValid !== true) return res.status(404).json({errorKey: 'password_invalid'});
+			if(passIsValid !== true) return res.status(404).json(error.passwordIncorrect);
 			const u = res.locals.user;
 			return Auth.createUserToken(u.userId, u.roleId);
 
@@ -45,16 +46,16 @@ router.get('/login', (req, res, next) => {
 
 		}).then((restaurant) => {
 
-			if(restaurant.length < 1) return res.status(404).json({errorKey: 'restaurant_not_found'});
+			if(restaurant.length < 1) return res.status(404).json(error.restaurantNotFound);
 			res.locals.restaurant = JSON.parse(JSON.stringify(restaurant[0]));
 			return Menus.getMenuByRestaurantId(restaurant[0].restaurantId);
 
 		}).then((menu) => {
 
-			if(menu.length < 1) return res.status(404).json({errorKey: 'menu_not_found'});
+			if(menu.length < 1) return res.status(404).json(error.menuNotFound);
 			const u = res.locals.user;
 			const r = res.locals.restaurant;
-			res.status(200).json({
+			res.status(200).json({data: {
 				user: {
 					userId: u.userId,
 					role: u.roleId,
@@ -70,7 +71,7 @@ router.get('/login', (req, res, next) => {
 					menuId: menu[0].menuId,
 					name: menu[0].name
 				}
-			});
+			}});
 
 		}).catch((err) => {
 			res.status(500).json(err);

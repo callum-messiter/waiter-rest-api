@@ -7,9 +7,14 @@ const db = require('../config/database');
 /**
 	Get restaurant by owner (user) Id
 **/
-module.exports.getRestaurantByOwnerId = function(ownerId, callback) {
-	const query = 'SELECT * FROM restaurants WHERE OwnerId = ?';
-	db.query(query, ownerId, callback);
+module.exports.getRestaurantByOwnerId = function(ownerId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT * FROM restaurants WHERE ownerId = ?';
+		db.query(query, ownerId, (err, restaurant) => {
+			if(err) return reject(err);
+			resolve(restaurant);
+		});
+	});
 }
 
 /**

@@ -104,6 +104,14 @@ module.exports.msg = {
 		unverifiedUser: {
 			dev: 'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.',
 			user: 'This account is not verified. Please check your email inbox for a verification email from waiter.'
+		},
+		invalid_email: {
+			dev: 'The email-password combination does not exist in the database.',
+			user: 'The username and password you entered did not match our records. Please double-check and try again.'
+		},
+		invalid_password: {
+			dev: 'The email-password combination does not exist in the database.',
+			user: 'The username and password you entered did not match our records. Please double-check and try again.'
 		}
 	}
 }

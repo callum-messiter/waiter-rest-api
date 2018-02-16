@@ -15,9 +15,14 @@ module.exports.getMenuDetails = function(menuId, callback) {
 /**
 	Get menu by referencing the ID of the restaurant to which it belongs
 **/
-module.exports.getMenuByRestaurantId = function(restaurantId, callback) {
-	const query = 'SELECT menuId, name FROM menus WHERE restaurantId = ?';
-	db.query(query, restaurantId, callback);
+module.exports.getMenuByRestaurantId = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT menuId, name FROM menus WHERE restaurantId = ?';
+		db.query(query, restaurantId, (err, menu) => {
+			if(err) return reject(err);
+			resolve(menu);
+		});
+	});
 }
 
 /**

@@ -22,7 +22,12 @@ module.exports.setUserRole = function(userDetails, callback) {
 /**
 	Gets the user's role
 **/
-module.exports.getUserRole = function(userId, callback) {
-	const query = 'SELECT roleId FROM userroles WHERE userId = ?';
-	db.query(query, userId, callback);
+module.exports.getUserRole = function(userId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT roleId FROM userroles WHERE userId = ?';
+		db.query(query, userId, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }

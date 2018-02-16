@@ -10,20 +10,22 @@ const jwtOpts = require('../config/jwt').opts;
 /**
 	Generate a new json web token (jwt) upon successful login
 **/
-module.exports.createUserToken = function(userId, userRole, callback) {
-	const utc_timestamp = new Date().getTime();
-	const alg = jwtOpts.alg;
-	const issuer = jwtOpts.issuer;
-	const iat = utc_timestamp;
-	const exp = utc_timestamp + (3600000*24*7); // 1 week from the current time
-	jwt.sign({
-		algorithm: alg,
-		issuer: issuer,
-		iat: iat,
-		exp: exp,
-		userId: userId,
-		userRole: userRole
-	}, secret, callback);
+module.exports.createUserToken = function(userId, userRole) {
+	return new Promise((resolve, reject) => {
+		const utc_timestamp = new Date().getTime();
+		const data = {
+			algorithm: jwtOpts.alg,
+			issuer: jwtOpts.issuer,
+			iat: utc_timestamp,
+			exp: utc_timestamp + (3600000*24*7),
+			userId: userId,
+			userRole: userRole
+		}
+		jwt.sign(data, secret, (err, token) => {
+			if(err) return reject(err);
+			resolve(token);
+		});
+	});
 }
 
 /**

@@ -47,12 +47,29 @@ module.exports.createNewUser = function(user, callback) {
 	db.query(query, user, callback);
 }
 
+module.exports.getMenuDetails = function(menuId, callback) {
+	const query = 'SELECT menus.menuId, menus.name, restaurants.restaurantId, restaurants.name AS restaurantName ' +
+				  'FROM menus ' +
+				  'JOIN restaurants on restaurants.restaurantId = menus.restaurantId ' + 
+				  'WHERE menuId = ?';
+	db.query(query, menuId, callback);
+}
+
 /**
 	Checks if a user exists by running an email address against the db. Returns the match if found
 **/
-module.exports.doesUserExist = function(email, callback) {
-	const query = 'SELECT * FROM users WHERE email = ?';
-	db.query(query, email, callback);
+module.exports.getUserByEmail = function(email) {
+	return new Promise((resolve, reject) => {
+		const query = 
+		'SELECT users.userId, users.email, users.password, users.isVerified, users.isActive, ' +
+		'userroles.roleId FROM users ' +
+		'JOIN userroles ON userroles.userId = users.userId ' +
+		'WHERE email = ?';
+		db.query(query, email, (err, user) => {
+			if(err) return reject(err);
+			resolve(user);
+		});
+	});
 }
 
 /**
@@ -75,8 +92,14 @@ module.exports.hashPassword = function(password, callback) {
 /**
 	Compares the user's login password with their hashed password that is stored in the db
 **/
-module.exports.checkPassword = function(plainTextPassword, hash, callback) {
-	bcrypt.compare(plainTextPassword, hash, callback);
+module.exports.checkPassword = function(plainTextPassword, hash) {
+	return new Promise((resolve, reject) => {
+		bcrypt.compare(plainTextPassword, hash, (err, result) => {
+			if(err) return reject(err);
+			// if(result === false) return reject(err='invalid_password');
+			resolve(result);
+		});
+	});
 }
 
 /**

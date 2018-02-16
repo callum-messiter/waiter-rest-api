@@ -15,214 +15,65 @@ const secret = require('../config/jwt').secret;
 const ResponseHelper = require('../helpers/ResponseHelper');
 
 /**
- * @api {get} /auth/login Login
- * @apiGroup Auth
- * @apiPermission diner, restaurateur, internalAdmin, externalAdmin
- * @apiParam {String} email The user's email address
- * @apiParam {String} password The user's password
- * @apiSuccessExample {json} Success 200
-{
-    "success": true,
-    "error": "",
-    "data": {
-        "userId": 1,
-        "role": 200,
-        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbGdvcml0aG0iOiJIUzI1NiIsImlzc3VlciI6Imh0dHA6Ly9hcGkud2FpdGVyLmNvbSIsImlhdCI6MTUwNzk5MzM4MzkyNSwiZXhwIjoxNTA4NTk4MTgzOTI1LCJ1c2VySWQiOjEsInVzZXJSb2xlIjoyMDB9.qD1TEz1I0hn1jBtekPEpNJjoLCmMxSiB-Ik4DzRI2E0"
-    }
-}
- * @apiErrorExample {json} 401 Invalid login credentials
-{
-    "success": false,
-    "error": "invalid_login_credentials",
-    "msg": "The email-password combination does not exist in the database."
-}
- * @apiErrorExample {json} 403 The user account is not active
-{
-    "success": false,
-    "error": "user_not_active",
-    "msg": "This user account is inactive. The account was either suspended by waiter, or deactivated by the user."
-}
- * @apiErrorExample {json} 403 The user account is not verified
-{
-    "success": false,
-    "error": "user_not_verified",
-    "msg": "This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one."
-}
- * @apiErrorExample {json} 404 Missing query-string parameters
-{
-    "success": false,
-    "error": "missing_required_params",
-    "msg": "The request must contain an email address and password."
-}
- * @apiErrorExample {json} 500 doesUserExist (SQL) error
-{
-    "success": false,
-    "error": "get_user_query_error",
-    "msg": // sql SNAKE_CASE error key - report to the api dev
-}
- * @apiErrorExample {json} 500 checkPassword (bcrypt) error
-{
-    "success": false,
-    "error": "bcrypt_error",
-    "msg": // bycrpt error key/message
-}
- * @apiErrorExample {json} 500 getUserRole (SQL) error
-{
-    "success": false,
-    "error": "get_user_role_query_error",
-    "msg": // sql SNAKE_CASE error key - report to the api dev
-}
- * @apiErrorExample {json} 500 createUserToken (jwt) error
-{
-    "success": false,
-    "error": 'jwt_error',
-    "msg": // jwt error message - report to the api dev
-}
- * @apiErrorExample {json} 500 createUserToken (jwt) error
-{
-    "success": false,
-    "error": 'jwt_token_null',
-    "msg": "The server could not create a unique token."
-}
- * @apiErrorExample {json} 500 saveUserTokenReference (SQL) error
-{
-    "success": false,
-    "error": 'token_not_added_to_db',
-    "msg": // sql SNAKE_CASE error key - report to the api dev
-}
- */
+	Login for restaurateur accounts
+**/
 router.get('/login', (req, res, next) => {
-	// CHeck that the email and password were set
 	if(!req.query.email || !req.query.password) {
 		ResponseHelper.missingRequiredData(res, ['email', 'password']);
 	} else {
-		const email = req.query.email;
-		const password = req.query.password;
-		// Check that the email address entered is registered
-		Users.doesUserExist(email, (err, user) => {
-			if(err) {
-				ResponseHelper.sql(res, 'doesUserExist', err);
-			} else if(user.length < 1) {
-				ResponseHelper.customError(res, 401, 'invalid_login_credentials', 
-					'The email-password combination does not exist in the database.',
-					'The username and password you entered did not match our records. Please double-check and try again.'
-				);
-			} else {
-				// Check if the user is active
-				if(user[0].isActive !== 1) {
-					ResponseHelper.customError(res, 403, 'user_not_active', 
-						'This user account is inactive. The account was either suspended by waiter, or deactivated by the user.',
-						'This account is not currently active. You can restore your account by clicking here.'
-					);
-				} else {
-					// Ignore user verification for now
-					if(1 == 2 /**user[0].isVerified !== 1**/) {
-						ResponseHelper.customError(res, 403, 'user_not_verified', 
-							'This user account is not verified. The user should have a verification email in the inbox of their registered email account. If not, request another one.',
-							'This account is not verified. Please check your email inbox for a verification email from waiter.'
-						);
-					} else  {
-						// Check that the user entered the correct password
-						const plainTextPassword = password;
-						const hashedPassword = user[0].password
-						Users.checkPassword(plainTextPassword, hashedPassword, (err, passwordsMatch) => {
-							if(err) {
-								ResponseHelper.customError(res, 500, 'bcrypt_error', 
-									'There was an error with the bcrypt package: ' + err,
-									ResponseHelper.msg.default.user
-								);
-							} else if(!passwordsMatch) {
-								ResponseHelper.customError(res, 401, 'invalid_login_credentials', 
-									'The email-password combination does not exist in the database.',
-									'The username and password you entered did not match our records. Please double-check and try again.'
-								);
-							} else if(passwordsMatch){
-								// Get the user's role to store in the token
-								UserRoles.getUserRole(user[0].userId, (err, userRole) => {
-									if(err) {
-										ResponseHelper.sql(res, 'getUserRole', err);
-									} else {
-										const role = userRole[0].roleId;
-										// Generate token
-										Auth.createUserToken(user[0].userId, role, (err, token) => {
-											if(err) {
-												ResponseHelper.customError(res, 500, 'jwt_error', 
-													'There was an error with the jwt package: ' + err,
-													ResponseHelper.msg.default.user
-												);
-											} else if(token == null) {
-												ResponseHelper.customError(res, 500, 'jwt_token_null', 
-													'The server could not create a unique token.',
-													ResponseHelper.msg.default.user
-												);
-											} else {
-												// Decode token and get userId and exp
-												const decodedToken = jwt.decode(token);
-												const tokenUserId = decodedToken.userId;
-												// Get expirary date of token
-												const tokenExp = decodedToken.exp;
-												const expiresAt = moment(tokenExp).format('YYYY-MM-DD HH:mm:ss');
-												// Get current datetime
-												const currentDate = new Date();
-												const now = moment(currentDate).format('YYYY-MM-DD HH:mm:ss');
-												// Add the token to the db for reference
-												const userToken = {
-													userId: tokenUserId,
-													token: token,
-													date: now,
-													expiryDate: expiresAt
-												}
-												// Add token to the db for reference
-												Auth.saveUserTokenReference(userToken, (err, result) => {
-													if(err) {
-														ResponseHelper.sql(res, 'saveUserTokenReference', err);
-													} else {
-														// Get the user's restaurant
-														Restaurants.getRestaurantByOwnerId(user[0].userId, (err, restaurant) => {
-															// Return the relevant user details to the client
-															if(err) {
-																ResponseHelper.sql(res, 'getRestaurantById', err);
-															} else if(restaurant.length < 1) {
-																ResponseHelper.resourceNotFound(res, 'restaurant');
-															} else {
-																Menus.getMenuByRestaurantId(restaurant[0].restaurantId, (err, menu) => {
-																	if(err) {
-																		ResponseHelper.sql(res, 'getMenuByRestaurantId', err);
-																	} else if(restaurant.length < 1) {
-																		ResponseHelper.resourceNotFound(res, 'menu');
-																	} else {
-																		ResponseHelper.customSuccess(res, 200, {
-																			user: {
-																				userId: user[0].userId,
-																				role: role,
-																				token: token
-																			},
-																			// For now we will return the first restaurant, since the user will only have one
-																			restaurant: {
-																				restaurantId: restaurant[0].restaurantId,
-																				name: restaurant[0].name
-																			},
-																			// For now we will return the first menu, since the user will only have one
-																			menu: {
-																				menuId: menu[0].menuId,
-																				name: menu[0].name
-																			}
-																		});
-																	}
-																});
-															}
-														});
-													}
-												});
-											}
-										});
-									}
-								});
-							}
-						});
-					}
+
+		Users.getUserByEmail(req.query.email)
+		.then((result) => {
+
+			if(result.length < 1) return res.status(404).json({errorKey: 'email_not_registered'});
+			if(result[0].isActive !== 1) return res.status(403).json({errorKey: 'user_not_active'});
+			// Add the user to the response-local var, accessible throughout the chain
+			res.locals = { user: JSON.parse(JSON.stringify(result[0])) };
+			return Users.checkPassword(req.query.password, result[0].password);
+
+		}).then((passIsValid) => {
+
+			if(passIsValid !== true) return res.status(404).json({errorKey: 'password_invalid'});
+			const u = res.locals.user;
+			return Auth.createUserToken(u.userId, u.roleId);
+
+		}).then((token) => {
+
+			res.locals.user.token = token;
+			const u = res.locals.user;
+			return Restaurants.getRestaurantByOwnerId(u.userId);
+
+		}).then((restaurant) => {
+
+			if(restaurant.length < 1) return res.status(404).json({errorKey: 'restaurant_not_found'});
+			res.locals.restaurant = JSON.parse(JSON.stringify(restaurant[0]));
+			return Menus.getMenuByRestaurantId(restaurant[0].restaurantId);
+
+		}).then((menu) => {
+
+			if(menu.length < 1) return res.status(404).json({errorKey: 'menu_not_found'});
+			const u = res.locals.user;
+			const r = res.locals.restaurant;
+			res.status(200).json({
+				user: {
+					userId: u.userId,
+					role: u.roleId,
+					token: u.token
+				},
+				// For now we will return the first restaurant, since each user will only have one
+				restaurant: {
+					restaurantId: r.restaurantId,
+					name: r.name
+				},
+				// For now we will return the first menu, since each restaurant will only have one
+				menu: {
+					menuId: menu[0].menuId,
+					name: menu[0].name
 				}
-			}
+			});
+
+		}).catch((err) => {
+			res.status(500).json(err);
 		});
 	}
 });
@@ -269,22 +120,10 @@ router.get('/logout', (req, res, next) => {
 	if(!req.headers.authorization || !req.query.userId) {
 		ResponseHelper.invalidRequest(res, ['userId']);
 	} else {
-		const token = req.headers.authorization;
-		const userId = req.query.userId;
-		// Check that the token is valid
-		Auth.verifyToken(token).then((result) => {
-			// Delete token reference from database
-			return Auth.deleteTokenReference(token, userId);
-		}).then((result) => {
-			// MySQL returns true even if no row was actually deleted; check deletion succeeded
-			if(result.affectedRows < 1) {
-				ResponseHelper.customError(res, 404, 'error_deleting_token_ref', 
-					'The server executed the query successfully, but nothing was deleted. It\'s likely that userId-token combination provided does not exist in the database.',
-					ResponseHelper.msg.default.user
-				);
-			} else {
-				res.send(result);
-			}
+		Auth.verifyToken(req.headers.authorization)
+		.then((result) => {
+			// TODO: do we need to check the result value?
+			res.send(result);
 		}).catch((err) => {
 			// TODO: think about how to handle errors with optimal transparency for the client-side dev
 			res.status(500).json(err);

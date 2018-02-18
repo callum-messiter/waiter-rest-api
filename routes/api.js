@@ -14,9 +14,11 @@ const ItemController = require('../controllers/ItemController');
 const OrderController = require('../controllers/OrderController');
 const EmailController = require('../controllers/EmailController');
 
+router.use(mw.authoriseUser);
+
 // Append controller routes to the '/api' endpoint here
 router.use('/user', UserController);
-router.use('/auth', mw.authoriseUser, AuthController);
+router.use('/auth', AuthController);
 router.use('/restaurant', RestaurantController);
 router.use('/menu', MenuController);
 router.use('/category', CategoryController);

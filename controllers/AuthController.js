@@ -75,12 +75,10 @@ router.get('/login', (req, res, next) => {
 });
 
 router.get('/logout', (req, res, next) => {
-	console.log(res.locals);
 	if(req.query.userId == undefined) throw e.missingRequiredParams;
 	
 	Auth.verifyToken(req.headers.authorization)
 	.then((result) => {
-		// TODO: do we need to check the result value?
 		res.status(200).json({});
 	}).catch((err) => {
 		return next(err);

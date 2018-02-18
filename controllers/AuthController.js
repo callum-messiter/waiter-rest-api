@@ -75,7 +75,7 @@ router.get('/login', (req, res, next) => {
 });
 
 router.get('/logout', (req, res, next) => {
-	if(req.headers.authorization == undefined) throw e.missingRequiredHeaders;
+	console.log(res.locals);
 	if(req.query.userId == undefined) throw e.missingRequiredParams;
 	
 	Auth.verifyToken(req.headers.authorization)

@@ -10,126 +10,81 @@ const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
 const Restaurants = require('../models/Restaurants');
 const Menus = require('../models/Menus');
-// Config
+// Config & helpers
 const secret = require('../config/jwt').secret;
-const ResponseHelper = require('../helpers/ResponseHelper');
-const error = require('../helpers/error');
+const e = require('../helpers/error');
 
 /**
 	Login for restaurateur accounts
 **/
 router.get('/login', (req, res, next) => {
-	if(!req.query.email || !req.query.password) {
-		ResponseHelper.missingRequiredData(res, ['email', 'password']);
-	} else {
+	if(req.query.email == undefined || req.query.password == undefined) throw e.missingRequiredParams;
 
-		Users.getUserByEmail(req.query.email)
-		.then((result) => {
+	Users.getUserByEmail(req.query.email)
+	.then((user) => {
 
-			if(result.length < 1) return res.status(404).json(error.emailNotRegistered);
-			if(result[0].isActive !== 1) return res.status(403).json(error.userNotActive);
-			// Add the user to the response-local var, accessible throughout the chain
-			res.locals = { user: JSON.parse(JSON.stringify(result[0])) };
-			return Users.checkPassword(req.query.password, result[0].password);
+		if(user.length < 1) throw e.emailNotRegistered; // User obj is an array of matches returned by SQL
+		if(user[0].isActive !== 1) throw e.userNotActive;
+		res.locals = { user: JSON.parse(JSON.stringify(user[0])) }; // Add user to response-local var, accessible throughout the chain
+		return Users.checkPassword(req.query.password, user[0].password);
 
-		}).then((passIsValid) => {
+	}).then((passIsValid) => {
 
-			if(passIsValid !== true) return res.status(404).json(error.passwordIncorrect);
-			const u = res.locals.user;
-			return Auth.createUserToken(u.userId, u.roleId);
+		if(passIsValid !== true) throw e.passwordIncorrect;
+		const u = res.locals.user;
+		return Auth.createUserToken(u.userId, u.roleId);
 
-		}).then((token) => {
+	}).then((token) => {
 
-			res.locals.user.token = token;
-			const u = res.locals.user;
-			return Restaurants.getRestaurantByOwnerId(u.userId);
+		res.locals.user.token = token;
+		const u = res.locals.user;
+		return Restaurants.getRestaurantByOwnerId(u.userId);
 
-		}).then((restaurant) => {
+	}).then((restaurant) => {
 
-			if(restaurant.length < 1) return res.status(404).json(error.restaurantNotFound);
-			res.locals.restaurant = JSON.parse(JSON.stringify(restaurant[0]));
-			return Menus.getMenuByRestaurantId(restaurant[0].restaurantId);
+		if(restaurant.length < 1) throw e.restaurantNotFound;
+		res.locals.restaurant = JSON.parse(JSON.stringify(restaurant[0]));
+		return Menus.getMenuByRestaurantId(restaurant[0].restaurantId);
 
-		}).then((menu) => {
+	}).then((menu) => {
 
-			if(menu.length < 1) return res.status(404).json(error.menuNotFound);
-			const u = res.locals.user;
-			const r = res.locals.restaurant;
-			res.status(200).json({data: {
-				user: {
-					userId: u.userId,
-					role: u.roleId,
-					token: u.token
-				},
-				// For now we will return the first restaurant, since each user will only have one
-				restaurant: {
-					restaurantId: r.restaurantId,
-					name: r.name
-				},
-				// For now we will return the first menu, since each restaurant will only have one
-				menu: {
-					menuId: menu[0].menuId,
-					name: menu[0].name
-				}
-			}});
+		if(menu.length < 1) throw e.menuNotFound;
+		const u = res.locals.user;
+		const r = res.locals.restaurant;
+		res.status(200).json({data: {
+			user: {
+				userId: u.userId,
+				role: u.roleId,
+				token: u.token
+			},
+			// For now we will return the first restaurant, since each user will only have one
+			restaurant: {
+				restaurantId: r.restaurantId,
+				name: r.name
+			},
+			// For now we will return the first menu, since each restaurant will only have one
+			menu: {
+				menuId: menu[0].menuId,
+				name: menu[0].name
+			}
+		}});
 
-		}).catch((err) => {
-			res.status(500).json(err);
-		});
-	}
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
-/**
- * @api {get} /auth/logout Logout
- * @apiGroup Auth
- * @apiDescription If the API returns a 200 OK response, the client application should destroy the user's token
- * @apiPermission diner, restaurateur, internalAdmin, externalAdmin
- * @apiHeader {String} Authorization The user access token provided by the API upon successful login
- * @apiParam {String} userId The id of the user, which should be provided to the client app by the api upon login, and stored locally
- * @apiSuccessExample {json} Success 200
-{
-    "success": true,
-    "error": "",
-    "data": {}
-}
- * @apiErrorExample {json} 401 Invalid token
-{
-    "success": false,
-    "error": "invalid_token",
-    "msg": "The server determined that the token provided in the request is invalid. It likely expired - try logging in again."
-}
- * @apiErrorExample {json} 404 Mandatory request data missing
-{
-    "success": false,
-    "error": "missing_required_data",
-    "msg": "The server was expecting a userId and a token. At least one of these parameters was missing from the request."
-}
- * @apiErrorExample {json} 404 Error deleting token reference from db
-{
-    "success": false,
-    "error": "error_deleting_token_ref",
-    "msg": "The server executed the query successfully, but nothing was deleted. It's likely that userId-token combination provided does not exist in the database."
-}
- * @apiErrorExample {json} 500 deleteTokenReferenence (SQL) error
-{
-    "success": false,
-    "error": "deleting_token_query_error",
-    "msg": // sql SNAKE_CASE error key - report to the api dev
-}
-**/
 router.get('/logout', (req, res, next) => {
-	if(!req.headers.authorization || !req.query.userId) {
-		ResponseHelper.invalidRequest(res, ['userId']);
-	} else {
-		Auth.verifyToken(req.headers.authorization)
-		.then((result) => {
-			// TODO: do we need to check the result value?
-			res.send(result);
-		}).catch((err) => {
-			// TODO: think about how to handle errors with optimal transparency for the client-side dev
-			res.status(500).json(err);
-		});
-	}
+	if(req.headers.authorization == undefined) throw e.missingRequiredHeaders;
+	if(req.query.userId == undefined) throw e.missingRequiredParams;
+	
+	Auth.verifyToken(req.headers.authorization)
+	.then((result) => {
+		// TODO: do we need to check the result value?
+		res.status(200).json({});
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
 module.exports = router;

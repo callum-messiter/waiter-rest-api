@@ -6,6 +6,7 @@ const moment = require('moment');
 const db = require('../config/database');
 const secret = require('../config/jwt').secret;
 const jwtOpts = require('../config/jwt').opts;
+const e = require('../helpers/error');
 
 /**
 	Generate a new json web token (jwt) upon successful login
@@ -41,9 +42,9 @@ module.exports.saveUserTokenReference = function(userToken, callback) {
 **/
 module.exports.verifyToken = function(token) {
 	return new Promise((resolve, reject) => {
-		jwt.verify(token, secret, (err, result) => {
-			if(err) return reject(err);
-			resolve(result);
+		jwt.verify(token, secret, (err, decodedPayload) => {
+			if(err) return reject(e.jwtMalformed);
+			resolve(decodedPayload);
 		});
 	});
 }

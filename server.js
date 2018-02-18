@@ -5,10 +5,10 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const cors = require('cors');
 const socket = require('socket.io');
-const router = express.Router();
 // Config
 const dbConfig = require('./config/database');
-const api = require('./routes/api');
+const router = require('./routes/api');
+const error = require('./helpers/error');
 const port = 3000;
 
 /**
@@ -35,7 +35,21 @@ const server = app.listen(port, () => {
 });
 
 // All requests to /api/* will be mapped to the routes/api file, which contains api-specific routes
-app.use('/api', api);
+app.use('/api', router);
+
+// Error handling
+app.use((err, req, res, next) => {
+	// Log the error
+	console.log(err);
+	// Check that we are handling the error
+	if(error.hasOwnProperty(err.errorKey)) {
+		res.status(error[err.errorKey].statusCode)
+		return res.json(err);
+	}
+	// If the error is not handled, return a general 500
+	res.status(error.internalServerError.statusCode);
+	res.json(error.internalServerError);
+});
 
 
 // Redirect requests to /api and / to the documentation page

@@ -3,11 +3,11 @@
 **/
 
 module.exports.customError = function(res, statusCode, errorKey, devMsg, userMsg, success=false) {
-	res.status(statusCode).json({success, errorKey, devMsg, userMsg});
+	return res.status(statusCode).json({success, errorKey, devMsg, userMsg});
 }
 
 module.exports.customSuccess = function(res, statusCode, data={}, success=true) {
-	res.status(statusCode).json({success, data});
+	return res.status(statusCode).json({success, data});
 }
 
 /**
@@ -16,7 +16,7 @@ module.exports.customSuccess = function(res, statusCode, data={}, success=true) 
 
 // When the request is missing a required header
 module.exports.missingHeaders = function(res, headerType) {
-	res.status(401).json({
+	return res.status(401).json({
 		success: false, 
 		errorKey: 'missing_headers', 
 		devMsg: 'The following header was missing from the request: ' + headerType + '. Please update the client-side codebase to include this header in the request.', 
@@ -26,7 +26,7 @@ module.exports.missingHeaders = function(res, headerType) {
 
 // When the user's auth token is found to be invalid
 module.exports.invalidToken = function(res) {
-	res.status(401).json({
+	return res.status(401).json({
 		success: false, 
 		errorKey: 'invalid_token', 
 		devMsg: 'The auth token is invalid; it likely expired. Please log the user out and destroy the token on the client side.', 
@@ -36,7 +36,7 @@ module.exports.invalidToken = function(res) {
 
 // When the user is not the owner of the resource, or the user's role does not permit them to access a particular resource 
 module.exports.unauthorised = function(res, resourceType) {
-	res.status(401).json({
+	return res.status(401).json({
 		success: false, 
 		errorKey: 'unauthorised', 
 		devMsg: 'This user account does not have permission to access or modify the specified '+resourceType,
@@ -46,7 +46,7 @@ module.exports.unauthorised = function(res, resourceType) {
 
 // Whenever SQL throws an error. The developer should specify the query name (the name of the (query) method called by the controller)
 module.exports.sql = function(res, queryName, err) {
-	res.status(500).json({
+	return res.status(500).json({
 		success: false, 
 		errorKey: queryName+'_sql_error', 
 		devMsg: 'There was an SQL error: '+err.code,
@@ -56,7 +56,7 @@ module.exports.sql = function(res, queryName, err) {
 
 // When the request is missing the Auth header or a request parameter
 module.exports.invalidRequest = function(res, params=[]) {
-	res.status(400).json({
+	return res.status(400).json({
 		success: false, 
 		errorKey: 'invalid_request', 
 		devMsg: 'The request must contain an Authorization header, and the following parameters: '+params,
@@ -66,7 +66,7 @@ module.exports.invalidRequest = function(res, params=[]) {
 
 // When the request is missing a required data parameter
 module.exports.missingRequiredData = function(res, params) {
-	res.status(400).json({
+	return res.status(400).json({
 		success: false, 
 		errorKey: 'missing_required_data', 
 		devMsg: 'The request must contain the following data parameters: '+params+'.',
@@ -76,7 +76,7 @@ module.exports.missingRequiredData = function(res, params) {
 
 // When a query is performed to retrieve a resource, and the query returns zero matches
 module.exports.resourceNotFound = function(res, resourceType) {
-	res.status(404).json({
+	return res.status(404).json({
 		success: false, 
 		errorKey: resourceType+'_not_found', 
 		devMsg: 'The query returned zero results. The '+resourceType+' could not be found in the database.',

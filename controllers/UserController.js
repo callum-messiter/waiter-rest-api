@@ -89,7 +89,7 @@ router.post('/create', (req, res, next) => {
 	const userRolesObject = UserRoles.roleIDs;
 	// Check the subroute is set
 	if(!req.body.userType) {
-		ResponseHelper.missingRequiredData(res, ['userType', 'email', 'password', 'firstName', 'lastName', 'restaurantName']);
+		ResponseHelper.missingRequiredData(res, ['userType']);
 	} else {
 		const userType = req.body.userType;
 		// Check that the subroute is valid (the user has specified a valid user type)
@@ -99,14 +99,18 @@ router.post('/create', (req, res, next) => {
 				ResponseHelper.msg.default.user
 			);
 		} else {
-			userRole = userRolesObject[userType]; // e.g. roleIDs['admin'] = 900
+			const userRole = userRolesObject[userType]; // e.g. roleIDs['admin'] = 900
 			// Check that the request contains all required user details
 			if(
 			   !req.body.email || !req.body.password || 
-			   !req.body.firstName || !req.body.lastName || !req.body.restaurantName
+			   !req.body.firstName || !req.body.lastName
 			) {
 				ResponseHelper.missingRequiredData(res, ['userType', 'email', 'password', 'firstName', 'lastName', 'restaurantName']);
 			} else {
+				// If the user is a restaurateur, check that the restaurant name is provided
+				if(userRole === userRolesObject['restaurateur'] && !req.body.restaurantName) {
+					ResponseHelper.missingRequiredData(res, ['restaurantName']);
+				}
 				// Check if the email is already registered
 				Users.isEmailRegistered(req.body.email, (err, result) => {
 					if(err) {
@@ -151,7 +155,17 @@ router.post('/create', (req, res, next) => {
 												if(err) {
 													ResponseHelper.sql(res, 'setUserRole', err);
 												} else {
-													// Create the user's restaurant, and the default menu with default categories
+													// If a diner has registered, return only the user details
+													if(userRole === userRolesObject['diner']) {
+														return ResponseHelper.customSuccess(res, 201, {
+															user: {
+																userId: userId, 
+																userRole: userRole,
+																isVerified: false,
+															}
+														});
+													}
+													// Otherwise, Create the user's restaurant, and the default menu with default categories
 													const restaurant = {
 														ownerId: userId,
 														restaurantId: shortId.generate(),

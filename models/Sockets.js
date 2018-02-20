@@ -28,15 +28,25 @@ module.exports.removeSocket = function(socketId, type) {
 	});
 }
 
-module.exports.addSocketToRestaurantCustomers = function(data, callback) {
-	const query = 'INSERT INTO socketsrestaurantcustomers SET?';
-	db.query(query, data, callback);
+module.exports.addSocketToRestaurantCustomers = function(data) {
+	return new Promise((resolve, reject) => {
+		const query = 'INSERT INTO socketsrestaurantcustomers SET?';
+		db.query(query, data, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }
 
-module.exports.getRecipientRestaurantSockets = function(restaurantId, callback) {
-	const query = 'SELECT socketId FROM socketsrestaurants ' + 
+module.exports.getRecipientRestaurantSockets = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT socketId FROM socketsrestaurants ' + 
 				  'WHERE restaurantId = ?';
-	db.query(query, restaurantId, callback);
+		db.query(query, restaurantId, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }
 
 /**
@@ -60,8 +70,13 @@ module.exports.getRecipientRestaurantSockets = function(restaurantId, callback) 
 	The restaurantId column will be indexed, making this faster.
 
 **/
-module.exports.getRecipientCustomerSockets = function(customerId, callback) {
-	const query = 'SELECT socketId FROM socketscustomers ' + 
+module.exports.getRecipientCustomerSockets = function(customerId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT socketId FROM socketscustomers ' + 
 				  'WHERE customerId = ?';
-	db.query(query, customerId, callback);
+		db.query(query, customerId, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }

@@ -32,33 +32,40 @@ module.exports.statuses = {
 
 // Add method for creating the room name (WebSockets) using the userId and restaurantId
 
-module.exports.createNewOrder = function(order, items, callback) {
-	// Create the array of orderitems, formatted correctly
-	orderItems = [];
-	for(var i = 0; i < items.length; i++) {
-		// Each order item should have an orderId and itemId (the row ID is auto-incremented)
-		orderItems[i] = [items[i].itemId, order.orderId]
-	}
-	// Queries
-	const insertOrder = 'INSERT INTO orders SET ?';
-	const insertOrderItems = 'INSERT INTO orderitems (itemId, orderId) VALUES ?';
-	
-	db.query(insertOrder, order, (err, result) => {
-		if(!err) {
-			db.query(insertOrderItems, [orderItems], callback);
-		} else {
-			callback;
+module.exports.createNewOrder = function(order, items) {
+	return new Promise((resolve, reject) => {
+		// Create the array of orderitems, formatted correctly
+		orderItems = [];
+		for(var i = 0; i < items.length; i++) {
+			// Each order item should have an orderId and itemId (the row ID is auto-incremented)
+			orderItems[i] = [items[i].itemId, order.orderId]
 		}
+		// Queries
+		const insertOrder = 'INSERT INTO orders SET ?';
+		const insertOrderItems = 'INSERT INTO orderitems (itemId, orderId) VALUES ?';
+		
+		db.query(insertOrder, order, (err, result) => {
+			if(err) return reject(err);
+			db.query(insertOrderItems, [orderItems], (err, result) => {
+				if(err) return reject(err);
+				resolve(result);
+			});
+		});
 	});
 }
 
 /**
 	Once the order has been sent from the server to the kitchen, call this method to update the order's status
 **/
-module.exports.updateOrderStatus = function(orderId, newStatus, callback) {
-	const query = 'UPDATE orders SET status = ? ' +
+module.exports.updateOrderStatus = function(orderId, newStatus) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE orders SET status = ? ' +
 				  'WHERE orderId = ?';
-	db.query(query, [newStatus, orderId], callback);
+		db.query(query, [newStatus, orderId], (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 };
 
 /**

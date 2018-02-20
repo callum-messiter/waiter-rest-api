@@ -12,7 +12,7 @@ const Restaurants = require('../models/Restaurants');
 const Menus = require('../models/Menus');
 // Config & helpers
 const secret = require('../config/jwt').secret;
-const e = require('../helpers/error');
+const e = require('../helpers/error').errors;
 
 /**
 	Login for restaurateur accounts

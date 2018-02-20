@@ -11,10 +11,6 @@ const router = require('./routes/api');
 const error = require('./helpers/error');
 const port = 3000;
 
-/**
-	START: SERVER CONFIGURATION SETTINGS
-**/
-
 // Enable cors
 app.use(cors());
 
@@ -42,19 +38,7 @@ io.on('connection', require('./controllers/LiveKitchen').handler);
 app.use('/api', router);
 
 // Error handling
-app.use((err, req, res, next) => {
-	// Log the error
-	console.log(err);
-	// Check that we are handling the error
-	if(error.hasOwnProperty(err.errorKey)) {
-		res.status(error[err.errorKey].statusCode)
-		return res.json(err);
-	}
-	// If the error is not handled, return a general 500
-	res.status(error.internalServerError.statusCode);
-	res.json(error.internalServerError);
-});
-
+app.use(require('./helpers/error').errorHandler);
 
 // Redirect requests to /api and / to the documentation page
 app.get('/api', (req, res, next) => {

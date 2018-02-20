@@ -7,7 +7,7 @@ const defaultUserMsg = 'Oops! The waiter system experienced an error - please tr
 	When when returning one of these errors, simply reference it by the keys below. The error handling middleware
 	will handle building the error response.
 **/
-module.exports = {
+const errors = {
 	/**
 		Auth
 	**/
@@ -69,3 +69,19 @@ module.exports = {
 		userMsg: defaultUserMsg
 	}
 }
+
+function errorHandler(err, req, res, next) {
+	// Log the error
+	console.log(err);
+	// Check that we are handling the error
+	if(errors.hasOwnProperty(err.errorKey)) {
+		res.status(errors[err.errorKey].statusCode)
+		return res.json(err);
+	}
+	// If the error is not handled, return a general 500
+	res.status(errors.internalServerError.statusCode);
+	res.json(errors.internalServerError);
+}
+
+module.exports.errors = errors;
+module.exports.errorHandler = errorHandler;

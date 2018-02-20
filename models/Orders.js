@@ -19,6 +19,7 @@ module.exports.schema = {
 	Order statuses (each step of the order flow has a statusId)
 **/
 module.exports.statuses = {
+	sentToServer: 50,
 	receivedByServer: 100,
 	sentToKitchen: 200,
 	receivedByKitchen: 300,

@@ -84,51 +84,51 @@ const Auth = require('./models/Auth');
 const Sockets = require('./models/Sockets');
 
 io.on('connection', (socket) => {
-	console.log('Client "' + socket.id + '" connected.');
+	var socketType;
 	const query = socket.handshake.query;
 	const data = {socketId: socket.id}
 
 	if(query.hasOwnProperty('restaurantId')) {
 		data.restaurantId = query.restaurantId;
+		socketType = 'RestaurantSocket';
 	} else if(query.hasOwnProperty('customerId')) {
+		socketType = 'CustomerSocket';
 		data.customerId = query.customerId;
 	} else {
 		// ToDO: Log to server, inform client
-		console.log('customerId/restaurantId not found.');
+		console.log('[CONN ERR] customerId/restaurantId not found.');
 		socket.disconnect();
 	}
+	console.log('[CONN] ' + socketType + ' ' + socket.id + ' connected.');
 
-	Sockets.addSocket(data, (err, result) => {
-		if(err) {
-			// ToDO: Log to server, inform client
-			console.log(err);
-		} else {
-			console.log('CONN: ' + result);
-		}
+	Sockets.addSocket(data)
+	.then((result) => {
+		return console.log('[DB] ' + socketType + ' ' + socket.id + ' added.');
+	}).catch((err) => {
+		return console.log(err);
 	});
 
 	// Note when a client disconnects
 	socket.on('disconnect', function () {
 		var type;
-		console.log('Client "' + socket.id + '" disconnected.');
+		console.log('[DISCONN] Client "' + socket.id + '" disconnected.');
 		if(query.hasOwnProperty('restaurantId')) {
 			type = 'restaurant';
 		} else if(query.hasOwnProperty('customerId')) {
 			type = 'customer';
 		} else {
 			// ToDO: log to server
-			console.log('customerId/restaurantId not found.');
+			console.log('[DISCONN ERR] customerId/restaurantId not found.');
 			// ToDO: Inform client
 			socket.disconnect();
 		}
 
-		Sockets.removeSocket(socket.id, type, (err, result) => {
-			if(err) {
-				// ToDO: log to server, inform client
-				console.log(err);
-			} else {
-				console.log(result);
-			}
+		// ToDO: log to server, inform client
+		Sockets.removeSocket(socket.id, type)
+		.then((result) => {
+			return console.log('[DB] Socket "' + socket.id + '" deleted.')
+		}).catch((err) => {
+			return console.log('[DB ERR] ' + err);
 		});
 	});
 
@@ -141,65 +141,16 @@ io.on('connection', (socket) => {
 		order.metaData.time = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
 
 		// Verify the auth token
-		Auth.verifyToken(order.headers.token, (err, decodedpayload) => {
-			if(err) {
-				console.log(err);
-				socket.disconnect(); // can we emit a message to the sender upon disconnection?
-			} else {
-				// Add the customer socket to the RestaurantCustomers table
-				// **TODO: check that the below properties are provided in the order object**
-				const socketData = {
-					customerSocketId: socket.id,
-					hostRestaurantId: order.metaData.restaurantId
-				}
-
-				// Associate the customer socket with the restaurantId. Later the server will query the same table for any
-				// sockets associated to the restaurant, such that we can route the order-status update (e.g. "order accepted") 
-				// to the correct customer(s)
-				Sockets.addSocketToRestaurantCustomers(socketData, (err, result) => {
-					if(err) {
-						// ToDO: log to server, inform client
-						if(err.errno == 1062) {
-							console.log('A customer cannot make more than one order during the same session.');
-							socket.disconnect();
-						}
-					} else {
-						// Store the order
-						Orders.createNewOrder(order.metaData, order.items, (err, result) => {
-							if(err) {
-								console.log(err);
-							} else {
-								// Find all currently connected sockets representing the recipient retaurant
-								Sockets.getRecipientRestaurantSockets(order.metaData.restaurantId, (err, result) => {
-									if(err) {
-										console.log(err);
-									} else {
-										if(result.length < 1) {
-											console.log('restaurant not found');
-										} else {
-											// Unify the order metaData and order items as a single object
-											order.metaData.status = Orders.statuses.sentToKitchen; // Set the status of the order object to 'sentToKitchen'
-											const orderForRestaurant = order.metaData;
-											orderForRestaurant.items = order.items;
-
-											// Emit the order to all connected sockets representing the recipient retaurant
-											// **Because, e.g., if a restaurant has screens, and two instances of their LiveKitchen running, 
-											// they will have two connected sockets; we need to update both in such cases.
-											// We need to run a cron job that will go through and delete sockets that are x hours old, 
-											// to clean the db of sockets which are no longer connected, but remain in the db because of
-											// api crashes 
-											for(i = 0; i < result.length; i++) {
-												socket.broadcast.to(result[i].socketId).emit('newOrder', orderForRestaurant);
-											}
-										}
-									}
-								});
-							}
-						});
-					}
-				});
+		Auth.verifyToken(order.headers.token).
+		then((decodedpayload) => {
+			const socketData = {
+				customerSocketId: socket.id,
+				hostRestaurantId: order.metaData.restaurantId
 			}
+		}).catch((err) => {
+			console.log('[NEW ORDER ERR] ' + err);
 		});
+		
 	});
 
 	/**
@@ -207,36 +158,46 @@ io.on('connection', (socket) => {
 	**/
 	socket.on('orderStatusUpdate', (order) => {
 		// Verify the auth token
-		Auth.verifyToken(order.headers.token, (err, decodedpayload) => {
+		order = order.metaData;
+		Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
 			if(err) {
 				console.log(err);
-				socket.disconnect();
 			} else {
-				order = order.metaData;
-				Orders.updateOrderStatus(order.orderId, order.status, (err, result) => {
+				// Check that at least one row was changed
+				Orders.wasOrderUpdated(result);
+
+				// Emit the order-status confirmation to the sender socket (the restaurant 
+				// that sent the order-status update)
+				socket.emit('orderStatusUpdated', {
+					orderId: order.orderId, 
+					status: order.status,
+					userMsg: Orders.setStatusUpdateMsg(order.status)
+				});
+
+				// Retrieve all connected sockets associated with the recipient restaurant (who updated the order's status)
+				Sockets.getRecipientRestaurantSockets(order.restaurantId, (err, result) => {
 					if(err) {
 						console.log(err);
 					} else {
-						// Check that at least one row was changed
-						Orders.wasOrderUpdated(result);
+						if(result.length < 1) {
+							console.log('restaurant not found');
+						} else {
+							// Emit order-status=update confirmation to all connected sockets representing the recipient restaurant
+							for(i = 0; i < result.length; i++) {
+								socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
+									orderId: order.orderId, 
+									status: order.status,
+									userMsg: Orders.setStatusUpdateMsg(order.status)
+								});
+							}
 
-						// Emit the order-status confirmation to the sender socket (the restaurant 
-						// that sent the order-status update)
-						socket.emit('orderStatusUpdated', {
-							orderId: order.orderId, 
-							status: order.status,
-							userMsg: Orders.setStatusUpdateMsg(order.status)
-						});
-
-						// Retrieve all connected sockets associated with the recipient restaurant (who updated the order's status)
-						Sockets.getRecipientRestaurantSockets(order.restaurantId, (err, result) => {
-							if(err) {
-								console.log(err);
-							} else {
-								if(result.length < 1) {
-									console.log('restaurant not found');
+							// Retrieve all connected customer sockets who have placed orders with the restaurant
+							Sockets.getRecipientCustomerSockets(order.customerId, (err, result) => {
+								if(err) {
+									// ToDO: log to server, inform client
+									console.log(err);
 								} else {
-									// Emit order-status=update confirmation to all connected sockets representing the recipient restaurant
+									// Emit the order-status update to all connected sockets representing the recipient customer
 									for(i = 0; i < result.length; i++) {
 										socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
 											orderId: order.orderId, 
@@ -244,26 +205,9 @@ io.on('connection', (socket) => {
 											userMsg: Orders.setStatusUpdateMsg(order.status)
 										});
 									}
-
-									// Retrieve all connected customer sockets who have placed orders with the restaurant
-									Sockets.getRecipientCustomerSockets(order.customerId, (err, result) => {
-										if(err) {
-											// ToDO: log to server, inform client
-											console.log(err);
-										} else {
-											// Emit the order-status update to all connected sockets representing the recipient customer
-											for(i = 0; i < result.length; i++) {
-												socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
-													orderId: order.orderId, 
-													status: order.status,
-													userMsg: Orders.setStatusUpdateMsg(order.status)
-												});
-											}
-										}
-									});
 								}
-							}
-						});
+							});
+						}
 					}
 				});
 			}

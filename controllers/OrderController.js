@@ -11,64 +11,52 @@ const Restaurants = require('../models/Restaurants');
 const ResponseHelper = require('../helpers/ResponseHelper');
 
 router.get('/getAllLive/:restaurantId', (req, res, next) => {
-	if(!req.headers.authorization || !req.params.restaurantId) {
-		ResponseHelper.invalidRequest(res, ['restaurantId']);
-	} else {
-		const restaurantId = req.params.restaurantId;
-		const token = req.headers.authorization;
-		// Check that the token is valid
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.invalidToken(res);
+	const restaurantId = req.params.restaurantId;
+	Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
+		if(err) {
+			ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
+		} else if(result.length < 1) {
+			ResponseHelper.resourceNotFound(res, 'restaurant');
+		} else {
+			const ownerId = result[0].ownerId;
+			const requesterId = res.locals.authUser.userId;
+			// Menus can only be modified by the menu owner
+			if(requesterId != ownerId) {
+				ResponseHelper.unauthorised(res, 'restaurant');
 			} else {
-				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
+				// All orders that are at the restaurant level of the "circuit", e.g. sentToKitchen, receivedByKitchen, accepted
+				Orders.getAllLiveOrdersForRestaurant(restaurantId, (err, orders) => {
 					if(err) {
-						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
-					} else if(result.length < 1) {
-						ResponseHelper.resourceNotFound(res, 'restaurant');
+						ResponseHelper.sql(res, 'getAllLiveOrdersForRestaurant', err);
 					} else {
-						const ownerId = result[0].ownerId;
-						const requesterId = decodedpayload.userId;
-						// Menus can only be modified by the menu owner
-						if(requesterId != ownerId) {
-							ResponseHelper.unauthorised(res, 'restaurant');
+						if(orders.length < 1) {
+							// If there are no live orders, send an empty array
+							ResponseHelper.customSuccess(res, 200, []);
 						} else {
-							// All orders that are at the restaurant level of the "circuit", e.g. sentToKitchen, receivedByKitchen, accepted
-							Orders.getAllLiveOrdersForRestaurant(restaurantId, (err, orders) => {
-								if(err) {
-									ResponseHelper.sql(res, 'getAllLiveOrdersForRestaurant', err);
-								} else {
-									if(orders.length < 1) {
-										// If there are no live orders, send an empty array
-										ResponseHelper.customSuccess(res, 200, []);
-									} else {
-										// Add an empty items array to all the live orders
-										for(i = 0; i < orders.length; i++) {
-											orders[i].items = [];
-										}
+							// Add an empty items array to all the live orders
+							for(i = 0; i < orders.length; i++) {
+								orders[i].items = [];
+							}
 
-										Orders.getItemsFromLiveOrders(restaurantId, (err, orderItems) => {
-											if(err) {
-												ResponseHelper.sql(res, 'getItemsFromLiveOrders', err);
-											} else {
-												if(orderItems.length < 1) {
-													// If there are no orderItems (weird), send the orders array
-													ResponseHelper.customSuccess(res, 200, orders);
-												} else {
-													// Loop through the orderitems and assign them to their order
-													orderItems.forEach(function(item) {
-														const newItem = {itemId: item.itemId, name: item.name}
-														orders.forEach(function(order) {
-															// If there is an order with the item's orderId, add the item to this order's array of items
-															if(item.orderId == order.orderId) {
-																order.items.push(newItem);
-															}
-														});
-													});
-													ResponseHelper.customSuccess(res, 200, orders);
+							Orders.getItemsFromLiveOrders(restaurantId, (err, orderItems) => {
+								if(err) {
+									ResponseHelper.sql(res, 'getItemsFromLiveOrders', err);
+								} else {
+									if(orderItems.length < 1) {
+										// If there are no orderItems (weird), send the orders array
+										ResponseHelper.customSuccess(res, 200, orders);
+									} else {
+										// Loop through the orderitems and assign them to their order
+										orderItems.forEach(function(item) {
+											const newItem = {itemId: item.itemId, name: item.name}
+											orders.forEach(function(order) {
+												// If there is an order with the item's orderId, add the item to this order's array of items
+												if(item.orderId == order.orderId) {
+													order.items.push(newItem);
 												}
-											}
+											});
 										});
+										ResponseHelper.customSuccess(res, 200, orders);
 									}
 								}
 							});
@@ -76,8 +64,8 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 					}
 				});
 			}
-		});
-	}
+		}
+	});
 });
 
 module.exports = router;

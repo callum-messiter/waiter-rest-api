@@ -2,29 +2,30 @@
 // Config
 const db = require('../config/database');
 
-module.exports.addSocket = function(data, callback) {
-	var tableName;
-	if(data.hasOwnProperty('restaurantId')) {
-		tableName = 'socketsrestaurants';
-	} else if(data.hasOwnProperty('customerId')) {
-		tableName = 'socketscustomers';
-	}
-
-	const query = 'INSERT INTO ' + tableName + ' SET ?';
-	db.query(query, data, callback);
+module.exports.addSocket = function(data) {
+	return new Promise((resolve, reject) => {
+		var tableName;
+		data.hasOwnProperty('restaurantId') ? tableName = 'socketsrestaurants' : tableName = 'socketscustomers';
+		
+		const query = 'INSERT INTO ' + tableName + ' SET ?';
+		db.query(query, data, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }
 
-module.exports.removeSocket = function(socketId, type, callback) {
-	var tableName;
-	if(type == 'restaurant') {
-		tableName = 'socketsrestaurants';
-	} else if(type == 'customer') {
-		tableName = 'socketscustomers';
-	}
+module.exports.removeSocket = function(socketId, type) {
+	return new Promise((resolve, reject) => {
+		var tableName;
+		(type == 'restaurant') ? tableName = 'socketsrestaurants' : tableName = 'socketscustomers';
 
-	const query = 'DELETE FROM ' + tableName +
-				  ' WHERE socketId = ?';
-	db.query(query, socketId, callback);
+		const query = 'DELETE FROM ' + tableName + ' WHERE socketId = ?';
+		db.query(query, socketId, (err, result) => {
+			if (err) return reject(err);
+			resolve(result);
+		});
+	});
 }
 
 module.exports.addSocketToRestaurantCustomers = function(data, callback) {

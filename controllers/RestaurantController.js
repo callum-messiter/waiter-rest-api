@@ -15,51 +15,44 @@ const ResponseHelper = require('../helpers/ResponseHelper');
 	Get all active restaurants
 **/
 router.get('/', (req, res, next) => {
-	if(!req.headers.authorization) {
-		ResponseHelper.missingHeaders(res, 'authorization');
-	}
 
-	const token = req.headers.authorization;
-	Auth.verifyToken(token, (err, decodedpayload) => {
-		if(err) ResponseHelper.invalidToken(res);
-		Restaurants.getAllRestaurants((err, restaurants) => {
-			if(err) {
-				ResponseHelper.sql(res, 'getAllRestaurants', err); 
-			} else if(restaurants.length < 1) {
-				ResponseHelper.resourceNotFound(res, 'restaurants');
-			} else {
-				/**
-					HORRIBLE HACK:
+	Restaurants.getAllRestaurants((err, restaurants) => {
+		if(err) {
+			ResponseHelper.sql(res, 'getAllRestaurants', err); 
+		} else if(restaurants.length < 1) {
+			ResponseHelper.resourceNotFound(res, 'restaurants');
+		} else {
+			/**
+				HORRIBLE HACK:
 
-					I need each object in the restaurants array to contain
-					an array of the restaurant's menu.
+				I need each object in the restaurants array to contain
+				an array of the restaurant's menu.
 
-					This surely can be done using one SQL query, but I don't know how.
-				**/
+				This surely can be done using one SQL query, but I don't know how.
+			**/
 
-				for(var i = 0; i < restaurants.length; i++) {
-					restaurants[i].menus = [];
-				}
-
-				Menus.getAllMenus((err, menus) => {
-					if(err) {
-						ResponseHelper.sql(res, 'getAllMenus', err); 
-					} else {
-						restaurants.forEach((r) => {
-							menus.forEach((m) => {
-								if(r.restaurantId == m.restaurantId) {
-									r.menus.push({
-										menuId: m.menuId,
-										name: m.name
-									});
-								}
-							});
-						});
-						ResponseHelper.customSuccess(res, 200, restaurants);
-					}
-				});
+			for(var i = 0; i < restaurants.length; i++) {
+				restaurants[i].menus = [];
 			}
-		});
+
+			Menus.getAllMenus((err, menus) => {
+				if(err) {
+					ResponseHelper.sql(res, 'getAllMenus', err); 
+				} else {
+					restaurants.forEach((r) => {
+						menus.forEach((m) => {
+							if(r.restaurantId == m.restaurantId) {
+								r.menus.push({
+									menuId: m.menuId,
+									name: m.name
+								});
+							}
+						});
+					});
+					ResponseHelper.customSuccess(res, 200, restaurants);
+				}
+			});
+		}
 	});
 });
 

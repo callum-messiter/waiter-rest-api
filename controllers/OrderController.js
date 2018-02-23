@@ -7,64 +7,55 @@ const jwt = require('jsonwebtoken');
 const Orders = require('../models/Orders');
 const Auth = require('../models/Auth');
 const Restaurants = require('../models/Restaurants');
+const roles = require('../models/UserRoles').roleIDs;
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
+const e = require('../helpers/error').errors;
 
+// TODO: only use route parameters that refer specifically to the desired resource (e.g. to get a specific order, use the orderId)
 router.get('/getAllLive/:restaurantId', (req, res, next) => {
+	const u = res.locals.authUser;
 	const restaurantId = req.params.restaurantId;
-	Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
-		if(err) {
-			ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
-		} else if(result.length < 1) {
-			ResponseHelper.resourceNotFound(res, 'restaurant');
-		} else {
-			const ownerId = result[0].ownerId;
-			const requesterId = res.locals.authUser.userId;
-			// Menus can only be modified by the menu owner
-			if(requesterId != ownerId) {
-				ResponseHelper.unauthorised(res, 'restaurant');
-			} else {
-				// All orders that are at the restaurant level of the "circuit", e.g. sentToKitchen, receivedByKitchen, accepted
-				Orders.getAllLiveOrdersForRestaurant(restaurantId, (err, orders) => {
-					if(err) {
-						ResponseHelper.sql(res, 'getAllLiveOrdersForRestaurant', err);
-					} else {
-						if(orders.length < 1) {
-							// If there are no live orders, send an empty array
-							ResponseHelper.customSuccess(res, 200, []);
-						} else {
-							// Add an empty items array to all the live orders
-							for(i = 0; i < orders.length; i++) {
-								orders[i].items = [];
-							}
 
-							Orders.getItemsFromLiveOrders(restaurantId, (err, orderItems) => {
-								if(err) {
-									ResponseHelper.sql(res, 'getItemsFromLiveOrders', err);
-								} else {
-									if(orderItems.length < 1) {
-										// If there are no orderItems (weird), send the orders array
-										ResponseHelper.customSuccess(res, 200, orders);
-									} else {
-										// Loop through the orderitems and assign them to their order
-										orderItems.forEach(function(item) {
-											const newItem = {itemId: item.itemId, name: item.name}
-											orders.forEach(function(order) {
-												// If there is an order with the item's orderId, add the item to this order's array of items
-												if(item.orderId == order.orderId) {
-													order.items.push(newItem);
-												}
-											});
-										});
-										ResponseHelper.customSuccess(res, 200, orders);
-									}
-								}
-							});
-						}
-					}
-				});
+	Restaurants.getRestaurantOwnerId(restaurantId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.restaurantNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions
+		return Orders.getAllLiveOrdersForRestaurant(restaurantId);
+
+	// TODO: retrieving orders, then the order items, then building the object, should be done with one query
+	}).then((o) => {
+
+		// Add an empty items array to all the live orders
+		if(o.length > 0) {
+			for(i = 0; i < o.length; i++) {
+				o[i].items = [];
 			}
+			res.locals.orders = JSON.parse(JSON.stringify(o));
+			return Orders.getItemsFromLiveOrders(restaurantId);
 		}
+		return true;
+
+	}).then((i) => {
+
+		const orders = res.locals.orders;
+		if(orders.length < 1) return res.status(200).json({ data: {} });
+		if(i.length < 1) return res.status(200).json({ data: orders });
+		// Loop through the orderitems and assign them to their order
+		i.forEach((item) => {
+			const newItem = {itemId: item.itemId, name: item.name}
+			orders.forEach((order) => {
+				// If there is an order with the item's orderId, add the item to this order's array of items
+				if(item.orderId == order.orderId) {
+					order.items.push(newItem);
+				}
+			});
+		});
+		return res.status(200).json({ data: orders });
+
+	}).catch((err) => {
+		return next(err);
 	});
 });
 

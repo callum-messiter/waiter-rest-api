@@ -26,6 +26,11 @@ const errors = {
 		errorKey: 'jwtMalformed',
 		userMsg: 'Oops! Your session has expired. Log in to continue using waitr.'
 	},
+	insufficientPermissions: {
+		statusCode: 403,
+		errorKey: 'insufficientPermissions',
+		userMsg: defaultUserMsg
+	},
 	emailNotRegistered: {
 		statusCode: 401,
 		errorKey: 'emailNotRegistered',

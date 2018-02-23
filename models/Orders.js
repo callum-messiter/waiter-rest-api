@@ -112,26 +112,36 @@ module.exports.wasOrderUpdated = function(result) {
 	]
 **/
 module.exports.getAllLiveOrdersForRestaurant = function(restaurantId, callback) {
-	// Orders with the below statuses are those that are visible to the restaurant kitchen
-	const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
-				  'FROM orders ' +
-				  'WHERE restaurantId = ? ' +
-				  'AND (status = ' + this.statuses.sentToKitchen + ' ' +
-				  'OR status = ' + this.statuses.receivedByKitchen + ' ' +
-				  'OR status = ' + this.statuses.acceptedByKitchen + ')';
-	db.query(query, restaurantId, callback);
+	return new Promise((resolve, reject) => {
+		// Orders with the below statuses are those that are visible to the restaurant kitchen
+		const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
+					  'FROM orders ' +
+					  'WHERE restaurantId = ? ' +
+					  'AND (status = ' + this.statuses.sentToKitchen + ' ' +
+					  'OR status = ' + this.statuses.receivedByKitchen + ' ' +
+					  'OR status = ' + this.statuses.acceptedByKitchen + ')';
+		db.query(query, restaurantId, (err, orders) => {
+			if(err) return reject(err);
+			resolve(orders);
+		});
+	});
 }
 
 module.exports.getItemsFromLiveOrders = function(restaurantId, callback) {
-	const query = 'SELECT items.itemId, items.name, orderitems.orderId ' +
-				  'FROM items ' +
-				  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
-				  'JOIN orders ON orders.orderId = orderitems.orderId ' +
-				  'WHERE orders.restaurantId = ? ' +
-				  'AND (orders.status = ' + this.statuses.sentToKitchen + ' ' +
-				  'OR orders.status = ' + this.statuses.receivedByKitchen + ' ' +
-				  'OR orders.status = ' + this.statuses.acceptedByKitchen + ')';
-	db.query(query, restaurantId, callback);
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT items.itemId, items.name, orderitems.orderId ' +
+					  'FROM items ' +
+					  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
+					  'JOIN orders ON orders.orderId = orderitems.orderId ' +
+					  'WHERE orders.restaurantId = ? ' +
+					  'AND (orders.status = ' + this.statuses.sentToKitchen + ' ' +
+					  'OR orders.status = ' + this.statuses.receivedByKitchen + ' ' +
+					  'OR orders.status = ' + this.statuses.acceptedByKitchen + ')';
+		db.query(query, restaurantId, (err, orderItems) => {
+			if(err) return reject(err);
+			resolve(orderItems);
+		});
+	});
 }
 
 module.exports.setStatusUpdateMsg = function(status) {

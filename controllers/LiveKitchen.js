@@ -105,6 +105,7 @@ module.exports.handler = function(socket) {
 				socket.broadcast.to(result[i].socketId).emit('newOrder', orderForRestaurant);
 				console.log('[ORDER] Order ' + order.metaData.orderId  + ' from ' + socket.id + ' sent to ' + result[i].socketId + '.');
 			}
+			return true;
 
 		}).catch((err) => {
 			// TODO: log to server, inform client

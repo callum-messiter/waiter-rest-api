@@ -5,10 +5,10 @@ const db = require('../config/database');
 	The available roles. {roleTitle: roleId}
 **/
 module.exports.roleIDs = {
-	'diner': 100,
-	'restaurateur': 200,
-	'internalAdmin': 500,
-	'externalAdmin': 900
+	diner: 100,
+	restaurateur: 200,
+	internalAdmin: 500,
+	externalAdmin: 900
 }
 
 /**

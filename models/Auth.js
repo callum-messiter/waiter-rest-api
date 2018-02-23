@@ -2,6 +2,8 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const moment = require('moment');
+// Models
+const roles = require('../models/UserRoles').roleIDs;
 // Config
 const db = require('../config/database');
 const secret = require('../config/jwt').secret;
@@ -60,4 +62,18 @@ module.exports.deleteTokenReference = function(token, userId) {
 			resolve(result);
 		});
 	});
+}
+
+module.exports.userHasAccessRights = function(requester, resourceOwnerId) {
+	/** 
+		Players can access resources they own
+		Coaches can access resources they own
+		InternalAdmins can access any resources
+	**/
+	const requesterIsAnAdmin = (requester.userRole == roles.internalAdmin);
+	const requesterOwnsResource = (requester.userId == resourceOwnerId);
+	if(!requesterIsAnAdmin && !requesterOwnsResource) {
+		return false;
+	}
+	return true;
 }

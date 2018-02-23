@@ -20,9 +20,14 @@ module.exports.getRestaurantByOwnerId = function(ownerId) {
 /**
 	Get the ID of the restaurant's owner
 **/
-module.exports.getRestaurantOwnerId = function(restaurantId, callback) {
-	const query = 'SELECT ownerId FROM restaurants WHERE restaurantId = ?';
-	db.query(query, restaurantId, callback);
+module.exports.getRestaurantOwnerId = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT ownerId FROM restaurants WHERE restaurantId = ?';
+		db.query(query, restaurantId, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }
 
 module.exports.createNewRestaurant = function(restaurant, callback) {

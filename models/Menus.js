@@ -54,11 +54,16 @@ module.exports.getMenuItems = function(menuId, callback) {
 /**
 	Get the userId of the menu owner by passing the menuId
 **/
-module.exports.getMenuOwnerId = function(menuId, callback){
-	const query = 'SELECT restaurants.ownerId FROM restaurants ' +
-				  'JOIN menus on menus.restaurantId = restaurants.restaurantId ' +
-				  'WHERE menus.menuId = ?';
-	db.query(query, menuId, callback);
+module.exports.getMenuOwnerId = function(menuId){
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT restaurants.ownerId FROM restaurants ' +
+					  'JOIN menus on menus.restaurantId = restaurants.restaurantId ' +
+					  'WHERE menus.menuId = ?';
+		db.query(query, menuId, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }
 
 /**

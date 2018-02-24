@@ -66,6 +66,15 @@ const errors = {
 	},
 
 	/**
+		SQL
+	**/
+	sqlInsertFailed: {
+		statusCode: 500,
+		errorKey: 'sqlInsertFailed',
+		userMsg: defaultUserMsg
+	},
+	
+	/**
 		Unhandled
 	**/
 	internalServerError: {

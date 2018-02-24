@@ -10,130 +10,27 @@ const Menus = require('../models/Menus');
 const ResponseHelper = require('../helpers/ResponseHelper');
 const RequestHelper = require('../helpers/RequestHelper');
 const QueryHelper = require('../helpers/QueryHelper');
-// Schema
-const allowedCategoryParams = Categories.schema.requestBodyParams;
+const e = require('../helpers/error').errors;
 
-/**
- * @api {post} /category/create/:menuId CreateNewCategory
- * @apiGroup Category
- * @apiDescription Add a new menu category to an existing menu
- * @apiPermission restaurateur, internalAdmin, externalAdmin
- * @apiHeader {String} Authorization The user access token provided by the API upon successful login
- * @apiParam {String} menuId The id of the menu to which the category should be added
- * @apiSuccessExample {json} Success 200
-{
-    "success": true,
-    "error": "",
-    "data": {
-        "createdCategoryId": 3
-    }
-}
- * @apiErrorExample {json} 401 Invalid token
-{
-    "success": false,
-    "error": "invalid_token",
-    "msg": "The server determined that the token provided in the request is invalid. It likely expired - try logging in again."
-}
- * @apiErrorExample {json} 401 Unauthorised: not resource owner
-{
-    "success": false,
-    "error": "unauthorised",
-    "msg": "A menu can be modified only by the menu owner."
-}
- * @apiErrorExample {json} 404 Mandatory request data missing
-{
-    "success": false,
-    "error": "request_data_missing",
-    "msg": "The server was expecting an 'authorization' header and a menuId. At least one of these params was missing."
-}
- * @apiErrorExample {json} 404 Mandatory request params missing
-{
-    "success": false,
-    "error": "missing_required_params",
-    "msg": "The server was expecting a category name."
-}
- * @apiErrorExample {json} 404 ownerId not found
-{
-    "success": false,
-    "error": "ownerId_not_found",
-    "msg": "The query returned zero results. It is likely that a menu with the specified ID does not exist."
-}	
- * @apiErrorExample {json} 422 Invalid request parameter
-{
-    "success": false,
-    "error": "invalid_data_param",
-    "msg": "The data parameter 'dodgyParam' is not a valid parameter for the resource in question."
-}
- * @apiErrorExample {json} 500 getMenuOwnerId (SQL) error
-{
-    "success": false,
-    "error": "get_menu_owner_query_error",
-    "msg": // sql SNAKE_CASE error key - report to the api dev
-}
- * @apiErrorExample {json} 500 createNewCategory (SQL) error
-{
-    "success": false,
-    "error": "create_category_query_error",
-    "msg": // sql SNAKE_CASE error key - report to the api dev
-}
-**/
 router.post('/create', (req, res, next) => {
-	// Check auth header and menuId param
-	if(!req.headers.authorization) {
-		ResponseHelper.invalidRequest(res);
-	} else {
-		// Check required item data
-		if(!req.body.name || !req.body.menuId) {
-			ResponseHelper.missingRequiredData(res, ['name', 'menuId']);
-		} else {
-			const token = req.headers.authorization;
-			const category = req.body;
-			const menuId = category.menuId;
+	const u = res.locals.authUser;
 
-			// Since we pass the req.body directly to the query, we need to ensure the params provided are valid and map to DB field names
-			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(category, allowedCategoryParams, res);
-			if(requestDataIsValid !== true) {
-				ResponseHelper.customError(res, 422, 'invalid_data_param', 
-					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
-					ResponseHelper.msg.default.user
-				);
-			} else {
-				category.categoryId = shortId.generate();
-				// Check that the token is valid
-				Auth.verifyToken(token, (err, decodedpayload) => {
-					if(err) {
-						ResponseHelper.invalidToken(res);
-					} else {
-						// Check that the requester owns the menu
-						Menus.getMenuOwnerId(menuId, (err, result) => {
-							if(err) {
-								ResponseHelper.sql(res, 'getMenuOwnerId', err);
-							} else if(result.length < 1) {
-								ResponseHelper.resourceNotFound(res, 'menu');
-							} else {
-								const ownerId = result[0].ownerId;
-								const requesterId = decodedpayload.userId;
-								// Menus can only be modified by the menu owner
-								if(requesterId != ownerId) {
-									ResponseHelper.unauthorised(res, 'menu');
-								} else {
-									// Create category
-									Categories.createNewCategory(category, (err, result) => {
-										if(err) {
-											ResponseHelper.sql(res, 'createNewCategory', err);
-										} else {
-											// Return the ID of the new category
-											ResponseHelper.customSuccess(res, 200, {createdCategoryId: category.categoryId});
-										}
-									});
-								}
-							}
-						});
-					}
-				});
-			}
-		}
-	}
+	if(!req.body.name || !req.body.menuId) throw e.missingRequiredParams;
+	const category = req.body;
+	category.categoryId = shortId.generate();
+
+	Menus.getMenuOwnerId(category.menuId)
+	.then((m) => {
+
+		if(m.length < 1) throw e.menuNotFound;
+		if(!Auth.userHasAccessRights(u, m[0].ownerId)) throw e.insufficientPermissions;
+		return Categories.createNewCategory(category);
+
+	}).then((result) => {
+		res.status(200).json( data = {createdCategoryId: category.categoryId} );
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
 /**

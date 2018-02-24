@@ -1,22 +1,6 @@
-// Dependencies
 // Config
 const db = require('../config/database');
-
-module.exports.schema = {
-	categoryId: '',
-	menuId: '',
-	name: '',
-	description: '',
-	date: '',
-	active: '',
-	// The parameters that can be passed in the body of the request
-	requestBodyParams: {
-		menuId: '',
-		name: '',
-		description: ''
-	}
-}
-
+const e = require('../helpers/error').errors;
 /**
 	Get the userId of the category owner
 **/
@@ -40,9 +24,14 @@ module.exports.getCategoryItems = function(categoryId, callback) {
 	Create new category that is assigned to the relevant menu
 **/
 module.exports.createNewCategory = function(category, callback) {
-	// First add the menuId (from the route) to the category object (sent in the body)
-	const query = 'INSERT INTO categories SET ?';
-	db.query(query, category, callback);
+	return new Promise((resolve, reject) => {
+		const query = 'INSERT INTO categories SET ?';
+		db.query(query, category, (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
+			resolve(result);
+		});
+	});
 }
 
 /**

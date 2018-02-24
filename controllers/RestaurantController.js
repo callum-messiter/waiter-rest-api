@@ -7,7 +7,6 @@ const Restaurants = require('../models/Restaurants');
 const Menus = require('../models/Menus');
 const Auth = require('../models/Auth');
 const Users = require('../models/Users');
-
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 

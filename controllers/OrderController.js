@@ -9,12 +9,13 @@ const Auth = require('../models/Auth');
 const Restaurants = require('../models/Restaurants');
 const roles = require('../models/UserRoles').roleIDs;
 // Helpers
-const ResponseHelper = require('../helpers/ResponseHelper');
 const e = require('../helpers/error').errors;
 
 // TODO: only use route parameters that refer specifically to the desired resource (e.g. to get a specific order, use the orderId)
 router.get('/getAllLive/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
+
+	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
 	const restaurantId = req.params.restaurantId;
 
 	Restaurants.getRestaurantOwnerId(restaurantId)

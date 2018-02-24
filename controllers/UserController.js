@@ -20,23 +20,6 @@ const secret = require('../config/jwt').secret;
 const modifiableUserDetails = Users.schema.requestBodyParams;
 
 /**
-	Get a list of all registered users
-**/
-router.get('/', (req, res, next) => {
-	// Check that the user is a waiterAdmin
-	Users.getAllUsers((err, users) => {
-		if(err) {
-			ResponseHelper.customError(res, 500, 'get_all_users_query_error',
-				ResponseHelper.msg.sql+err.code,
-				ResponseHelper.msg.default.user
-			);
-		} else {
-			ResponseHelper.customSuccess(res, 200, {users: users});
-		}
-	})
-});
-
-/**
 	Get single user by ID
 **/
 router.get('/:userId', (req, res, next) => {

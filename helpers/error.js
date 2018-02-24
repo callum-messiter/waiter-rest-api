@@ -66,6 +66,24 @@ const errors = {
 	},
 
 	/**
+		Categories
+	**/
+	categoryNotFound: {
+		statusCode: 404,
+		errorKey: 'categoryNotFound',
+		userMsg: defaultUserMsg
+	},
+
+	/**
+		Items
+	**/
+	itemNotFound: {
+		statusCode: 404,
+		errorKey: 'itemNotFound',
+		userMsg: defaultUserMsg
+	},
+
+	/**
 		SQL
 	**/
 	sqlInsertFailed: {
@@ -73,7 +91,17 @@ const errors = {
 		errorKey: 'sqlInsertFailed',
 		userMsg: defaultUserMsg
 	},
-	
+	sqlUpdateFailed: {
+		statusCode: 500,
+		errorKey: 'sqlUpdateFailed',
+		userMsg: defaultUserMsg
+	},
+	resourceAlreadyInactive: {
+		statusCode: 409,
+		errorKey: 'resourceAlreadyInactive',
+		userMsg: defaultUserMsg
+	},
+
 	/**
 		Unhandled
 	**/

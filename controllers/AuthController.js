@@ -51,7 +51,7 @@ router.get('/login', (req, res, next) => {
 		if(menu.length < 1) throw e.menuNotFound;
 		const u = res.locals.user;
 		const r = res.locals.restaurant;
-		res.status(200).json({data: {
+		return res.status(200).json({data: {
 			user: {
 				userId: u.userId,
 				role: u.roleId,
@@ -115,7 +115,7 @@ router.get('/logout', (req, res, next) => {
 	
 	Auth.verifyToken(req.headers.authorization)
 	.then((result) => {
-		res.status(200).json({});
+		return res.status(200).json({});
 	}).catch((err) => {
 		return next(err);
 	});

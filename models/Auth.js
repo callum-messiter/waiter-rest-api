@@ -8,7 +8,7 @@ const roles = require('../models/UserRoles').roleIDs;
 const db = require('../config/database');
 const secret = require('../config/jwt').secret;
 const jwtOpts = require('../config/jwt').opts;
-const e = require('../helpers/error');
+const e = require('../helpers/error').errors;
 
 /**
 	Generate a new json web token (jwt) upon successful login
@@ -64,14 +64,15 @@ module.exports.deleteTokenReference = function(token, userId) {
 	});
 }
 
+/** 
+	Customers (100) can access resources they own
+	Restaurants (200) can access resources they own
+	InternalAdmins (500) can access any resources
+**/
 module.exports.userHasAccessRights = function(requester, resourceOwnerId) {
-	/** 
-		Players can access resources they own
-		Coaches can access resources they own
-		InternalAdmins can access any resources
-	**/
+	// We may need to add a basic role check, although access is implicitly denied to "unauthorised" user types via the resource-ownership check
 	const requesterIsAnAdmin = (requester.userRole == roles.internalAdmin);
-	const requesterOwnsResource = (requester.userId == resourceOwnerId);
+	const requesterOwnsResource = (requester.userId == resourceOwnerId); 
 	if(!requesterIsAnAdmin && !requesterOwnsResource) {
 		return false;
 	}

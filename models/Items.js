@@ -1,72 +1,94 @@
 const db = require('../config/database');
-
-module.exports.schema = {
-	itemId: '',
-	categoryId: '',
-	name: '',
-	price: '',
-	description: '',
-	date: '',
-	// The parameters that can be passed in the body of the request
-	requestBodyParams: {
-		name: '',
-		price: '',
-		description: '',
-		categoryId: '',
-	}
-}
+const e = require('../helpers/error').errors;
 
 /**
 	Create a new item, assigned to a category
 **/
-module.exports.createNewItem = function(item, callback) {
-	// First add the categoryId (from the route) to the item object (sent in the body)
-	const query = 'INSERT INTO items SET ?';
-	db.query(query, item, callback);
+module.exports.createNewItem = function(item) {
+	return new Promise((resolve, reject) => {
+		const query = 'INSERT INTO items SET ?';
+		db.query(query, item, (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
+			resolve(result);
+		});
+	});
 }
 
-module.exports.getItemById = function(itemId, callback) {
-	const query = 'SELECT itemId, name, price, description FROM items WHERE itemId = ?';
-	db.query(query, itemId, callback);
+module.exports.getItemById = function(itemId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT itemId, name, price, description ' +
+					  'FROM items ' + 
+					  'WHERE itemId = ?';
+		db.query(query, itemId, (err, items) => {
+			if(err) return reject(err);
+			resolve(items);
+		});
+	});
 }
 
 /**
 	Deactivate item, so it will no longer be visible to the user, but recoverable in the future
 **/
-module.exports.deactivateItem = function(itemId, callback) {
-	const query = 'UPDATE items SET active = 0 ' +
-				  'WHERE itemId = ?';
-	db.query(query, itemId, callback);
+module.exports.deactivateItem = function(itemId) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE items SET active = 0 ' +
+					  'WHERE itemId = ?';
+		db.query(query, itemId, (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			if(result.changedRows < 1) return reject(e.resourceAlreadyInactive);
+			resolve(result);
+		});
+	});
 }
 
 /**
 	Update item details
 **/
-module.exports.updateItemDetails = function(itemId, itemData, callback) {
-	const query = 'UPDATE items SET ? ' +
-				  'WHERE itemId = ?';
-    db.query(query, [itemData, itemId], callback);
+module.exports.updateItemDetails = function(itemId, itemData) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE items SET ? ' +
+					  'WHERE itemId = ?';
+	    db.query(query, [itemData, itemId], (err, result) => {
+	    	if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			// Will be zero if the data provided does not differ from the existing data
+			// if(result.changedRows < 1) return reject();
+			resolve(result);
+	    });
+	});
 }
 
 /**
 	Get the userId of the item owner
 **/
-module.exports.getItemOwnerId = function(itemId, callback) {
-	const query = 'SELECT restaurants.ownerId FROM restaurants ' +
-				  'JOIN menus ON menus.restaurantId = restaurants.restaurantId ' +
-				  'JOIN categories ON categories.menuId = menus.menuId ' +
-				  'JOIN items ON items.categoryId = categories.categoryId ' +
-				  'WHERE items.itemId = ?';
-	db.query(query, itemId, callback);
+module.exports.getItemOwnerId = function(itemId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT restaurants.ownerId FROM restaurants ' +
+					  'JOIN menus ON menus.restaurantId = restaurants.restaurantId ' +
+					  'JOIN categories ON categories.menuId = menus.menuId ' +
+					  'JOIN items ON items.categoryId = categories.categoryId ' +
+					  'WHERE items.itemId = ?';
+		db.query(query, itemId, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
 }
 
 /**
-	Get all items belonging to a particular category
+	Get all active items belonging to a particular category
 **/
-module.exports.getAllItemsFromCategory = function(categoryId, callback) {
-	const query = 'SELECT itemId, name, price, description ' +
-				  'FROM items ' +
-				  'WHERE categoryId = ? ' +
-				  'ORDER BY date';
-	db.query(query, categoryId, callback);
+module.exports.getAllItemsFromCategory = function(categoryId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT itemId, name, price, description ' +
+					  'FROM items ' +
+					  'WHERE categoryId = ? AND active = 1 ' +
+					  'ORDER BY date';
+		db.query(query, categoryId, (err, items) => {
+			if(err) return reject(err);
+			resolve(items);
+		});
+	});
 }

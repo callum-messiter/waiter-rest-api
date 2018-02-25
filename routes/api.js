@@ -12,7 +12,6 @@ const MenuController = require('../controllers/MenuController');
 const CategoryController = require('../controllers/CategoryController');
 const ItemController = require('../controllers/ItemController');
 const OrderController = require('../controllers/OrderController');
-const EmailController = require('../controllers/EmailController');
 
 router.use(mw.authoriseUser);
 
@@ -24,6 +23,5 @@ router.use('/menu', MenuController);
 router.use('/category', CategoryController);
 router.use('/item', ItemController);
 router.use('/order', OrderController);
-router.use('/email', EmailController);
 
 module.exports = router;

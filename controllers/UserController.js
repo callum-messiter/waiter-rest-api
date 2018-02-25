@@ -10,7 +10,6 @@ const Users = require('../models/Users');
 const UserRoles = require('../models/UserRoles');
 const Auth = require('../models/Auth');
 const Restaurants = require('../models/Restaurants');
-const Emails = require('../models/Emails');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
 const RequestHelper = require('../helpers/RequestHelper');
@@ -18,228 +17,164 @@ const QueryHelper = require('../helpers/QueryHelper');
 // Config
 const secret = require('../config/jwt').secret;
 const modifiableUserDetails = Users.schema.requestBodyParams;
+const e = require('../helpers/error').errors;
+
+// TODO: export this function into a helper
+function allRequiredParamsProvided(reqBody, rp) {
+	for(var i = 0; i < rp.length; i++) {
+		const param = rp[i]
+		if(reqBody[param] == undefined) {
+			return false;
+		}
+	}
+	return true;
+}
 
 /**
 	Get single user by ID
 **/
-router.get('/:userId', (req, res, next) => {
-	// Check that the request contains a token, and the Id of the user whose details are to be retrieved
-	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.invalidRequest(res, ['userId']);
-	} else {
-		const userId = req.params.userId;
-		const token = req.headers.authorization;
-		// Check that the token is valid
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.invalidToken(res);
-			} else {
-				const requesterId = decodedpayload.userId;
+router.get('', (req, res, next) => {
+	Users.getUserById(res.locals.authUser.userId)
+	.then((u) => {
 
-				Users.getUserById(userId, (err, result) => {
-					if(err) {
-						ResponseHelper.sql(res, 'getUserById', err);
-					} else if(result.length < 1) {
-						ResponseHelper.resourceNotFound(res, 'user');
-					} else {
-						// User details can be accessed only by the owner, or by an internal admin
-						if(requesterId != userId) {
-							ResponseHelper.unauthorised(res, 'user account')
-						} else {
-							// Return only insensitive user information
-							user = {
-								userId: result[0].userId,
-								email: result[0].email, 
-								firstName: result[0].firstName,
-								lastName: result[0].lastName,
-								isVerified: result[0].isVerified,
-								isActive: result[0].isActive
-							}
-							ResponseHelper.customSuccess(res, 200, user);
-						}
-					}
-				});
+		if(u.length < 1) throw e.userNotFound;
+		return res.status(200).json({
+			data: {
+				userId: u[0].userId,
+				email: u[0].email, 
+				firstName: u[0].firstName,
+				lastName: u[0].lastName,
+				//isVerified: u[0].isVerified,
+				//isActive: u[0].isActive
 			}
 		});
-	}
+
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
 /**
-	Create user 
+	Create a new restaurateur
 **/
-router.post('/create', (req, res, next) => {
-	// No token required, and no access restriction
-	const userRolesObject = UserRoles.roleIDs;
-	// Check the subroute is set
-	if(!req.body.userType) {
-		ResponseHelper.missingRequiredData(res, ['userType']);
-	} else {
-		const userType = req.body.userType;
-		// Check that the subroute is valid (the user has specified a valid user type)
-		if(!userRolesObject.hasOwnProperty(userType)) {
-			ResponseHelper.customError(res, 404, 'invalid_user_type', 
-				'" + ' + userType + '" is not a valid user type.',
-				ResponseHelper.msg.default.user
-			);
-		} else {
-			const userRole = userRolesObject[userType]; // e.g. roleIDs['admin'] = 900
-			// Check that the request contains all required user details
-			if(
-			   !req.body.email || !req.body.password || 
-			   !req.body.firstName || !req.body.lastName
-			) {
-				ResponseHelper.missingRequiredData(res, ['userType', 'email', 'password', 'firstName', 'lastName', 'restaurantName']);
-			} else {
-				// If the user is a restaurateur, check that the restaurant name is provided
-				if(userRole === userRolesObject['restaurateur'] && !req.body.restaurantName) {
-					ResponseHelper.missingRequiredData(res, ['restaurantName']);
-				}
-				// Check if the email is already registered
-				Users.isEmailRegistered(req.body.email, (err, result) => {
-					if(err) {
-						ResponseHelper.sql(res, 'isEmailRegistered', err);
-					} else {
-						if(result[0].matches > 0) {
-							ResponseHelper.customError(res, 409, 
-								'email_already_registered', 'The email address ' + req.body.email + ' is already registered.',
-								'It looks like ' + req.body.email + 'is already registered to an account! If you\'ve forgotten your password, contact support.'
-							);
-						} else {
-							// Hash the password
-							Users.hashPassword(req.body.password, (err, hashedPassword) => {
-								if(err) {
-									ResponseHelper.customError(res, 500, 'bcrypt_error', 
-										'There was an error with the bcrypt package: ' + err,
-										ResponseHelper.msg.default.user
-									);
-								} else {
-									// Create user object with hashed password
-									const user = {
-										userId: shortId.generate(),
-										email: req.body.email,
-										password: hashedPassword,
-										firstName: req.body.firstName,
-										lastName: req.body.lastName
-									}
-									// Add the new user to the db
-									Users.createNewUser(user, (err, result) => {
-										if(err) {
-											ResponseHelper.sql(res, 'createNewUser', err);
-										} else {
-											const userId = user.userId;
-											// Set the user's role, which we get from the userRolesObject, using the specified userType
-											const userDetails = {
-												userId: userId,
-												roleId: userRole,
-												startDate: myDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss") // Consider timezones
-											}
+router.post('/r', (req, res, next) => {
+	res.locals.newUser = {role: UserRoles.roleIDs['restaurateur']}
 
-											UserRoles.setUserRole(userDetails, (err) => {
-												if(err) {
-													ResponseHelper.sql(res, 'setUserRole', err);
-												} else {
-													// If a diner has registered, return only the user details
-													if(userRole === userRolesObject['diner']) {
-														return ResponseHelper.customSuccess(res, 201, {
-															user: {
-																userId: userId, 
-																userRole: userRole,
-																isVerified: false,
-															}
-														});
-													}
-													// Otherwise, Create the user's restaurant, and the default menu with default categories
-													const restaurant = {
-														ownerId: userId,
-														restaurantId: shortId.generate(),
-														name: req.body.restaurantName
-													};
-													const menu = {
-														restaurantId: restaurant.restaurantId,
-														menuId: shortId.generate(),
-														name: 'Main Menu'
-													};
+	const rp = ['email', 'password', 'firstName', 'lastName', 'userType', 'restaurantName'];
+	if(!allRequiredParamsProvided(req.body, rp)) throw e.missingRequiredParams;
 
-													Restaurants.createRestaurantWithDefaultMenu(restaurant, menu, (err, result) => {
-														if(err) {
-															ResponseHelper.sql(res, 'createRestaurantWithDefaultMenu', err);
-														} else {
-															ResponseHelper.customSuccess(res, 201, {
-																user: {
-																	userId: userId, 
-																	userRole: userRole,
-																	isVerified: false,
-																},
-																restaurant: restaurant,
-																menu: menu
-															});
-															/**
-																Email verification goes here
-															**/
-														}
-													});
-												}
-											})
-										}	
-									});
-								}
-							});
-						}
-					}
-				});
-			}
+	Users.isEmailRegistered(req.body.email)
+	.then((r) => {
+
+		if(r.length > 0) throw e.emailAlreadyRegistered;
+		return Users.hashPassword(req.body.password);
+
+	}).then((hash) => {
+
+		const user = {
+			userId: shortId.generate(),
+			email: req.body.email,
+			password: hash,
+			firstName: req.body.firstName,
+			lastName: req.body.lastName
 		}
-	}
+		res.locals.newUser.userId = user.userId;
+		return Users.createNewUser(user);
+
+	}).then((result) => {
+
+		const userDetails = {
+			userId: res.locals.newUser.userId,
+			roleId: res.locals.newUser.role,
+			startDate: myDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss")
+		}
+		return UserRoles.setUserRole(userDetails);
+
+	}).then((result) => {
+
+		// Create the user's restaurant, and the default menu with default categories
+		const restaurant = {
+			ownerId: res.locals.newUser.userId,
+			restaurantId: shortId.generate(),
+			name: req.body.restaurantName
+		};
+		const menu = {
+			restaurantId: restaurant.restaurantId,
+			menuId: shortId.generate(),
+			name: 'Main Menu'
+		};
+		res.locals.newUser.restaurant = restaurant;
+		res.locals.newUser.menu = menu;
+
+		return Restaurants.createRestaurantWithDefaultMenu(restaurant, menu);
+
+	}).then((result) => {
+
+		return res.status(201).json({
+			user: {
+				userId: res.locals.newUser.userId, 
+				userRole: res.locals.newUser.role,
+				//isVerified: false,
+			},
+			restaurant: res.locals.newUser.restaurant,
+			menu: res.locals.newUser.menu
+		});
+
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
 /**
+	Create a new diner
+**/
+router.post('/d', (req, res, next) => {
+	res.locals.newUser = {role: UserRoles.roleIDs['diner']}
 
-EMAIL VERIFICATION
+	const rp = ['email', 'password', 'firstName', 'lastName', 'userType'];
+	if(!allRequiredParamsProvided(req.body, rp)) throw e.missingRequiredParams;
 
-// Generate a hash containg the user's current isVerified value, and add it as a claim to the new email-verification jwt. When the user clicks the url in the email we send them,
-// we will decode the jwt, get the hash, generate a new hash using the same data, and compare the two hashes. The two hashes should
-// only differ if the user has already verified their email account (thus invalidating the token and the url/email)
-const userCurrentVerifiedStatus = 0;
-const string = userCurrentVerifiedStatus+secret;
-const hash = md5(string);
+	Users.isEmailRegistered(req.body.email)
+	.then((r) => {
 
-Emails.createEmailVerificationToken(userId, hash, (err, token) => {
-	if(err) {
-		ResponseHelper.customError(res, 500, 'create_email_ver_token_query_error', err);
-	} else {
-		const recipient = {
-			email: user.email,
-			firstName: user.firstName,
-			url: 'http://localhost:3000/api/email/verifyEmail?v='+token
-		};
-		// Send email
-		Emails.sendSingleEmail(res, 'emailVerification', recipient, (err, result) => {
-			if(err) {
-				ResponseHelper.customError(res, 500, 'send_email_error', err);
-			} else {
-				// Add the verification token to the database
-				const data = {
-					userId: userId, 
-					token: token
-				}
-				Emails.storeVerificationToken(data, (err, result) => {
-					if(err) {
-						ResponseHelper.customError(res, 500, 'store_email_ver_token_query_error', err);
-					} else {
-						response.user = {
-							userId: userId, 
-							userRole: userRole,
-							isVerified: false,
-						};
-						ResponseHelper.customSuccess(res, 201, response);
-					}
-				});
+		if(r.length > 0) throw e.emailAlreadyRegistered;
+		return Users.hashPassword(req.body.password);
+
+	}).then((hash) => {
+
+		const user = {
+			userId: shortId.generate(),
+			email: req.body.email,
+			password: hash,
+			firstName: req.body.firstName,
+			lastName: req.body.lastName
+		}
+		res.locals.newUser.userId = user.userId;
+		return Users.createNewUser(user);
+
+	}).then((result) => {
+
+		const userDetails = {
+			userId: res.locals.newUser.userId,
+			roleId: res.locals.newUser.role,
+			startDate: myDate = moment(new Date()).format("YYYY-MM-DD HH:mm:ss")
+		}
+		return UserRoles.setUserRole(userDetails);
+
+	}).then((result) => {
+
+		return res.status(201).json({
+			user: {
+				userId: res.locals.newUser.userId, 
+				userRole: res.locals.newUser.role,
+				//isVerified: false,
 			}
 		});
-	}
-});
 
-**/
+	}).catch((err) => {
+		return next(err);
+	});
+});
 
 /**
 	Deactivate user
@@ -430,12 +365,5 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 		});
 	}
 });
-
-router.put('updateEmail/:userId', (req, res, next) => {
-	// Check the headers and request params
-	// Check that the body contains the newEmailAddress param
-	// Send an email to the new email address
-});
-
 
 module.exports = router;

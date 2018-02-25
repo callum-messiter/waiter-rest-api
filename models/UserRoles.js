@@ -1,5 +1,5 @@
-// Config
 const db = require('../config/database');
+const e = require('../helpers/error').errors;
 
 /**
 	The available roles. {roleTitle: roleId}
@@ -14,9 +14,15 @@ module.exports.roleIDs = {
 /**
 	Sets the user's role
 **/
-module.exports.setUserRole = function(userDetails, callback) {
-	const query = 'INSERT INTO userroles SET ?'
-	db.query(query, userDetails, callback);
+module.exports.setUserRole = function(userDetails) {
+	return new Promise((resolve, reject) => {
+		const query = 'INSERT INTO userroles SET ?'
+		db.query(query, userDetails, (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
+			resolve(result);
+		});
+	});
 }
 
 /**

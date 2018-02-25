@@ -48,6 +48,20 @@ const errors = {
 	},
 
 	/**
+		Users
+	**/
+	userNotFound: {
+		statusCode: 404,
+		errorKey: 'userNotFound',
+		userMsg: defaultUserMsg
+	},
+	emailAlreadyRegistered: {
+		statusCode: 404,
+		errorKey: 'emailAlreadyRegistered',
+		userMsg: 'That email address is already registered to an account! If you\'ve forgotten your password, contact support.'
+	},
+
+	/**
 		Restaurants
 	**/
 	restaurantNotFound: {

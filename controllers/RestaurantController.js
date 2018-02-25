@@ -9,49 +9,40 @@ const Auth = require('../models/Auth');
 const Users = require('../models/Users');
 // Helpers
 const ResponseHelper = require('../helpers/ResponseHelper');
+const e = require('../helpers/error').errors;
 
-/**
-	Get all active restaurants
-**/
+// TODO: condense queries 'getAllRestaurants', 'getAllMenus' into one; remove slash from route
 router.get('/', (req, res, next) => {
+	const u = res.locals.authUser;
 
-	Restaurants.getAllRestaurants((err, restaurants) => {
-		if(err) {
-			ResponseHelper.sql(res, 'getAllRestaurants', err); 
-		} else if(restaurants.length < 1) {
-			ResponseHelper.resourceNotFound(res, 'restaurants');
-		} else {
-			/**
-				HORRIBLE HACK:
+	// TODO: roles allowed
+	Restaurants.getAllRestaurants()
+	.then((restaurants) => {
 
-				I need each object in the restaurants array to contain
-				an array of the restaurant's menu.
+		res.locals.restaurants = restaurants;
+		// Add to each restaurant object a menus array, to be populated in the next block
+		for(var i = 0; i < restaurants.length; i++) {
+			restaurants[i].menus = [];
+		}
+		return Menus.getAllMenus();
 
-				This surely can be done using one SQL query, but I don't know how.
-			**/
+	}).then((menus) => {
 
-			for(var i = 0; i < restaurants.length; i++) {
-				restaurants[i].menus = [];
-			}
-
-			Menus.getAllMenus((err, menus) => {
-				if(err) {
-					ResponseHelper.sql(res, 'getAllMenus', err); 
-				} else {
-					restaurants.forEach((r) => {
-						menus.forEach((m) => {
-							if(r.restaurantId == m.restaurantId) {
-								r.menus.push({
-									menuId: m.menuId,
-									name: m.name
-								});
-							}
-						});
+		res.locals.restaurants.forEach((r) => {
+			// If the menu belongs to the restaurant, add it to the menus array
+			menus.forEach((m) => {
+				if(r.restaurantId == m.restaurantId) {
+					r.menus.push({
+						menuId: m.menuId,
+						name: m.name
 					});
-					ResponseHelper.customSuccess(res, 200, restaurants);
 				}
 			});
-		}
+		});
+		return res.status(200).json( {data: res.locals.restaurants} );
+
+	}).catch((err) => {
+		return next(err);
 	});
 });
 
@@ -59,204 +50,112 @@ router.get('/', (req, res, next) => {
 	Get a restaurant and its details
 **/
 router.get('/:restaurantId', (req, res, next) => {
-		// Check that the request contains a token, and the Id of the user whose details are to be retrieved
-	if(!req.headers.authorization || !req.params.restaurantId) {
-		ResponseHelper.invalidRequest(res, ['restaurantId']);
-	} else {
-		const restaurantId = req.params.restaurantId;
-		const token = req.headers.authorization;
-		// Check that the token is valid
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.invalidToken(res);
-			} else {
-				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
-					if(err) {
-						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
-					} else if(result.length < 1) {
-						ResponseHelper.resourceNotFound(res, 'restaurant');
-					} else {
-						const requesterId = decodedpayload.userId;
-						const ownerId = result[0].ownerId;
-						// User details can be accessed only by the owner, or by an internal admin. Future: restaurant details accessible to users granted access by restaurant owner
-						if(requesterId != ownerId) {
-							ResponseHelper.unauthorised(res, 'restaurant');
-						} else {
-							// Get the restaurant details
-							Restaurants.getRestaurantById(restaurantId, (err, result) => {
-								if(err) {
-									ResponseHelper.sql(res, 'getRestaurantById', err);
-								} else if(result.length < 1) {
-									ResponseHelper.resourceNotFound(res, 'restaurant');
-								} else {
-									// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
-									ResponseHelper.customSuccess(res, 200, {
-										name: result[0].name,
-										description: result[0].description,
-										location: result[0].location,
-										phoneNumber: result[0].phoneNumber,
-										emailAddress: result[0].emailAddress
-									});
-								}
-							});
-						}
-					}
-				});
+	const u = res.locals.authUser;
+
+	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
+	const restaurantId = req.params.restaurantId;
+
+	Restaurants.getRestaurantOwnerId(restaurantId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.restaurantNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return Restaurants.getRestaurantById(restaurantId);
+
+	}).then((r) => {
+
+		// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
+		return res.status(200).json({
+			data: {
+				name: r[0].name,
+				description: r[0].description,
+				location: r[0].location,
+				phoneNumber: r[0].phoneNumber,
+				emailAddress: r[0].emailAddress
 			}
 		});
-	}
+
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
-/**
-	Create a new restaurant, assigned to the requester user
-**/
-router.post('/create/:userId', (req, res, next) => {
-	// Check auth header and menuId param
-	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.invalidRequest(res, ['userId']);
-	} else {
-		// Check required item data
-		if(!req.body.name || !req.body.description || !req.body.location || !req.body.phoneNumber || !req.body.emailAddress) {
-			ResponseHelper.missingRequiredData(res, ['name', 'description', 'location', 'phoneNumber', 'emailAddress']);
-		} else {
-			const token = req.headers.authorization;
-			const userId = req.params.userId;
-			const restaurant = req.body;
-			// Add the restaurantId and ownerId
-			restaurant.restaurantId= shortId.generate();
-			restaurant.ownerId = userId;
+// TODO: remove route param 'userId'; create restaurant for authUser.userId
+router.post('/create', (req, res, next) => {
+	const u = res.locals.authUser;
 
-			// Check that the token is valid
-			Auth.verifyToken(token, (err, decodedpayload) => {
-				if(err) {
-					ResponseHelper.invalidToken(res);
-				} else {
-					// Check that the user with the specified ID exists (we need to check that the user is who they say they are, using session)
-					Users.getUserById(userId, (err, result) => {
-						if(err) {
-							ResponseHelper.sql(res, 'getUserById', err);
-						} else if(result.length < 1) {
-							ResponseHelper.resourceNotFound(res, 'user');
-						} else {
-							const requesterId = decodedpayload.userId;
-							// Menus can only be modified by the menu owner
-							if(requesterId != userId) {
-								ResponseHelper.unauthorised(res, 'user account');
-							} else {
-								// Create restaurant
-								Restaurants.createNewRestaurant(restaurant, (err, result) => {
-									if(err) {
-										ResponseHelper.sql(res, 'createNewRestaurant', err);
-									} else {
-										// Return the ID of the new restaurant
-										ResponseHelper.customSuccess(res, 200, {createdRestaurantId: restaurant.restaurantId});
-									}
-								});
-							}
-						}
-					});
-				}
-			});
-		}
-	}
+	if(req.body.name == undefined || req.body.description == undefined) throw e.missingRequiredParams;
+
+	const restaurant = req.body;
+	restaurant.restaurantId= shortId.generate(); // Assign ID
+	restaurant.ownerId = u.userId; // Assign ownerId
+	res.locals.restaurant = restaurant;
+
+	// First check that the user exists
+	Users.getUserById(u.userId)
+	.then((u) => {
+
+		if(u.length < 1) throw e.userNotFound;
+		Restaurants.createNewRestaurant(restaurant);
+
+	}).then((result) => {
+		// TODO: change to 201; remove parent obj 'data'
+		return res.status(200).json( {
+			data: {
+				createdRestaurantId: res.locals.restaurant.restaurantId
+			}
+		});
+
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
-/**
-	Update the details of a category
-**/
+// TODO: change to PATCH
 router.put('/update/:restaurantId', (req, res, next) => {
-	// Check auth header and restaurantId param
-	if(!req.headers.authorization || !req.params.restaurantId) {
-		ResponseHelper.invalidRequest(res, ['restaurantId']);
-	} else {
-		// Function for validating data: params must be valid, and required parmas must be provided
-		const token = req.headers.authorization;
-		const restaurantId = req.params.restaurantId;
-		const restaurantData = req.body;
-		// Check that the body params are allowed; write an external helper function for this
-		// Check that the token is valid
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.invalidToken(res);
-			} else {
-				// Check that the requester owns the menu
-				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
-					if(err) {
-						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
-					} else if(result.length < 1) {
-						ResponseHelper.customError(res, 404, 'ownerId_not_found', 
-							'The query returned zero results. It is likely that a restaurant with the specified ID does not exist.',
-							ResponseHelper.msg.default.user
-						);
-					} else {
-						const ownerId = result[0].ownerId;
-						const requesterId = decodedpayload.userId;
-						// Menus can only be modified by the menu owner
-						if(requesterId != ownerId) {
-							ResponseHelper.unauthorised(res, 'restaurant');
-						} else {
-							// Update Menu
-							Restaurants.updateRestaurantDetails(restaurantId, restaurantData, (err, result) => {
-								if(err) {
-									ResponseHelper.sql(res, 'updateRestaurantDetails', err);
-								} else if(result.changedRows < 1) {
-									QueryHelper.diagnoseQueryError(result, res);
-								} else {
-									ResponseHelper.customSuccess(res, 200);					
-								}
-							});
-						}
-					}
-				});
-			}
-		});
-	}
+	const u = res.locals.authUser;
+
+	const noValidParams = (req.body.name == undefined && req.body.description == undefined);
+	if(req.params.restaurantId == undefined || noValidParams) throw e.missingRequiredParams;
+
+	const restaurantId = req.params.restaurantId;
+	const restaurantData = req.body;
+
+	Restaurants.getRestaurantOwnerId(restaurantId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.restaurantNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		Restaurants.updateRestaurantDetails(restaurantId, restaurantData);
+
+	}).then((result) => {
+		// TODO: change to 204
+		return res.status(200).json({});
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
-/**
-	Deactivate a restaurant, such that it will no longer be visible to the user, but recoverable in the future
-**/
+// TODO: change to PATCH
 router.put('/deactivate/:restaurantId', (req, res, next) => {
-		// Check auth header and restaurantId param
-	if(!req.headers.authorization || !req.params.restaurantId) {
-		ResponseHelper.invalidRequest(res, ['restaurantId']);
-	} else {
-		const token = req.headers.authorization;
-		const restaurantId = req.params.restaurantId;
-		// Check that the token is valid
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.invalidToken(res);
-			} else {
-				// Check that the requester owns the menu
-				Restaurants.getRestaurantOwnerId(restaurantId, (err, result) => {
-					if(err) {
-						ResponseHelper.sql(res, 'getRestaurantOwnerId', err);
-					} else if(result.length < 1) {
-						ResponseHelper.resourceNotFound(res, 'restaurant');
-					} else {
-						const ownerId = result[0].ownerId;
-						const requesterId = decodedpayload.userId;
-						// Menus can only be modified by the menu owner
-						if(requesterId != ownerId) {
-							ResponseHelper.unauthorised(res, 'restaurant');
-						} else {
-							// Deactivate menu
-							Restaurants.deactivateRestaurant(restaurantId, (err, result) => {
-								if(err) {
-									ResponseHelper.sql(res, 'deactivateRestaurant', err);
-								} else if(result.changedRows < 1) {
-									QueryHelper.diagnoseQueryError(result, res);
-								} else {
-									ResponseHelper.customSuccess(res, 200);
-								}
-							});
-						}
-					}
-				});
-			}
-		});
-	}
+	const u = res.locals.authUser;
+
+	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
+	const restaurantId = req.params.restaurantId;
+
+	Restaurants.getRestaurantOwnerId(restaurantId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.restaurantNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return Restaurants.deactivateRestaurant(restaurantId);
+
+	}).then((result) => {
+		// TODO: change to 204
+		return res.status(200).json({});
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
 module.exports = router;

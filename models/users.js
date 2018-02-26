@@ -126,10 +126,18 @@ module.exports.createNewUser = function(user) {
 /**
 	Update the user's details. Refer to the schema to see info about editable parameters
 **/
-module.exports.updateUserDetails = function(userId, userDetails, callback) {
-	const query = 'UPDATE users SET ? ' +
-				  'WHERE userId = ?';
-	db.query(query, [userDetails, userId], callback);
+module.exports.updateUserDetails = function(userId, userDetails) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE users SET ? ' +
+					  'WHERE userId = ?';
+		db.query(query, [userDetails, userId], (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			// Will be zero if the data provided does not differ from the existing data
+			// if(result.changedRows < 1) return reject();
+			resolve(result);
+		});
+	});
 }
 
 module.exports.updateUserPassword = function(userId, newPassword) {

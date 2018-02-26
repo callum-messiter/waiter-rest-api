@@ -204,49 +204,31 @@ router.put('/deactivate/:userId', (req, res, next) => {
 
 // TODO: change to PATCH; change route to '/details/:userId'
 router.put('/updateDetails/:userId', (req, res, next) => {
-	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.invalidRequest(res, ['userId']);
-	} else {
-		if(!req.body.firstName && !req.body.lastName) {
-			ResponseHelper.missingRequiredData(res, ['firstName', 'lastName']);
-		} else {
-			const token = req.headers.authorization;
-			const userId = req.params.userId;
-			const userDetails = req.body;
-			// Check that the body params are allowed; write an external helper function for this
-			const requestDataIsValid = RequestHelper.checkRequestDataIsValid(userDetails, modifiableUserDetails, res);
-			if(requestDataIsValid !== true) {
-				ResponseHelper.customError(res, 422, 'invalid_data_params', 
-					"The data parameter '" + requestDataIsValid + "' is not a valid parameter for the resource in question.",
-					ResponseHelper.msg.default.user
-				);
-			} else {
-				Auth.verifyToken(token, (err, decodedpayload) => {
-					if(err) {
-						ResponseHelper.invalidToken(res);
-					} else {
-						const ownerId = userId;
-						const requesterId = decodedpayload.userId;
-						// Menus can only be modified by the menu owner
-						if(requesterId != ownerId) {
-							ResponseHelper.unauthorised(res, 'user account');
-						} else {
-							// Update user details
-							Users.updateUserDetails(userId, userDetails, (err, result) => {
-								if(err) {
-									ResponseHelper.sql(res, 'updateUserDetails', err);
-								} else if(result.changedRows < 1) {
-									QueryHelper.diagnoseQueryError(result, res);
-								} else {
-									ResponseHelper.customSuccess(res, 200);					
-								}
-							});
-						}
-					}
-				});
-			}
-		}
+	const u = res.locals.authUser;
+
+	const requiredParams = {
+		query: [],
+		body: ['firstName', 'lastName'],
+		route: ['userId']
 	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+	const userId = req.params.userId;
+	const userDetails = req.body;
+
+	Users.getUserById(req.params.userId)
+	.then((user) => {
+
+		if(user.length < 1) throw e.userNotFound;
+		// In this case the 'resource' is the user to be deactivated; the 'resource owner' is the user returned by the query
+		if(!Auth.userHasAccessRights(u, req.params.userId)) throw e.insufficientPermissions;
+		return Users.updateUserDetails(userId, userDetails);
+
+	}).then((result) => {
+		// TODO: change to 204
+		return res.status(200).json({});
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
 // TODO: change to PATCH; change route to '/password/:userId'
@@ -271,8 +253,8 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 		return Users.checkPassword(req.body.currentPassword, user[0].password);
 
 	}).then((passwordsMatch) => {
-		console.log(passwordsMatch);
-		//if(!passwordsMatch) throw e.currentPasswordIncorrect;
+		
+		if(!passwordsMatch) throw e.currentPasswordIncorrect;
 		// Hash the new password
 		return Users.hashPassword(req.body.newPassword);
 

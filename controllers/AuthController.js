@@ -1,4 +1,4 @@
-// Dependencies
+	// Dependencies
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
@@ -42,13 +42,13 @@ router.get('/login', (req, res, next) => {
 
 	}).then((restaurant) => {
 
-		if(restaurant.length < 1) throw e.restaurantNotFound;
+		if(restaurant.length < 1) throw e.restaurantNotFound; // For now it is mandatory
 		res.locals.restaurant = JSON.parse(JSON.stringify(restaurant[0]));
 		return Menus.getMenuByRestaurantId(restaurant[0].restaurantId);
 
 	}).then((menu) => {
 
-		if(menu.length < 1) throw e.menuNotFound;
+		if(menu.length < 1) throw e.menuNotFound; // For now it is mandatory
 		const u = res.locals.user;
 		const r = res.locals.restaurant;
 		return res.status(200).json({data: {

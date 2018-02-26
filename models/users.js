@@ -54,10 +54,10 @@ module.exports.hashPassword = function(password) {
 **/
 module.exports.checkPassword = function(plainTextPassword, hash) {
 	return new Promise((resolve, reject) => {
-		bcrypt.compare(plainTextPassword, hash, (err, result) => {
+		bcrypt.compare(plainTextPassword, hash, (err, passwordsMatch) => {
 			if(err) return reject(err);
-			// if(result === false) return reject(err='invalid_password');
-			resolve(result);
+			// if(passwordsMatch === false) return reject(err='invalid_password');
+			resolve(passwordsMatch);
 		});
 	});
 }
@@ -132,10 +132,18 @@ module.exports.updateUserDetails = function(userId, userDetails, callback) {
 	db.query(query, [userDetails, userId], callback);
 }
 
-module.exports.updateUserPassword = function(userId, newPassword, callback) {
-	const query = 'UPDATE users SET password = ? ' +
-				  'WHERE userId = ?';
-	db.query(query, [newPassword, userId], callback);
+module.exports.updateUserPassword = function(userId, newPassword) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE users SET password = ? ' +
+					  'WHERE userId = ?';
+		db.query(query, [newPassword, userId], (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			// Will be zero if the data provided does not differ from the existing data
+			// if(result.changedRows < 1) return reject();
+			resolve(result);
+		});
+	});
 }
 
 module.exports.updateUserEmailAddress = function(userId, newEmailAddress, isVerified=false, callback) {
@@ -155,7 +163,14 @@ module.exports.setUserAsVerified = function(userId, callback) {
 /**
 	"Deletes" a user (sets their isActive property to 0)
 **/
-module.exports.deactivateUser = function(userId, callback) {
-	const query = 'UPDATE users SET isActive = 0 WHERE userId = ?';
-	db.query(query, userId, callback);
+module.exports.deactivateUser = function(userId) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE users SET isActive = 0 WHERE userId = ?';
+		db.query(query, userId, (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			if(result.changedRows < 1) return reject(e.resourceAlreadyInactive);
+			resolve(result);
+		});
+	});
 }

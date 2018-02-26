@@ -60,6 +60,11 @@ const errors = {
 		errorKey: 'emailAlreadyRegistered',
 		userMsg: 'That email address is already registered to an account! If you\'ve forgotten your password, contact support.'
 	},
+	currentPasswordIncorrect: {
+		statusCode: 401,
+		errorKey: 'currentPasswordIncorrect',
+		userMsg: 'Incorrect password. Please double-check and try again.'
+	},
 
 	/**
 		Restaurants

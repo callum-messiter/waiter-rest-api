@@ -64,6 +64,21 @@ module.exports.deleteTokenReference = function(token, userId) {
 	});
 }
 
+// TODO: can/should we make this a middleware function (in the same way that we will make the checkRequestParameters a middleware function)?
+// In each route specification, we will add, as well as the requiredParams, the allowedRoles = []; 
+// THE CHALLENGE: getting the resourceOwnerId and storing it in res.locals.
+// This is hard because the query varies depending on the resource (getMenuOwnerId, getItemOwnerId etc.)
+// We could write a single method for this with a switch statement; each case is a resource, and
+// each resource has a corresponding: const query = 'SELECT {colName} FROM {tableName} WHERE {fieldName} = res.locals.resourceId'
+// We will have to set the res.locals.resourceId = req.params.{resourceId}
+
+// Return two errors: if the user doesn't have the required role; insufficientRolePrivileges.
+// If the user is not an admin and doesn't own , return accessDenied
+
+// We may also later check that the requester has been granted access rights by the resource owner. 
+// There will be a DB table called "adminaccess", which will contain the ownerId and the adminId
+// The query will check: is there a row where ownerId = resourceOwnerId, and adminId = requester.userId
+
 /** 
 	Customers (100) can access resources they own
 	Restaurants (200) can access resources they own

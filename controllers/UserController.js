@@ -18,17 +18,7 @@ const QueryHelper = require('../helpers/QueryHelper');
 const secret = require('../config/jwt').secret;
 const modifiableUserDetails = Users.schema.requestBodyParams;
 const e = require('../helpers/error').errors;
-
-// TODO: export this function into a helper
-function allRequiredParamsProvided(reqBody, rp) {
-	for(var i = 0; i < rp.length; i++) {
-		const param = rp[i]
-		if(reqBody[param] == undefined) {
-			return false;
-		}
-	}
-	return true;
-}
+const p = require('../helpers/params');
 
 /**
 	Get single user by ID
@@ -60,8 +50,12 @@ router.get('', (req, res, next) => {
 router.post('/r', (req, res, next) => {
 	res.locals.newUser = {role: UserRoles.roleIDs['restaurateur']}
 
-	const rp = ['email', 'password', 'firstName', 'lastName', 'userType', 'restaurantName'];
-	if(!allRequiredParamsProvided(req.body, rp)) throw e.missingRequiredParams;
+	const requiredParams = {
+		query: [],
+		body: ['email', 'password', 'firstName', 'lastName', 'userType', 'restaurantName'],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	Users.isEmailRegistered(req.body.email)
 	.then((r) => {
@@ -131,8 +125,12 @@ router.post('/r', (req, res, next) => {
 router.post('/d', (req, res, next) => {
 	res.locals.newUser = {role: UserRoles.roleIDs['diner']}
 
-	const rp = ['email', 'password', 'firstName', 'lastName', 'userType'];
-	if(!allRequiredParamsProvided(req.body, rp)) throw e.missingRequiredParams;
+	const requiredParams = {
+		query: [],
+		body: ['email', 'password', 'firstName', 'lastName', 'userType'],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	Users.isEmailRegistered(req.body.email)
 	.then((r) => {
@@ -176,67 +174,35 @@ router.post('/d', (req, res, next) => {
 	});
 });
 
-/**
-	Deactivate user
-**/
+// TODO: change to PATCH
 router.put('/deactivate/:userId', (req, res, next) => {
-	// Check that the request contains a token, and the Id of the user whose details are to be deactivated
-	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.invalidRequest(res, ['userId']);
-	} else {
-		const userId = req.params.userId;
-		const token = req.headers.authorization;
-		// Check that the token is valid
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.invalidToken(res);
-			} else {
-				const requesterRole = decodedpayload.userRole;
-				const requesterId = decodedpayload.userId;
-				const waiterAdmin = UserRoles.roleIDs.waiterAdmin;
-				// A user can be deactivated only by the owner, or by an internal admin
-				if(requesterId != userId && requesterRole != waiterAdmin) {
-					ResponseHelper.unauthorised(res, 'user account');
-				} else {
-					// Before deactivating the user, check if the account is already active
-					Users.getUserById(userId, (err, user) => {
-						if(err) {
-							ResponseHelper.sql(res, 'getUserById', err);
-						} else if(user.length < 1) {
-							ResponseHelper.resourceNotFound(res, 'user');
-						} else {
-							const IsActive = user[0].IsActive;
-							// Check if the user is active
-							if(!IsActive) {
-								ResponseHelper.customError(res, 409, 'user_already_inactive', 
-									'The server determined that the specified user account is aready inactive. You cannot deactivate an inactive account.',
-									'This account has already been deactivated. To re-activate it, click here.'
-								);
-							} else {
-								Users.deactivateUser(userId, (err, result) => {
-									if(err) {
-										ResponseHelper.sql(res, 'deactivateUser', err);
-									} else if(result.affectedRows < 1) {
-										ResponseHelper.customError(res, 404, 'user_not_deactivated', 
-											'The query was executed successfully but the user account was not deactivated.',
-											ResponseHelper.msg.default.user
-										);
-									} else {
-										ResponseHelper.customSuccess(res, 200);
-									}	
-								});
-							}
-						}
-					});
-				}
-			}
-		});
+	const u = res.locals.authUser;
+
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['userId']
 	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	// Check that the user with the provided ID exists
+	Users.getUserById(req.params.userId)
+	.then((user) => {
+
+		if(user.length < 1) throw e.userNotFound;
+		// In this case the 'resource' is the user to be deactivated; the 'resource owner' is the user returned by the query
+		if(!Auth.userHasAccessRights(u, req.params.userId)) throw e.insufficientPermissions;
+		return Users.deactivateUser(req.params.userId);
+
+	}).then((result) => {
+		// TODO: change to 204
+		return res.status(200).json({});
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
-/**
-	Update user
-**/
+// TODO: change to PATCH; change route to '/details/:userId'
 router.put('/updateDetails/:userId', (req, res, next) => {
 	if(!req.headers.authorization || !req.params.userId) {
 		ResponseHelper.invalidRequest(res, ['userId']);
@@ -283,87 +249,44 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 	}
 });
 
-/**
-	Update a user's password 
-**/
+// TODO: change to PATCH; change route to '/password/:userId'
 router.put('/updatePassword/:userId', (req, res, next) => {
-	// Check the request contains the required data
-	if(!req.headers.authorization || !req.params.userId) {
-		ResponseHelper.invalidRequest(res, ['userId']);
-	} else if(!req.body.currentPassword || !req.body.newPassword) {
-		ResponseHelper.missingRequiredData(res, ['currentPassword', 'newPassword']);
-	} else {
-		const token = req.headers.authorization;
-		const userId = req.params.userId;
-		const currentPassword = req.body.currentPassword;
-		const newPassword = req.body.newPassword;
-
-		Auth.verifyToken(token, (err, decodedpayload) => {
-			if(err) {
-				ResponseHelper.invalidToken(res);
-			} else {
-				const ownerId = userId;
-				const requesterId = decodedpayload.userId;
-				// A user can update only their own password
-				if(requesterId != ownerId) {
-					ResponseHelper.unauthorised(res, 'user account');
-				} else {
-					// Check that the user has entered a password that is different from their current password
-					if(newPassword == currentPassword) {
-						ResponseHelper.customError(res, 409, 'password_conflict', 
-							'The new password provided is the same as the user\'s current password.',
-							'The new password you entered is already assigned to your account. Please log in, or provide a different new password.'
-						);
-					} else {
-						// Get the user's current hashed password
-						Users.getUserById(userId, (err, result) => {
-							if(err) {
-								ResponseHelper.sql(res, 'getUserById', err);
-							} else if(result.length < 1) {
-								ResponseHelper.resourceNotFound(res, 'user');
-							} else {
-								const currentHashedPass = result[0].password;
-								const currentPlainTextPass = currentPassword;
-
-								// Check that the user has entered their current password correctly
-								Users.checkPassword(currentPlainTextPass, currentHashedPass, (err, passwordsMatch) => {
-									if(err) {
-										ResponseHelper.sql(res, 'checkPassword', err);
-									} else if(!passwordsMatch) {
-										ResponseHelper.customError(res, 401, 'invalid_password', 
-											'The currentPassword provided does not match the user\'s current password in the database.',
-											'The password you entered is incorrect. Please enter your current password, or reset it.');
-									} else if(passwordsMatch){
-										// Hash the new password
-										Users.hashPassword(newPassword, (err, newHashedPassword) => {
-											if(err) {
-												ResponseHelper.customError(res, 500, 'bcrypt_error',
-													'There was an error with the bcrypt package: ' + err,
-													ResponseHelper.msg.default.user
-												);
-											} else {
-												// Update user details
-												Users.updateUserPassword(userId, newHashedPassword, (err, result) => {
-													if(err) {
-														ResponseHelper.sql(res, 'updateUserPassword', err);
-													} else if(result.changedRows < 1) {
-														QueryHelper.diagnoseQueryError(result, res);
-													} else {
-														// Invalidate the current token
-														ResponseHelper.customSuccess(res, 200);					
-													}
-												});
-											}
-										});
-									}
-								});
-							}
-						});
-					}
-				}
-			}
-		});
+	const u = res.locals.authUser;
+	
+	const requiredParams = {
+		query: [],
+		body: ['currentPassword', 'newPassword'],
+		route: ['userId']
 	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	// Get the user's current hashed password
+	Users.getUserById(req.params.userId)
+	.then((user) => {
+
+		if(user.length < 1) throw e.userNotFound;
+		// In this case the 'resource' is the user to be deactivated; the 'resource owner' is the user returned by the query
+		if(!Auth.userHasAccessRights(u, req.params.userId)) throw e.insufficientPermissions;
+		// Check that the user has entered their current password correctly
+		return Users.checkPassword(req.body.currentPassword, user[0].password);
+
+	}).then((passwordsMatch) => {
+		console.log(passwordsMatch);
+		//if(!passwordsMatch) throw e.currentPasswordIncorrect;
+		// Hash the new password
+		return Users.hashPassword(req.body.newPassword);
+
+	}).then((newHashedPassword) => {
+
+		// Update the user's password
+		return Users.updateUserPassword(req.params.userId, newHashedPassword);
+
+	}).then((result) => {
+		// TODO: change to 204
+		return res.status(200).json({});
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
 module.exports = router;

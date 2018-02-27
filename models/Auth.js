@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const roles = require('../models/UserRoles').roleIDs;
+const roles = require('../models/UserRoles').roles;
 const db = require('../config/database');
 const secret = require('../config/jwt').secret;
 const jwtOpts = require('../config/jwt').opts;
@@ -38,17 +38,20 @@ module.exports.verifyToken = function(token) {
 	});
 }
 
+module.exports.userHasRequiredRole = function(requesterRoleId, allowedRoles) {
+	if (allowedRoles.indexOf(requesterRoleId) === -1) return false;
+	return true;
+}
+
 /** 
 	Customers (100) can access resources they own
 	Restaurants (200) can access resources they own
 	InternalAdmins (500) can access any resources
 **/
 module.exports.userHasAccessRights = function(requester, resourceOwnerId) {
-	// We may need to add a basic role check, although access is implicitly denied to "unauthorised" user types via the resource-ownership check
-	const requesterIsAnAdmin = (requester.userRole == roles.internalAdmin);
+	const requesterIsAnAdmin = (requester.userRole == roles.waitrAdmin);
 	const requesterOwnsResource = (requester.userId == resourceOwnerId); 
-	if(!requesterIsAnAdmin && !requesterOwnsResource) {
-		return false;
-	}
+	// If the requester is not an admin, he must be the owner of the resource to access it
+	if(!requesterIsAnAdmin && !requesterOwnsResource) return false;
 	return true;
 }

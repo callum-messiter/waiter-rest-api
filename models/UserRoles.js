@@ -4,6 +4,15 @@ const e = require('../helpers/error').errors;
 /**
 	The available roles. {roleTitle: roleId}
 **/
+module.exports.roles = {
+	diner: 100,
+	restaurateur: 200,
+	waitrAdmin: 900
+}
+
+/**
+	The available roles. {roleTitle: roleId}
+**/
 module.exports.roleIDs = {
 	diner: 100,
 	restaurateur: 200,

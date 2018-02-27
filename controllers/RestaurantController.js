@@ -4,11 +4,16 @@ const Restaurant = require('../models/Restaurant');
 const Menu = require('../models/Menu');
 const Auth = require('../models/Auth');
 const User = require('../models/User');
+const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
+const p = require('../helpers/params');
 
 // TODO: condense queries 'getAllRestaurants', 'getAllMenus' into one; remove slash from route
 router.get('/', (req, res, next) => {
 	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	// TODO: roles allowed
 	Restaurant.getAllRestaurants()
@@ -44,14 +49,23 @@ router.get('/', (req, res, next) => {
 router.get('/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
-	const restaurantId = req.params.restaurantId;
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['restaurantId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	const restaurantId = req.params.restaurantId;
 	Restaurant.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		// A menu restaurant's details can be retrieved by any user
+		// if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		return Restaurant.getRestaurantById(restaurantId);
 
 	}).then((r) => {
@@ -76,7 +90,15 @@ router.get('/:restaurantId', (req, res, next) => {
 router.post('/create', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.body.name == undefined || req.body.description == undefined) throw e.missingRequiredParams;
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	const requiredParams = {
+		query: [],
+		body: ['name', 'description'],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	const restaurant = req.body;
 	restaurant.restaurantId= shortId.generate(); // Assign ID
@@ -107,12 +129,15 @@ router.post('/create', (req, res, next) => {
 router.put('/update/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	// No *required* body params; but at least one must be provided
 	const noValidParams = (req.body.name == undefined && req.body.description == undefined);
 	if(req.params.restaurantId == undefined || noValidParams) throw e.missingRequiredParams;
-
+	
 	const restaurantId = req.params.restaurantId;
 	const restaurantData = req.body;
-
 	Restaurant.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
@@ -132,9 +157,17 @@ router.put('/update/:restaurantId', (req, res, next) => {
 router.put('/deactivate/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
-	const restaurantId = req.params.restaurantId;
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['restaurantId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+	
+	const restaurantId = req.params.restaurantId;
 	Restaurant.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 

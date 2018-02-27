@@ -3,19 +3,31 @@ const shortId = require('shortid');
 const Menu = require('../models/Menu');
 const Auth = require('../models/Auth');
 const Restaurant = require('../models/Restaurant');
+const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
+const p = require('../helpers/params');
 
 // TODO: condense queries 'getMenuDetails', 'getMenuCategories', 'getMenuItems' into one (or two) queries
 router.get('/:menuId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.params.menuId == undefined) throw e.missingRequiredParams;
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['menuId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
 	const menuId = req.params.menuId;
 	Menu.getMenuOwnerId(menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		// A menu can be retrieved by any user
+		// if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		return Menu.getMenuDetails(menuId);
 
 	}).then((m) => {
@@ -69,7 +81,16 @@ router.get('/:menuId', (req, res, next) => {
 router.post('/create', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.body.name == undefined || req.body.restaurantId == undefined) throw e.missingRequiredParams;
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	const requiredParams = {
+		query: [],
+		body: ['name', 'restaurantId'],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
 	const menu = req.body;
 	menu.menuId = shortId.generate();
 	const restaurantId = req.body.restaurantId;
@@ -102,19 +123,22 @@ router.post('/create', (req, res, next) => {
 router.put('/update/:menuId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	// At least one of the editable params must be provided
-	const noValidParams = (req.body.name == undefined);
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	// No *required* body params; but at least one must be provided
+	const noValidParams = (
+		req.body.name == undefined && req.body.daysOpen == undefined && 
+		req.body.openingTime == undefined && req.body.closingTime == undefined
+	);
 	if(req.params.menuId == undefined || noValidParams) throw e.missingRequiredParams;
 
-	const menuId = req.params.menuId;
-	const menuData = req.body;
-
-	Menu.getMenuOwnerId(menuId)
+	Menu.getMenuOwnerId(req.params.menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menu.updateMenuDetails(menuId, menuData);
+		return Menu.updateMenuDetails(req.params.menuId, req.body);
 
 	}).then((result) => {
 		// TODO: change to 204
@@ -128,15 +152,22 @@ router.put('/update/:menuId', (req, res, next) => {
 router.put('/deactivate/:menuId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.params.menuId == undefined) throw e.missingRequiredParams;
-	const menuId = req.params.menuId;
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
-	Menu.getMenuOwnerId(menuId)
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['menuId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	Menu.getMenuOwnerId(req.params.menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menu.deactivateMenu(menuId);
+		return Menu.deactivateMenu(req.params.menuId);
 
 	}).then((result) => {
 		// TODO; change to 204

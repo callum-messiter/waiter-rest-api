@@ -5,13 +5,16 @@ const User = require('../models/User');
 const UserRoles = require('../models/UserRoles');
 const Auth = require('../models/Auth');
 const Restaurant = require('../models/Restaurant');
+const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 
-/**
-	Get single user by ID
-**/
 router.get('', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
 	User.getUserById(res.locals.authUser.userId)
 	.then((u) => {
 
@@ -32,11 +35,8 @@ router.get('', (req, res, next) => {
 	});
 });
 
-/**
-	Create a new restaurateur
-**/
 router.post('/r', (req, res, next) => {
-	res.locals.newUser = {role: UserRoles.roleIDs['restaurateur']}
+	res.locals.newUser = {role: roles.restaurateur};
 
 	const requiredParams = {
 		query: [],
@@ -111,7 +111,7 @@ router.post('/r', (req, res, next) => {
 	Create a new diner
 **/
 router.post('/d', (req, res, next) => {
-	res.locals.newUser = {role: UserRoles.roleIDs['diner']}
+	res.locals.newUser = {role: roles.diner};
 
 	const requiredParams = {
 		query: [],
@@ -166,12 +166,20 @@ router.post('/d', (req, res, next) => {
 router.put('/updateDetails/:userId', (req, res, next) => {
 	const u = res.locals.authUser;
 
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	// No *required* body params; but at least one must be provided
+	const noValidParams = (req.body.firstName == undefined && req.body.lastName == undefined);
+	if(req.params.menuId == undefined || noValidParams) throw e.missingRequiredParams;
+
 	const requiredParams = {
 		query: [],
 		body: ['firstName', 'lastName'],
 		route: ['userId']
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
 	const userId = req.params.userId;
 	const userDetails = req.body;
 
@@ -195,6 +203,9 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 router.put('/updatePassword/:userId', (req, res, next) => {
 	const u = res.locals.authUser;
 	
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
 	const requiredParams = {
 		query: [],
 		body: ['currentPassword', 'newPassword'],
@@ -234,6 +245,9 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 // TODO: change to PATCH
 router.put('/deactivate/:userId', (req, res, next) => {
 	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],

@@ -3,10 +3,17 @@ const Auth = require('../models/Auth');
 const User = require('../models/User');
 const Restaurant = require('../models/Restaurant');
 const Menu = require('../models/Menu');
+const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
+const p = require('../helpers/params');
 
 router.get('/login', (req, res, next) => {
-	if(req.query.email == undefined || req.query.password == undefined) throw e.missingRequiredParams;
+	const requiredParams = {
+		query: ['email', 'password'],
+		body: [],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	User.getUserByEmail(req.query.email)
 	.then((user) => {
@@ -26,7 +33,7 @@ router.get('/login', (req, res, next) => {
 
 		res.locals.user.token = token;
 		const u = res.locals.user;
-		return RestaurantgetRestaurantByOwnerId(u.userId);
+		return Restaurant.getRestaurantByOwnerId(u.userId);
 
 	}).then((restaurant) => {
 
@@ -63,7 +70,12 @@ router.get('/login', (req, res, next) => {
 });
 
 router.get('/login/d', (req, res, next) => {
-	if(req.query.email == undefined || req.query.password == undefined) throw e.missingRequiredParams;
+	const requiredParams = {
+		query: ['email', 'password'],
+		body: [],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	User.getUserByEmail(req.query.email)
 	.then((user) => {
@@ -96,7 +108,17 @@ router.get('/login/d', (req, res, next) => {
 });
 
 router.get('/logout', (req, res, next) => {
-	if(req.query.userId == undefined) throw e.missingRequiredParams;
+	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	
+	const requiredParams = {
+		query: ['userId'],
+		body: [],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 	
 	Auth.verifyToken(req.headers.authorization)
 	.then((result) => {

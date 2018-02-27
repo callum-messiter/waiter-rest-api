@@ -2,13 +2,24 @@ const router = require('express').Router();
 const Order = require('../models/Order');
 const Auth = require('../models/Auth');
 const Restaurant = require('../models/Restaurant');
+const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
+const p = require('../helpers/params');
 
 // TODO: only use route parameters that refer specifically to the desired resource (e.g. to get a specific order, use the orderId)
 router.get('/getAllLive/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['restaurantId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
 	const restaurantId = req.params.restaurantId;
 
 	Restaurant.getRestaurantOwnerId(restaurantId)

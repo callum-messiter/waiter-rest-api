@@ -3,12 +3,23 @@ const shortId = require('shortid');
 const Item = require('../models/Item');
 const Category = require('../models/Category');
 const Auth = require('../models/Auth');
+const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
+const p = require('../helpers/params');
 
 router.get('/:itemId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.params.itemId == undefined) throw e.missingRequiredParams;
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['itemId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
 	Item.getItemOwnerId(req.params.itemId)
 	.then((r) => {
 
@@ -28,15 +39,22 @@ router.get('/:itemId', (req, res, next) => {
 router.get('/fromCategory/:categoryId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.params.categoryId == undefined) throw e.missingRequiredParams;
-	const categoryId = req.params.categoryId;
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
-	Category.getCategoryOwnerId(categoryId)
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['categoryId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	Category.getCategoryOwnerId(req.params.categoryId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.categoryNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Item.getAllItemsFromCategory(categoryId);
+		return Item.getAllItemsFromCategory(req.params.categoryId);
 
 	}).then((i) => {
 		// TODO: remove parent obj 'data'
@@ -48,6 +66,16 @@ router.get('/fromCategory/:categoryId', (req, res, next) => {
 
 router.post('/create', (req, res, next) => {
 	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	const requiredParams = {
+		query: [],
+		body: ['name', 'price', 'description'],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	if(req.body.name == undefined || req.body.price == undefined || req.body.categoryId == undefined) {
 		throw e.missingRequiredParams;
@@ -75,22 +103,20 @@ router.post('/create', (req, res, next) => {
 router.put('/update/:itemId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	// At least one of the editable params must be provided
-	const noValidParams = (req.body.name == undefined && 
-						   req.body.price == undefined && 
-						   req.body.description == undefined);
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	// No *required* body params; but at least one must be provided
+	const noValidParams = (req.body.name == undefined && req.body.price == undefined && req.body.description == undefined);
 	if(req.params.itemId == undefined || noValidParams) throw e.missingRequiredParams;
 
-	const itemId = req.params.itemId;
-	const itemData = req.body;
-
 	// TODO: Check that the request body contains at least one valid category property
-	Item.getItemOwnerId(itemId)
+	Item.getItemOwnerId(req.params.itemId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.itemNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Item.updateItemDetails(itemId, itemData);
+		return Item.updateItemDetails(req.params.itemId, req.body);
 
 	}).then((result) => {
 		// TODO: change to 204
@@ -104,15 +130,22 @@ router.put('/update/:itemId', (req, res, next) => {
 router.put('/deactivate/:itemId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	if(req.params.itemId == undefined) throw e.missingRequiredParams;
-	const itemId = req.params.itemId;
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
-	Item.getItemOwnerId(itemId)
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['itemId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	Item.getItemOwnerId(req.params.itemId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.itemNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Item.deactivateItem(itemId);
+		return Item.deactivateItem(req.params.itemId);
 
 	}).then((result) => {
 		// TODO: change to 204

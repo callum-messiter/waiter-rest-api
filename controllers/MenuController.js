@@ -1,15 +1,8 @@
-// Dependencies
-const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
 const shortId = require('shortid');
-// Models
-const Menus = require('../models/Menus');
+const Menu = require('../models/Menu');
 const Auth = require('../models/Auth');
-const UserRoles = require('../models/UserRoles');
-const Restaurants = require('../models/Restaurants');
-// Helpers
-const ResponseHelper = require('../helpers/ResponseHelper');
-const QueryHelper = require('../helpers/QueryHelper');
+const Restaurant = require('../models/Restaurant');
 const e = require('../helpers/error').errors;
 
 // TODO: condense queries 'getMenuDetails', 'getMenuCategories', 'getMenuItems' into one (or two) queries
@@ -18,12 +11,12 @@ router.get('/:menuId', (req, res, next) => {
 
 	if(req.params.menuId == undefined) throw e.missingRequiredParams;
 	const menuId = req.params.menuId;
-	Menus.getMenuOwnerId(menuId)
+	Menu.getMenuOwnerId(menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menus.getMenuDetails(menuId);
+		return Menu.getMenuDetails(menuId);
 
 	}).then((m) => {
 
@@ -35,7 +28,7 @@ router.get('/:menuId', (req, res, next) => {
 			menuName: m[0].name,
 			categories: []
 		};
-		return Menus.getMenuCategories(menuId);
+		return Menu.getMenuCategories(menuId);
 
 	}).then((c) => {
 
@@ -45,7 +38,7 @@ router.get('/:menuId', (req, res, next) => {
 		for(i = 0; i < m.categories.length; i++) {
 			m.categories[i].items = [];
 		}
-		return Menus.getMenuItems(menuId);
+		return Menu.getMenuItems(menuId);
 		
 	}).then((i) => {
 
@@ -73,9 +66,6 @@ router.get('/:menuId', (req, res, next) => {
 	});
 });
 
-/**
-	Create a new menu, assigned to a restaurant 
-**/
 router.post('/create', (req, res, next) => {
 	const u = res.locals.authUser;
 
@@ -84,12 +74,12 @@ router.post('/create', (req, res, next) => {
 	menu.menuId = shortId.generate();
 	const restaurantId = req.body.restaurantId;
 
-	Restaurants.getRestaurantOwnerId(restaurantId)
+	Restaurant.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menus.createNewMenu(menu);
+		return Menu.createNewMenu(menu);
 
 	}).then((result) => {
 
@@ -108,29 +98,6 @@ router.post('/create', (req, res, next) => {
 	});
 });
 
-
-// TODO: change to PATCH
-router.put('/deactivate/:menuId', (req, res, next) => {
-	const u = res.locals.authUser;
-
-	if(req.params.menuId == undefined) throw e.missingRequiredParams;
-	const menuId = req.params.menuId;
-
-	Menus.getMenuOwnerId(menuId)
-	.then((r) => {
-
-		if(r.length < 1) throw e.menuNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menus.deactivateMenu(menuId);
-
-	}).then((result) => {
-		// TODO; change to 204
-		res.status(200).json({});
-	}).catch((err) => {
-		return next(err);
-	});
-});
-
 // TODO: change to PATCH
 router.put('/update/:menuId', (req, res, next) => {
 	const u = res.locals.authUser;
@@ -142,16 +109,38 @@ router.put('/update/:menuId', (req, res, next) => {
 	const menuId = req.params.menuId;
 	const menuData = req.body;
 
-	Menus.getMenuOwnerId(menuId)
+	Menu.getMenuOwnerId(menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menus.updateMenuDetails(menuId, menuData);
+		return Menu.updateMenuDetails(menuId, menuData);
 
 	}).then((result) => {
 		// TODO: change to 204
 		return res.status(200).json({});
+	}).catch((err) => {
+		return next(err);
+	});
+});
+
+// TODO: change to PATCH
+router.put('/deactivate/:menuId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	if(req.params.menuId == undefined) throw e.missingRequiredParams;
+	const menuId = req.params.menuId;
+
+	Menu.getMenuOwnerId(menuId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.menuNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return Menu.deactivateMenu(menuId);
+
+	}).then((result) => {
+		// TODO; change to 204
+		res.status(200).json({});
 	}).catch((err) => {
 		return next(err);
 	});

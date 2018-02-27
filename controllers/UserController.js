@@ -1,22 +1,10 @@
-// Dependencies
-const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcrypt');
+const router = require('express').Router();
 const moment = require('moment');
-const md5 = require('js-md5');
 const shortId = require('shortid');
-// Models
-const Users = require('../models/Users');
+const User = require('../models/User');
 const UserRoles = require('../models/UserRoles');
 const Auth = require('../models/Auth');
-const Restaurants = require('../models/Restaurants');
-// Helpers
-const ResponseHelper = require('../helpers/ResponseHelper');
-const RequestHelper = require('../helpers/RequestHelper');
-const QueryHelper = require('../helpers/QueryHelper');
-// Config
-const secret = require('../config/jwt').secret;
-const modifiableUserDetails = Users.schema.requestBodyParams;
+const Restaurant = require('../models/Restaurant');
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 
@@ -24,7 +12,7 @@ const p = require('../helpers/params');
 	Get single user by ID
 **/
 router.get('', (req, res, next) => {
-	Users.getUserById(res.locals.authUser.userId)
+	User.getUserById(res.locals.authUser.userId)
 	.then((u) => {
 
 		if(u.length < 1) throw e.userNotFound;
@@ -57,11 +45,11 @@ router.post('/r', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Users.isEmailRegistered(req.body.email)
+	User.isEmailRegistered(req.body.email)
 	.then((r) => {
 
 		if(r.length > 0) throw e.emailAlreadyRegistered;
-		return Users.hashPassword(req.body.password);
+		return User.hashPassword(req.body.password);
 
 	}).then((hash) => {
 
@@ -73,7 +61,7 @@ router.post('/r', (req, res, next) => {
 			lastName: req.body.lastName
 		}
 		res.locals.newUser.userId = user.userId;
-		return Users.createNewUser(user);
+		return User.createNewUser(user);
 
 	}).then((result) => {
 
@@ -100,7 +88,7 @@ router.post('/r', (req, res, next) => {
 		res.locals.newUser.restaurant = restaurant;
 		res.locals.newUser.menu = menu;
 
-		return Restaurants.createRestaurantWithDefaultMenu(restaurant, menu);
+		return Restaurant.createRestaurantWithDefaultMenu(restaurant, menu);
 
 	}).then((result) => {
 
@@ -132,11 +120,11 @@ router.post('/d', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Users.isEmailRegistered(req.body.email)
+	User.isEmailRegistered(req.body.email)
 	.then((r) => {
 
 		if(r.length > 0) throw e.emailAlreadyRegistered;
-		return Users.hashPassword(req.body.password);
+		return User.hashPassword(req.body.password);
 
 	}).then((hash) => {
 
@@ -148,7 +136,7 @@ router.post('/d', (req, res, next) => {
 			lastName: req.body.lastName
 		}
 		res.locals.newUser.userId = user.userId;
-		return Users.createNewUser(user);
+		return User.createNewUser(user);
 
 	}).then((result) => {
 
@@ -174,34 +162,6 @@ router.post('/d', (req, res, next) => {
 	});
 });
 
-// TODO: change to PATCH
-router.put('/deactivate/:userId', (req, res, next) => {
-	const u = res.locals.authUser;
-
-	const requiredParams = {
-		query: [],
-		body: [],
-		route: ['userId']
-	}
-	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
-
-	// Check that the user with the provided ID exists
-	Users.getUserById(req.params.userId)
-	.then((user) => {
-
-		if(user.length < 1) throw e.userNotFound;
-		// In this case the 'resource' is the user to be deactivated; the 'resource owner' is the user returned by the query
-		if(!Auth.userHasAccessRights(u, req.params.userId)) throw e.insufficientPermissions;
-		return Users.deactivateUser(req.params.userId);
-
-	}).then((result) => {
-		// TODO: change to 204
-		return res.status(200).json({});
-	}).catch((err) => {
-		return next(err);
-	});
-});
-
 // TODO: change to PATCH; change route to '/details/:userId'
 router.put('/updateDetails/:userId', (req, res, next) => {
 	const u = res.locals.authUser;
@@ -215,13 +175,13 @@ router.put('/updateDetails/:userId', (req, res, next) => {
 	const userId = req.params.userId;
 	const userDetails = req.body;
 
-	Users.getUserById(req.params.userId)
+	User.getUserById(req.params.userId)
 	.then((user) => {
 
 		if(user.length < 1) throw e.userNotFound;
 		// In this case the 'resource' is the user to be deactivated; the 'resource owner' is the user returned by the query
 		if(!Auth.userHasAccessRights(u, req.params.userId)) throw e.insufficientPermissions;
-		return Users.updateUserDetails(userId, userDetails);
+		return User.updateUserDetails(userId, userDetails);
 
 	}).then((result) => {
 		// TODO: change to 204
@@ -243,25 +203,53 @@ router.put('/updatePassword/:userId', (req, res, next) => {
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	// Get the user's current hashed password
-	Users.getUserById(req.params.userId)
+	User.getUserById(req.params.userId)
 	.then((user) => {
 
 		if(user.length < 1) throw e.userNotFound;
 		// In this case the 'resource' is the user to be deactivated; the 'resource owner' is the user returned by the query
 		if(!Auth.userHasAccessRights(u, req.params.userId)) throw e.insufficientPermissions;
 		// Check that the user has entered their current password correctly
-		return Users.checkPassword(req.body.currentPassword, user[0].password);
+		return User.checkPassword(req.body.currentPassword, user[0].password);
 
 	}).then((passwordsMatch) => {
-		
+
 		if(!passwordsMatch) throw e.currentPasswordIncorrect;
 		// Hash the new password
-		return Users.hashPassword(req.body.newPassword);
+		return User.hashPassword(req.body.newPassword);
 
 	}).then((newHashedPassword) => {
 
 		// Update the user's password
-		return Users.updateUserPassword(req.params.userId, newHashedPassword);
+		return User.updateUserPassword(req.params.userId, newHashedPassword);
+
+	}).then((result) => {
+		// TODO: change to 204
+		return res.status(200).json({});
+	}).catch((err) => {
+		return next(err);
+	});
+});
+
+// TODO: change to PATCH
+router.put('/deactivate/:userId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['userId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	// Check that the user with the provided ID exists
+	User.getUserById(req.params.userId)
+	.then((user) => {
+
+		if(user.length < 1) throw e.userNotFound;
+		// In this case the 'resource' is the user to be deactivated; the 'resource owner' is the user returned by the query
+		if(!Auth.userHasAccessRights(u, req.params.userId)) throw e.insufficientPermissions;
+		return User.deactivateUser(req.params.userId);
 
 	}).then((result) => {
 		// TODO: change to 204

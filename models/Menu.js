@@ -1,4 +1,3 @@
-// Config
 const db = require('../config/database');
 const e = require('../helpers/error').errors;
 
@@ -75,9 +74,21 @@ module.exports.getMenuOwnerId = function(menuId){
 		const query = 'SELECT restaurants.ownerId FROM restaurants ' +
 					  'JOIN menus on menus.restaurantId = restaurants.restaurantId ' +
 					  'WHERE menus.menuId = ?';
-		db.query(query, menuId, (err, result) => {
+		db.query(query, menuId, (err, ownerId) => {
 			if(err) return reject(err);
-			resolve(result);
+			resolve(ownerId);
+		});
+	});
+}
+
+module.exports.getAllMenus = function() {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT menuId, name, restaurantId ' + 
+					  'FROM menus ' + 
+					  'WHERE active = 1';
+		db.query(query, (err, menus) => {
+			if(err) return reject(err);
+			resolve(menus);
 		});
 	});
 }
@@ -85,27 +96,12 @@ module.exports.getMenuOwnerId = function(menuId){
 /**
 	Create new menu, assigned to a restaurant
 **/
-module.exports.createNewMenu = function(menu, callback) {
+module.exports.createNewMenu = function(menu) {
 	return new Promise((resolve, reject) => {
 		const query = 'INSERT INTO menus SET ?';
 		db.query(query, menu, (err, result) => {
 			if(err) return reject(err);
 			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
-			resolve(result);
-		});
-	});
-}
-
-/**
-	Deactivate menu, such that it is no longer visible to the user, but is recoverable 
-**/
-module.exports.deactivateMenu = function(menuId) {
-	return new Promise((resolve, reject) => {
-		const query = 'UPDATE menus SET active = 0 WHERE menuId = ?';
-		db.query(query, menuId, (err, result) => {
-			if(err) return reject(err);
-			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
-			if(result.changedRows < 1) return reject(e.resourceAlreadyInactive);
 			resolve(result);
 		});
 	});
@@ -128,14 +124,17 @@ module.exports.updateMenuDetails = function(menuId, menuData) {
 	});
 }
 
-module.exports.getAllMenus = function() {
+/**
+	Deactivate menu, such that it is no longer visible to the user, but is recoverable 
+**/
+module.exports.deactivateMenu = function(menuId) {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT menuId, name, restaurantId ' + 
-					  'FROM menus ' + 
-					  'WHERE active = 1';
-		db.query(query, (err, menus) => {
+		const query = 'UPDATE menus SET active = 0 WHERE menuId = ?';
+		db.query(query, menuId, (err, result) => {
 			if(err) return reject(err);
-			resolve(menus);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			if(result.changedRows < 1) return reject(e.resourceAlreadyInactive);
+			resolve(result);
 		});
 	});
 }

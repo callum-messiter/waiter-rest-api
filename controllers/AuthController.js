@@ -1,32 +1,20 @@
-	// Dependencies
-const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcrypt');
-const moment = require('moment');
-const jwt = require('jsonwebtoken');
-// Models
+const router = require('express').Router();
 const Auth = require('../models/Auth');
-const Users = require('../models/Users');
-const UserRoles = require('../models/UserRoles');
-const Restaurants = require('../models/Restaurants');
-const Menus = require('../models/Menus');
-// Config & helpers
-const secret = require('../config/jwt').secret;
+const User = require('../models/User');
+const Restaurant = require('../models/Restaurant');
+const Menu = require('../models/Menu');
 const e = require('../helpers/error').errors;
 
-/**
-	Login for restaurateur accounts
-**/
 router.get('/login', (req, res, next) => {
 	if(req.query.email == undefined || req.query.password == undefined) throw e.missingRequiredParams;
 
-	Users.getUserByEmail(req.query.email)
+	User.getUserByEmail(req.query.email)
 	.then((user) => {
 
 		if(user.length < 1) throw e.emailNotRegistered; // User obj is an array of matches returned by SQL
 		if(user[0].isActive !== 1) throw e.userNotActive;
 		res.locals = { user: JSON.parse(JSON.stringify(user[0])) }; // Add user to response-local var, accessible throughout the chain
-		return Users.checkPassword(req.query.password, user[0].password);
+		return User.checkPassword(req.query.password, user[0].password);
 
 	}).then((passIsValid) => {
 
@@ -38,13 +26,13 @@ router.get('/login', (req, res, next) => {
 
 		res.locals.user.token = token;
 		const u = res.locals.user;
-		return Restaurants.getRestaurantByOwnerId(u.userId);
+		return RestaurantgetRestaurantByOwnerId(u.userId);
 
 	}).then((restaurant) => {
 
 		if(restaurant.length < 1) throw e.restaurantNotFound; // For now it is mandatory
 		res.locals.restaurant = JSON.parse(JSON.stringify(restaurant[0]));
-		return Menus.getMenuByRestaurantId(restaurant[0].restaurantId);
+		return Menu.getMenuByRestaurantId(restaurant[0].restaurantId);
 
 	}).then((menu) => {
 
@@ -74,19 +62,16 @@ router.get('/login', (req, res, next) => {
 	});
 });
 
-/**
-	Login for diner accounts
-**/
 router.get('/login/d', (req, res, next) => {
 	if(req.query.email == undefined || req.query.password == undefined) throw e.missingRequiredParams;
 
-	Users.getUserByEmail(req.query.email)
+	User.getUserByEmail(req.query.email)
 	.then((user) => {
 
 		if(user.length < 1) throw e.emailNotRegistered; // User obj is an array of matches returned by SQL
 		if(user[0].isActive !== 1) throw e.userNotActive;
 		res.locals = { user: JSON.parse(JSON.stringify(user[0])) }; // Add user to response-local var, accessible throughout the chain
-		return Users.checkPassword(req.query.password, user[0].password);
+		return User.checkPassword(req.query.password, user[0].password);
 
 	}).then((passIsValid) => {
 

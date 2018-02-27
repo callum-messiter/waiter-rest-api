@@ -65,6 +65,16 @@ const errors = {
 		errorKey: 'currentPasswordIncorrect',
 		userMsg: 'Incorrect password. Please double-check and try again.'
 	},
+	userAlreadyVerified: {
+		statusCode: 409,
+		errorKey: 'userAlreadyVerified',
+		userMsg: 'Your account is already verified. Go ahead and log in.'
+	},
+	alreadyCurrentEmail: {
+		statusCode: 409,
+		errorKey: 'alreadyCurrentEmail',
+		userMsg: 'That email address is already registered to your account. Go ahead and log in.'
+	},
 
 	/**
 		Restaurants

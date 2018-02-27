@@ -1,21 +1,51 @@
-// Dependencies
-const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
 const shortId = require('shortid');
-// Models
-const Items = require('../models/Items');
-const Categories = require('../models/Categories');
+const Item = require('../models/Item');
+const Category = require('../models/Category');
 const Auth = require('../models/Auth');
-const Menus = require('../models/Menus');
-// Helpers
-const ResponseHelper = require('../helpers/ResponseHelper');
-const RequestHelper = require('../helpers/RequestHelper');
-const QueryHelper = require('../helpers/QueryHelper');
 const e = require('../helpers/error').errors;
 
-/**
-	Create a new item, assigned to a category
-**/
+router.get('/:itemId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	if(req.params.itemId == undefined) throw e.missingRequiredParams;
+	Item.getItemOwnerId(req.params.itemId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.itemNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return Item.getItemById(req.params.itemId);
+
+	}).then((i) => {
+		// TODO: remove parent obj 'data'
+		res.status(200).json({data: i});
+	}).catch((err) => {
+		return next(err);
+	})
+});
+
+// TODO: move this to CategoryController; route: /:categoryId/items
+router.get('/fromCategory/:categoryId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	if(req.params.categoryId == undefined) throw e.missingRequiredParams;
+	const categoryId = req.params.categoryId;
+
+	Category.getCategoryOwnerId(categoryId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.categoryNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return Item.getAllItemsFromCategory(categoryId);
+
+	}).then((i) => {
+		// TODO: remove parent obj 'data'
+		return res.status(200).json( {data: i} ); 
+	}).catch((err) => {
+		return next(err);
+	});
+});
+
 router.post('/create', (req, res, next) => {
 	const u = res.locals.authUser;
 
@@ -26,12 +56,12 @@ router.post('/create', (req, res, next) => {
 	item.itemId = shortId.generate();
 
 	// TODO: check user has the correct role
-	Categories.getCategoryOwnerId(item.categoryId)
+	Category.getCategoryOwnerId(item.categoryId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.categoryNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Items.createNewItem(item);
+		return Item.createNewItem(item);
 
 	}).then((result) => {
 		// TODO: remove parent obj 'data'
@@ -55,12 +85,12 @@ router.put('/update/:itemId', (req, res, next) => {
 	const itemData = req.body;
 
 	// TODO: Check that the request body contains at least one valid category property
-	Items.getItemOwnerId(itemId)
+	Item.getItemOwnerId(itemId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.itemNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Items.updateItemDetails(itemId, itemData);
+		return Item.updateItemDetails(itemId, itemData);
 
 	}).then((result) => {
 		// TODO: change to 204
@@ -77,12 +107,12 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 	if(req.params.itemId == undefined) throw e.missingRequiredParams;
 	const itemId = req.params.itemId;
 
-	Items.getItemOwnerId(itemId)
+	Item.getItemOwnerId(itemId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.itemNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Items.deactivateItem(itemId);
+		return Item.deactivateItem(itemId);
 
 	}).then((result) => {
 		// TODO: change to 204
@@ -90,50 +120,6 @@ router.put('/deactivate/:itemId', (req, res, next) => {
 	}).catch((err) => {
 		return next(err);
 	});
-});
-
-// TODO: move this to CategoryController; route: /:categoryId/items
-router.get('/fromCategory/:categoryId', (req, res, next) => {
-	const u = res.locals.authUser;
-
-	if(req.params.categoryId == undefined) throw e.missingRequiredParams;
-	const categoryId = req.params.categoryId;
-
-	Categories.getCategoryOwnerId(categoryId)
-	.then((r) => {
-
-		if(r.length < 1) throw e.categoryNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Items.getAllItemsFromCategory(categoryId);
-
-	}).then((i) => {
-		// TODO: remove parent obj 'data'
-		return res.status(200).json( {data: i} ); 
-	}).catch((err) => {
-		return next(err);
-	});
-});
-
-/**
-	Get a single item by referencing its ID
-**/
-router.get('/:itemId', (req, res, next) => {
-	const u = res.locals.authUser;
-
-	if(req.params.itemId == undefined) throw e.missingRequiredParams;
-	Items.getItemOwnerId(req.params.itemId)
-	.then((r) => {
-
-		if(r.length < 1) throw e.itemNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Items.getItemById(req.params.itemId);
-
-	}).then((i) => {
-		// TODO: remove parent obj 'data'
-		res.status(200).json({data: i});
-	}).catch((err) => {
-		return next(err);
-	})
 });
 
 module.exports = router;

@@ -1,14 +1,7 @@
-// Dependencies
-const express = require('express');
-const router = express.Router();
-const moment = require('moment');
-const jwt = require('jsonwebtoken');
-// Models
-const Orders = require('../models/Orders');
+const router = require('express').Router();
+const Order = require('../models/Order');
 const Auth = require('../models/Auth');
-const Restaurants = require('../models/Restaurants');
-const roles = require('../models/UserRoles').roleIDs;
-// Helpers
+const Restaurant = require('../models/Restaurant');
 const e = require('../helpers/error').errors;
 
 // TODO: only use route parameters that refer specifically to the desired resource (e.g. to get a specific order, use the orderId)
@@ -18,12 +11,12 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
 	const restaurantId = req.params.restaurantId;
 
-	Restaurants.getRestaurantOwnerId(restaurantId)
+	Restaurant.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions
-		return Orders.getAllLiveOrdersForRestaurant(restaurantId);
+		return Order.getAllLiveOrdersForRestaurant(restaurantId);
 
 	// TODO: retrieving orders, then the order items, then building the object, should be done with one query
 	}).then((o) => {
@@ -34,7 +27,7 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 				o[i].items = [];
 			}
 			res.locals.orders = JSON.parse(JSON.stringify(o));
-			return Orders.getItemsFromLiveOrders(restaurantId);
+			return Order.getItemsFromLiveOrders(restaurantId);
 		}
 		return true;
 

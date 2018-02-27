@@ -20,9 +20,14 @@ module.exports.getCategoryOwnerId = function(categoryId) {
 /**
 	Get all items belonging to a category
 **/
-module.exports.getCategoryItems = function(categoryId, callback) {
-	const query = 'SELEC itemId, name, price, description FROM items WHERE categoryId = ?';
-	db.query(query, categoryId, callback);
+module.exports.getCategoryItems = function(categoryId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELEC itemId, name, price, description FROM items WHERE categoryId = ?';
+		db.query(query, categoryId, (err, items) => {
+			if(err) return reject(err);
+			resolve(items);
+		});
+	});
 }
 
 /**
@@ -44,8 +49,7 @@ module.exports.createNewCategory = function(category) {
 **/
 module.exports.updateCategoryDetails = function(categoryId, categoryData) {
 	return new Promise((resolve, reject) => {
-		const query = 'UPDATE categories SET ? ' +
-					  'WHERE categoryId = ?'
+		const query = 'UPDATE categories SET ? WHERE categoryId = ?'
 		db.query(query, [categoryData, categoryId], (err, result) => {
 			if(err) return reject(err);
 			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
@@ -61,8 +65,7 @@ module.exports.updateCategoryDetails = function(categoryId, categoryData) {
 **/
 module.exports.deactivateCategory = function(categoryId) {
 	return new Promise((resolve, reject) => {
-		const query = 'UPDATE categories SET active = 0 ' +
-					  'WHERE categoryId = ?';
+		const query = 'UPDATE categories SET active = 0 WHERE categoryId = ?';
 		db.query(query, categoryId, (err, result) => {
 			if(err) return reject(err);
 			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);

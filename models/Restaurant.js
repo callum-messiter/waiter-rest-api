@@ -1,5 +1,5 @@
-const db = require('../config/database');
 const shortId = require('shortid');
+const db = require('../config/database');
 const e = require('../helpers/error').errors;
 
 /**
@@ -46,9 +46,7 @@ module.exports.getRestaurantOwnerId = function(restaurantId) {
 **/
 module.exports.getAllRestaurants = function() {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT restaurantId, name ' + 
-					  'FROM restaurants ' + 
-					  'WHERE active = 1';
+		const query = 'SELECT restaurantId, name FROM restaurants WHERE active = 1';
 		db.query(query, (err, restaurants) => {
 			if(err) return reject(err);
 			resolve(restaurants);

@@ -2,25 +2,6 @@ const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const e = require('../helpers/error').errors;
 
-module.exports.schema = {
-	userId: '',
-	email: '',
-	password: '',
-	firstName: '',
-	lastName: '',
-	isVerified: '',
-	isActive: '',
-	imageUrl: '',
-	// The parameters that can be passed in the body of the request when a user wishes to update their details
-	requestBodyParams: {
-		email: '',
-		password: '',
-		firstName: '',
-		lastName: '',
-		imageUrl: ''
-	}
-}
-
 /**
 	Checks if a user exists by running an email address against the db. Returns true if a match is found
 **/
@@ -63,6 +44,19 @@ module.exports.checkPassword = function(plainTextPassword, hash) {
 }
 
 /**
+	(ADMIN-ONLY): Returns a list of all registered email addresses
+**/
+module.exports.getAllUsers = function() {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT email FROM users';
+		db.query(query, (err, users) => {
+			if(err) return reject(err);
+			resolve(users);
+		});
+	});
+}
+
+/**
 	Search the db for a userId, and returns the user if a match is found
 **/
 module.exports.getUserById = function(userId) {
@@ -85,28 +79,11 @@ module.exports.getUserByEmail = function(email) {
 		'userroles.roleId FROM users ' +
 		'JOIN userroles ON userroles.userId = users.userId ' +
 		'WHERE email = ?';
-		db.query(query, email, (err, user) => {
+		db.query(query, email, (err, users) => {
 			if(err) return reject(err);
-			resolve(user);
+			resolve(users);
 		});
 	});
-}
-
-/**
-	(ADMIN-ONLY): Returns a list of all registered email addresses
-**/
-module.exports.getAllUsers = function(callback) {
-	const query = 'SELECT email FROM users';
-	db.query(query, callback);
-}
-
-// TODO: move to Menus model
-module.exports.getMenuDetails = function(menuId, callback) {
-	const query = 'SELECT menus.menuId, menus.name, restaurants.restaurantId, restaurants.name AS restaurantName ' +
-				  'FROM menus ' +
-				  'JOIN restaurants on restaurants.restaurantId = menus.restaurantId ' + 
-				  'WHERE menuId = ?';
-	db.query(query, menuId, callback);
 }
 
 /**
@@ -115,10 +92,10 @@ module.exports.getMenuDetails = function(menuId, callback) {
 module.exports.createNewUser = function(user) {
 	return new Promise((resolve, reject) => {
 		const query = 'INSERT INTO users SET ?';
-		db.query(query, user, (err, result) => {
+		db.query(query, user, (err, users) => {
 			if(err) return reject(err);
 			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
-			resolve(result);
+			resolve(users);
 		});
 	});
 }
@@ -154,18 +131,32 @@ module.exports.updateUserPassword = function(userId, newPassword) {
 	});
 }
 
-module.exports.updateUserEmailAddress = function(userId, newEmailAddress, isVerified=false, callback) {
-	const query = 'UPDATE users SET email = ?, isVerified = ? ' +
-				  'WHERE userId = ?';
-	db.query(query, [newEmailAddress, isVerified, userId], callback);
+module.exports.updateUserEmailAddress = function(userId, newEmailAddress, isVerified=false) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE users SET email = ?, isVerified = ? ' +
+					  'WHERE userId = ?';
+		db.query(query, [newEmailAddress, isVerified, userId], (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			if(result.changedRows < 1) return reject(e.alreadyCurrentEmail);
+			resolve(result);
+		});
+	});
 }
 
 /**
 	Verify the user's email account
 **/
-module.exports.setUserAsVerified = function(userId, callback) {
-	const query = 'UPDATE users SET isVerified = 1 WHERE userId = ?';
-	db.query(query, userId, callback);
+module.exports.setUserAsVerified = function(userId) {
+	return new Promsie((resolve, reject) => {
+		const query = 'UPDATE users SET isVerified = 1 WHERE userId = ?';
+		db.query(query, userId, (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			if(result.changedRows < 1) return reject(e.userAlreadyVerified);
+			resolve(result);
+		});
+	});
 }
 
 /**

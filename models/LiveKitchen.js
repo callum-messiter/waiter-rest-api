@@ -1,6 +1,5 @@
-// Dependencies
-// Config
 const db = require('../config/database');
+const e = require('../helpers/error').errors;
 
 module.exports.addSocket = function(data) {
 	return new Promise((resolve, reject) => {
@@ -10,6 +9,7 @@ module.exports.addSocket = function(data) {
 		const query = 'INSERT INTO ' + tableName + ' SET ?';
 		db.query(query, data, (err, result) => {
 			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
 			resolve(result);
 		});
 	});
@@ -23,6 +23,7 @@ module.exports.removeSocket = function(socketId, type) {
 		const query = 'DELETE FROM ' + tableName + ' WHERE socketId = ?';
 		db.query(query, socketId, (err, result) => {
 			if (err) return reject(err);
+			// if(result.affectedRows < 1) return reject(e.sqlDeleteFailed);
 			resolve(result);
 		});
 	});
@@ -33,6 +34,7 @@ module.exports.addSocketToRestaurantCustomers = function(data) {
 		const query = 'INSERT INTO socketsrestaurantcustomers SET?';
 		db.query(query, data, (err, result) => {
 			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
 			resolve(result);
 		});
 	});
@@ -40,11 +42,10 @@ module.exports.addSocketToRestaurantCustomers = function(data) {
 
 module.exports.getRecipientRestaurantSockets = function(restaurantId) {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT socketId FROM socketsrestaurants ' + 
-				  'WHERE restaurantId = ?';
-		db.query(query, restaurantId, (err, result) => {
+		const query = 'SELECT socketId FROM socketsrestaurants WHERE restaurantId = ?';
+		db.query(query, restaurantId, (err, sockets) => {
 			if(err) return reject(err);
-			resolve(result);
+			resolve(sockets);
 		});
 	});
 }
@@ -72,11 +73,10 @@ module.exports.getRecipientRestaurantSockets = function(restaurantId) {
 **/
 module.exports.getRecipientCustomerSockets = function(customerId) {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT socketId FROM socketscustomers ' + 
-				  'WHERE customerId = ?';
-		db.query(query, customerId, (err, result) => {
+		const query = 'SELECT socketId FROM socketscustomers WHERE customerId = ?';
+		db.query(query, customerId, (err, sockets) => {
 			if(err) return reject(err);
-			resolve(result);
+			resolve(sockets);
 		});
 	});
 }

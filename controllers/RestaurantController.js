@@ -1,14 +1,9 @@
-// Dependencies
-const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
 const shortId = require('shortid');
-// Models
-const Restaurants = require('../models/Restaurants');
-const Menus = require('../models/Menus');
+const Restaurant = require('../models/Restaurant');
+const Menu = require('../models/Menu');
 const Auth = require('../models/Auth');
-const Users = require('../models/Users');
-// Helpers
-const ResponseHelper = require('../helpers/ResponseHelper');
+const User = require('../models/User');
 const e = require('../helpers/error').errors;
 
 // TODO: condense queries 'getAllRestaurants', 'getAllMenus' into one; remove slash from route
@@ -16,7 +11,7 @@ router.get('/', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	// TODO: roles allowed
-	Restaurants.getAllRestaurants()
+	Restaurant.getAllRestaurants()
 	.then((restaurants) => {
 
 		res.locals.restaurants = restaurants;
@@ -24,7 +19,7 @@ router.get('/', (req, res, next) => {
 		for(var i = 0; i < restaurants.length; i++) {
 			restaurants[i].menus = [];
 		}
-		return Menus.getAllMenus();
+		return Menu.getAllMenus();
 
 	}).then((menus) => {
 
@@ -46,21 +41,18 @@ router.get('/', (req, res, next) => {
 	});
 });
 
-/**
-	Get a restaurant and its details
-**/
 router.get('/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
 	const restaurantId = req.params.restaurantId;
 
-	Restaurants.getRestaurantOwnerId(restaurantId)
+	Restaurant.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Restaurants.getRestaurantById(restaurantId);
+		return Restaurant.getRestaurantById(restaurantId);
 
 	}).then((r) => {
 
@@ -92,11 +84,11 @@ router.post('/create', (req, res, next) => {
 	res.locals.restaurant = restaurant;
 
 	// First check that the user exists
-	Users.getUserById(u.userId)
+	User.getUserById(u.userId)
 	.then((u) => {
 
 		if(u.length < 1) throw e.userNotFound;
-		Restaurants.createNewRestaurant(restaurant);
+		return Restaurant.createNewRestaurant(restaurant);
 
 	}).then((result) => {
 		// TODO: change to 201; remove parent obj 'data'
@@ -121,12 +113,12 @@ router.put('/update/:restaurantId', (req, res, next) => {
 	const restaurantId = req.params.restaurantId;
 	const restaurantData = req.body;
 
-	Restaurants.getRestaurantOwnerId(restaurantId)
+	Restaurant.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		Restaurants.updateRestaurantDetails(restaurantId, restaurantData);
+		return Restaurant.updateRestaurantDetails(restaurantId, restaurantData);
 
 	}).then((result) => {
 		// TODO: change to 204
@@ -143,12 +135,12 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 	if(req.params.restaurantId == undefined) throw e.missingRequiredParams;
 	const restaurantId = req.params.restaurantId;
 
-	Restaurants.getRestaurantOwnerId(restaurantId)
+	Restaurant.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Restaurants.deactivateRestaurant(restaurantId);
+		return Restaurant.deactivateRestaurant(restaurantId);
 
 	}).then((result) => {
 		// TODO: change to 204

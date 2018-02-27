@@ -1,15 +1,9 @@
-// Dependencies
-const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
 const shortId = require('shortid');
-// Models
-const Categories = require('../models/Categories');
+const Category = require('../models/Category');
 const Auth = require('../models/Auth');
-const Menus = require('../models/Menus');
-// Helpers
+const Menu = require('../models/Menu');
 const e = require('../helpers/error').errors;
-
-// TODO: add getCategory
 
 router.post('/create', (req, res, next) => {
 	const u = res.locals.authUser;
@@ -18,12 +12,12 @@ router.post('/create', (req, res, next) => {
 	const category = req.body;
 	category.categoryId = shortId.generate();
 
-	Menus.getMenuOwnerId(category.menuId)
+	Menu.getMenuOwnerId(category.menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Categories.createNewCategory(category);
+		return Category.createNewCategory(category);
 
 	}).then((result) => {
 		// TODO: change to 201
@@ -44,12 +38,12 @@ router.put('/update/:categoryId', (req, res, next) => {
 	const categoryId = req.params.categoryId;
 	const categoryData = req.body;
 	// TODO: Check that the request body contains at least one valid category property
-	Categories.getCategoryOwnerId(categoryId)
+	Category.getCategoryOwnerId(categoryId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.categoryNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Categories.updateCategoryDetails(categoryId, categoryData);
+		return Category.updateCategoryDetails(categoryId, categoryData);
 
 	}).then((result) => {
 		// TODO: change to 204
@@ -66,12 +60,12 @@ router.put('/deactivate/:categoryId', (req, res, next) => {
 	if(req.params.categoryId == undefined) throw e.missingRequiredParams;
 	const categoryId = req.params.categoryId;
 
-	Categories.getCategoryOwnerId(categoryId)
+	Category.getCategoryOwnerId(categoryId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.categoryNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Categories.deactivateCategory(categoryId);
+		return Category.deactivateCategory(categoryId);
 
 	}).then((result) => {
 		// TODO: change to 204

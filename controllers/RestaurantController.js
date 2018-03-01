@@ -19,10 +19,10 @@ router.get('/', (req, res, next) => {
 	Restaurant.getAllRestaurants()
 	.then((restaurants) => {
 
-		res.locals.restaurants = restaurants;
+		res.locals.restaurants = JSON.parse(JSON.stringify(restaurants));
 		// Add to each restaurant object a menus array, to be populated in the next block
-		for(var i = 0; i < restaurants.length; i++) {
-			restaurants[i].menus = [];
+		for(var i = 0; i < res.locals.restaurants.length; i++) {
+			res.locals.restaurants[i].menus = [];
 		}
 		return Menu.getAllMenus();
 

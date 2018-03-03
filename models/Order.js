@@ -32,6 +32,8 @@ module.exports.statuses = {
 module.exports.setStatusUpdateMsg = function(status) {
 	var userMsg;
 	switch(status) {
+		case 100: 
+			userMsg = 'Your order has been received by the server.';
 		case 300:
 			userMsg = 'Your order has been received by the kitchen!';
 			break;

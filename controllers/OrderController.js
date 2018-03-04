@@ -33,6 +33,7 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 	}).then((o) => {
 
 		// Add an empty items array to all the live orders
+		res.locals.orders = [];
 		if(o.length > 0) {
 			for(i = 0; i < o.length; i++) {
 				o[i].items = [];
@@ -43,7 +44,7 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 		return true;
 
 	}).then((i) => {
-
+		console.log('ORDERS: ' + JSON.stringify(res.locals.orders));
 		const orders = res.locals.orders;
 		if(orders.length < 1) return res.status(200).json({ data: {} });
 		if(i.length < 1) return res.status(200).json({ data: orders });

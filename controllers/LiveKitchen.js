@@ -79,6 +79,7 @@ module.exports.handler = function(socket) {
 
 		}).then((result) => {
 			console.log('[DB] Socket ' + socket.id + ' added to SocketsRestaurantCustomers.');
+			order.metaData.status = Order.statuses.receivedByServer; // Update order status 
 			return Order.createNewOrder(order.metaData, order.items);
 
 		}).then((result) => {

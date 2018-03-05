@@ -87,9 +87,9 @@ module.exports.handler = function(socket) {
 			console.log('[DB] Order ' + order.metaData.orderId  + ' from ' + socket.id + ' added.');
 			// Notify customer who placed the order
 			socket.emit('orderStatusUpdated', {
-				orderId: order.orderId, 
+				orderId: order.metaData.orderId, 
 				status: Order.statuses.receivedByServer, // also explicitly set the order status for the createNewOrder query
-				userMsg: Order.setStatusUpdateMsg(order.status)
+				userMsg: Order.setStatusUpdateMsg(order.metaData.status)
 			});
 
 			return LiveKitchen.getRecipientRestaurantSockets(order.metaData.restaurantId);

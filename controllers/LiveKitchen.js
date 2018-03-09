@@ -1,4 +1,3 @@
-const uuidv4 = require('uuid/v4');
 const moment = require('moment');
 const Order = require('../models/Order');
 const Auth = require('../models/Auth');
@@ -60,8 +59,7 @@ module.exports.handler = function(socket) {
 	**/
 	socket.on('newOrder', (order) => {
 		console.log('[ORDER] Received from ' + socket.id + '.');
-		// Immediately set the unique orderId, and convert the UNIX timestamp to a DATETIME for the DB
-		order.metaData.orderId = uuidv4();
+		// Convert the UNIX timestamp to a DATETIME for the DB
 		order.metaData.time = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
 
 		// Verify the auth token

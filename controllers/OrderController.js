@@ -44,7 +44,7 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 		return true;
 
 	}).then((i) => {
-		console.log('ORDERS: ' + JSON.stringify(res.locals.orders));
+
 		const orders = res.locals.orders;
 		if(orders.length < 1) return res.status(200).json({ data: {} });
 		if(i.length < 1) return res.status(200).json({ data: orders });
@@ -59,6 +59,51 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 			});
 		});
 		return res.status(200).json({ data: orders });
+
+	}).catch((err) => {
+		return next(err);
+	});
+});
+
+router.get('/live/:orderId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.diner, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['orderId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	Order.getOrderOwnerId(req.params.orderId)
+	.then((o) => {
+
+		if(o.length < 1) throw e.orderNotFound;
+		if(!Auth.userHasAccessRights(u, o[0].customerId)) throw e.insufficientPermissions;
+		return Order.getLiveOrder(req.params.orderId);
+
+	}).then((order) => {
+
+		res.locals.order = [];
+		if(order.length > 0) {
+			res.locals.order = JSON.parse(JSON.stringify(order[0]));
+			return Order.getItemsFromLiveOrder(req.params.orderId);
+		}
+		return true;
+
+	}).then((i) => {
+
+		if(i.length > 0) {
+			res.locals.order.items = [];
+			i.forEach((item) => {
+				item = JSON.parse(JSON.stringify(item));
+				res.locals.order.items.push(item);
+			});
+		}
+		return res.status(200).json({ order: res.locals.order });
 
 	}).catch((err) => {
 		return next(err);

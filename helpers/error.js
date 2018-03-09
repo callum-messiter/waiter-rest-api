@@ -118,6 +118,15 @@ const errors = {
 	},
 
 	/**
+		Orders
+	**/
+	orderNotFound: {
+		statusCode: 404,
+		errorKey: 'orderNotFound',
+		userMsg: defaultUserMsg
+	},
+
+	/**
 		SQL
 	**/
 	sqlInsertFailed: {

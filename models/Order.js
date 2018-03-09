@@ -53,6 +53,56 @@ module.exports.setStatusUpdateMsg = function(status) {
 	return userMsg;
 }
 
+module.exports.getOrderOwnerId = function(orderId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT customerId ' +
+					  'FROM orders ' + 
+					  'WHERE orderId = ?';
+		db.query(query, orderId, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	});
+}
+
+module.exports.getLiveOrder = function(orderId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
+					  'FROM orders ' +
+					  'WHERE orderId = ? ' +
+					  'AND (status = ' + this.statuses.receivedByServer + ' ' +
+					  'OR status = ' + this.statuses.sentToKitchen + ' ' +
+					  'OR status = ' + this.statuses.receivedByKitchen + ' ' +
+					  'OR status = ' + this.statuses.rejectedByKitchen + ' ' +
+					  'OR status = ' + this.statuses.acceptedByKitchen + ' ' +
+					  'OR status = ' + this.statuses.enRouteToCustomer + ')';
+		db.query(query, orderId, (err, order) => {
+			if(err) return reject(err);
+			resolve(order);
+		});
+	});
+}
+
+module.exports.getItemsFromLiveOrder = function(orderId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT items.itemId, items.name, items.price ' +
+					  'FROM items ' +
+					  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
+					  'JOIN orders ON orders.orderId = orderitems.orderId ' +
+					  'WHERE orders.orderId = ? ' +
+					  'AND (orders.status = ' + this.statuses.receivedByServer + ' ' +
+					  'OR orders.status = ' + this.statuses.sentToKitchen + ' ' +
+					  'OR orders.status = ' + this.statuses.receivedByKitchen + ' ' +
+					  'OR orders.status = ' + this.statuses.rejectedByKitchen + ' ' +
+					  'OR orders.status = ' + this.statuses.acceptedByKitchen + ' ' +
+					  'OR orders.status = ' + this.statuses.enRouteToCustomer + ')';
+		db.query(query, orderId, (err, orderItems) => {
+			if(err) return reject(err);
+			resolve(orderItems);
+		});
+	});
+}
+
 /**
 	Get a list of placed orders to refresh the LiveKitchen (in case of any client disconnections).
 	If for example the web-app server crashes during business hours, then when it reconnects, it will 

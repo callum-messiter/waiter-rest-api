@@ -20,6 +20,7 @@ router.get('/login', (req, res, next) => {
 
 		if(user.length < 1) throw e.emailNotRegistered; // User obj is an array of matches returned by SQL
 		if(user[0].isActive !== 1) throw e.userNotActive;
+		if(user[0].roleId == roles.diner) throw e.insufficientRolePrivileges;
 		res.locals = { user: JSON.parse(JSON.stringify(user[0])) }; // Add user to response-local var, accessible throughout the chain
 		return User.checkPassword(req.query.password, user[0].password);
 
@@ -82,6 +83,7 @@ router.get('/login/d', (req, res, next) => {
 
 		if(user.length < 1) throw e.emailNotRegistered; // User obj is an array of matches returned by SQL
 		if(user[0].isActive !== 1) throw e.userNotActive;
+		if(user[0].roleId == roles.restaurateur) throw e.insufficientRolePrivileges;
 		res.locals = { user: JSON.parse(JSON.stringify(user[0])) }; // Add user to response-local var, accessible throughout the chain
 		return User.checkPassword(req.query.password, user[0].password);
 

@@ -5,7 +5,6 @@ const Auth = require('../models/Auth');
 const Api = require('./api');
 
 module.exports.authoriseUser = function(req, res, next) {
-	console.log(req.path);
 	// We will authorise the user on all routes except for those specified here
 	if(req.path == '/auth/login' || 
 		req.path == '/auth/login/d' || 

@@ -10,6 +10,7 @@ const errorTypes = {
 	user: '_user',
 	order: '_order',
 	liveKitchen: '_liveKitchen',
+	clientSide: '_clientSide',
 	unhandled: '_unhandled'
 }
 
@@ -182,6 +183,17 @@ const errors = {
 	},
 
 	/**
+		Logs
+	**/
+	invalidClientType: {
+		statusCode: 404,
+		errorKey: 'invalidClientType',
+		type: errorTypes.clientSide,
+		userMsg: defaultUserMsg
+	},
+
+
+	/**
 		Unhandled
 	**/
 	internalServerError: {
@@ -203,7 +215,7 @@ function errorHandler(err, req, res, next) {
 		return res.json(err);
 	}
 	// If the error is not handled, return a general 500
-	log.error(req.path, errors.internalServerError.errorKey, errors.internalServerError.type, requester);
+	log.undhandledError(req.path, err, requester);
 	res.status(errors.internalServerError.statusCode); 	
 	res.json(errors.internalServerError);
 }

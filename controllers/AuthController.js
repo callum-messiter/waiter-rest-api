@@ -50,6 +50,7 @@ router.get('/login', (req, res, next) => {
 		return res.status(200).json({data: {
 			user: {
 				userId: u.userId,
+				email: u.email,
 				role: u.roleId,
 				token: u.token
 			},
@@ -100,6 +101,7 @@ router.get('/login/d', (req, res, next) => {
 		return res.status(200).json({data: {
 			user: {
 				userId: u.userId,
+				email: u.email,
 				role: u.roleId,
 				token: u.token
 			}

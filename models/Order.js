@@ -161,23 +161,38 @@ module.exports.getItemsFromLiveOrders = function(restaurantId) {
 	});
 }
 
-module.exports.createNewOrder = function(order, items) {
+module.exports.createNewOrder = function(order) {
 	return new Promise((resolve, reject) => {
 		// Create the array of orderitems, formatted correctly
 		orderItems = [];
-		for(var i = 0; i < items.length; i++) {
+		for(var i = 0; i < order.items.length; i++) {
 			// Each order item should have an orderId and itemId (the row ID is auto-incremented)
-			orderItems[i] = [items[i].itemId, order.orderId]
+			orderItems[i] = [order.items[i].itemId, order.metaData.orderId]
 		}
 		// Queries
 		const insertOrder = 'INSERT INTO orders SET ?';
 		const insertOrderItems = 'INSERT INTO orderitems (itemId, orderId) VALUES ?';
-		
-		db.query(insertOrder, order, (err, result) => {
+		const insertPaymentDetails = 'INSERT INTO payments SET ?';
+
+		// Payment object (this should be built on the client side, and then we can just reference it directly using
+		// order.paymentDetails)
+		const paymentDetails = {
+			orderId: order.metaData.orderId,
+			// destination: order.stripeToken.destination
+			stripeToken: order.stripeToken.id
+			// amount: order.stripeToken.amount
+			// currency: order.stripeToken.currency
+		};
+
+		// TODO: promisify queries
+		db.query(insertOrder, order.metaData, (err, result) => {
 			if(err) return reject(err);
 			db.query(insertOrderItems, [orderItems], (err, result) => {
 				if(err) return reject(err);
-				resolve(result);
+				db.query(insertPaymentDetails, paymentDetails, (err, result) => {
+					if(err) return reject(err);
+					resolve(result);
+				});
 			});
 		});
 	});

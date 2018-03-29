@@ -13,6 +13,7 @@ const CategoryController = require('../controllers/CategoryController');
 const ItemController = require('../controllers/ItemController');
 const OrderController = require('../controllers/OrderController');
 const LogController = require('../controllers/LogController');
+const PaymentController = require('../controllers/PaymentController');
 
 router.use(mw.authoriseUser);
 
@@ -25,5 +26,6 @@ router.use('/category', CategoryController);
 router.use('/item', ItemController);
 router.use('/order', OrderController);
 router.use('/log', LogController);
+router.use('/payment', PaymentController);
 
 module.exports = router;

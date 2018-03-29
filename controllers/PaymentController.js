@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const Restaurant = require('../models/restaurant');
 const Payment = require('../models/payment');
 const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
@@ -32,29 +33,32 @@ router.post('/createStripeAccount', (req, res, next) => {
 
 	const requiredParams = {
 		query: [],
-		body: ['restaurantId', 'country', 'email', 'restaurantName', 'currency', 'stripeToken'],
+		body: ['restaurantId', 'country', 'email', 'restaurantName', 'currency'], // stripeToken
 		route: []
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Restaurant.getRestaurantOwnerId(req.params.restaurantId)
+	Restaurant.getRestaurantOwnerId(req.body.restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		const details = {
-			country: req.params.country,
 			type: 'custom',
-			email: req.params.email,
-			business_name: req.params.restaurantName,
-			default_currency: req.params.currency,
-			external_account: req.params.stripeToken
+			email: req.body.email,
+			business_name: req.body.restaurantName,
+			country: req.body.country,
+			default_currency: req.body.currency,
+			// external_account: req.body.stripeToken
 		};
-		Payment.createRestaurantStripeAccount(restaurantId, details);
+		return Payment.createRestaurantStripeAccount(req.body.restaurantId, details);
 
 	}).then((account) => {
 
-		Payment.saveRestaurantStripeAccountDetails();
+		const data = {restaurantId: req.body.restaurantId, stripeAccountId: account.id};
+		return Payment.saveRestaurantStripeAccountDetails(data);
 
+	}).then(() => {
+		return res.status(200).json();
 	}).catch((err) => {
 		return next(err);
 	});
@@ -76,3 +80,5 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 });
+
+module.exports = router;

@@ -174,7 +174,7 @@ module.exports.createNewOrder = function(order) {
 		const insertOrderItems = 'INSERT INTO orderitems (itemId, orderId) VALUES ?';
 		const insertPaymentDetails = 'INSERT INTO payments SET ?';
 
-		// Payment object (this should be built on the client side, and then we can just reference it directly using
+		// *TODO*: Payment object (this should be built on the client side, and then we can just reference it directly using
 		// order.paymentDetails)
 		const paymentDetails = {
 			orderId: order.metaData.orderId,

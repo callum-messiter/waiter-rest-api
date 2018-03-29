@@ -60,4 +60,4 @@ typings/
 .vscode/
 
 #smtp
-config/smtp.js
+config/*

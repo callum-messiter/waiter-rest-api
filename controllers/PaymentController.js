@@ -32,6 +32,9 @@ const p = require('../helpers/params');
 router.post('/createStripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
 	const requiredParams = {
 		query: [],
 		body: ['restaurantId', 'country', 'email', 'restaurantName', 'currency'], // stripeToken
@@ -76,6 +79,9 @@ router.post('/createStripeAccount', (req, res, next) => {
 router.patch('/updateStripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
 	const requiredParams = {
 		query: [],
 		body: ['restaurantId'],
@@ -88,6 +94,9 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 router.get('/paymentDetails/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
 	const requiredParams = {
 		query: [],
 		body: [],
@@ -99,7 +108,11 @@ router.get('/paymentDetails/:restaurantId', (req, res, next) => {
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+
+		// Any diner can access this data
+		if(u.userRole == roles.restaurateur) {
+			if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		}
 
 		return Payment.getRestaurantPaymentDetails(req.params.restaurantId);
 

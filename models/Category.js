@@ -22,7 +22,7 @@ module.exports.getCategoryOwnerId = function(categoryId) {
 **/
 module.exports.getCategoryItems = function(categoryId) {
 	return new Promise((resolve, reject) => {
-		const query = 'SELEC itemId, name, price, description FROM items WHERE categoryId = ?';
+		const query = 'SELECT itemId, name, price, description FROM items WHERE categoryId = ?';
 		db.query(query, categoryId, (err, items) => {
 			if(err) return reject(err);
 			resolve(items);

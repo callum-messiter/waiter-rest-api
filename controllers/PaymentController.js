@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const Restaurant = require('../models/restaurant');
 const Payment = require('../models/payment');
+const Auth = require('../models/Auth');
 const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
@@ -42,6 +43,8 @@ router.post('/createStripeAccount', (req, res, next) => {
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+
 		const details = {
 			type: 'custom',
 			email: req.body.email,
@@ -79,6 +82,35 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 		route: []
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+});
+
+
+router.get('/paymentDetails/:restaurantId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['restaurantId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	Restaurant.getRestaurantOwnerId(req.params.restaurantId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.restaurantNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+
+		return Payment.getRestaurantPaymentDetails(req.params.restaurantId);
+
+	}).then((details) => {
+
+		if(details.length < 1) throw e.restaurantDetailsNotFound;
+		return res.status(200).json(details[0]);
+
+	}).catch((err) => {
+		return next(err);
+	});
 });
 
 module.exports = router;

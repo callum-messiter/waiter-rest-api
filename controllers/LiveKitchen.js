@@ -133,6 +133,18 @@ module.exports.handler = function(socket) {
 			// Check that the order was indeed updated
 			Order.wasOrderUpdated(result);
 
+			// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
+			/**
+			const payment = {
+				amount: order.payment.amount,
+				currency: order.payment.currency,
+				source: order.payment.stripeToken, // the stripe token representing the customer's card details
+				destination: {
+					account: payment.destination, // the recipient restaurant's stripe account ID
+				}
+			}
+			**/
+			
 			// Emit the order-status confirmation to the sender socket (the restaurant 
 			// that sent the order-status update)
 			socket.emit('orderStatusUpdated', {

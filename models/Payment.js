@@ -67,17 +67,32 @@ module.exports.getOrderPaymentDetails = function(orderId) {
 	
 }
 
-module.exports.processCustomerPaymentToRestaurant = function(order) {
-	/*
+module.exports.processCustomerPaymentToRestaurant = function(payment) {
+	return new Promise((resolve, reject) => {
 		stripe.charges.create({
 		  amount: payment.amount,
 		  currency: payment.currency,
 		  source: payment.stripeToken, // the stripe token representing the customer's card details
 		  destination: {
 		    account: payment.destination, // the recipient restaurant's stripe account ID
-		  },
-		}).then(function(charge) {
-		  // asynchronously called
+		  }
+		}).then((charge) => {
+			// Perform necessary checks
+			return resolve(charge);
+		}).catch((err) => {
+			return reject(err);
 		});
-	*/
+	});
+}
+
+module.exports.getRestaurantPaymentDetails = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT restaurantId, stripeAccountId, currency ' + 
+					  'FROM restaurantdetailspayment ' +
+					  'WHERE restaurantId = ?';
+		db.query(query, restaurantId, (err, details) => {
+			if(err) return reject(err);
+			resolve(details);
+		});
+	});
 }

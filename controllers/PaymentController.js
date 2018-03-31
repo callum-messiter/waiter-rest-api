@@ -91,7 +91,7 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 });
 
 
-router.get('/paymentDetails/:restaurantId', (req, res, next) => {
+router.get('/restaurantDetails/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];

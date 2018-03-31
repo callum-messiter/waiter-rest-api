@@ -174,22 +174,12 @@ module.exports.createNewOrder = function(order) {
 		const insertOrderItems = 'INSERT INTO orderitems (itemId, orderId) VALUES ?';
 		const insertPaymentDetails = 'INSERT INTO payments SET ?';
 
-		// *TODO*: Payment object (this should be built on the client side, and then we can just reference it directly using
-		// order.paymentDetails)
-		const paymentDetails = {
-			orderId: order.metaData.orderId,
-			// destination: order.stripeToken.destination
-			stripeToken: order.stripeToken.id
-			// amount: order.stripeToken.amount
-			// currency: order.stripeToken.currency
-		};
-
 		// TODO: promisify queries
 		db.query(insertOrder, order.metaData, (err, result) => {
 			if(err) return reject(err);
 			db.query(insertOrderItems, [orderItems], (err, result) => {
 				if(err) return reject(err);
-				db.query(insertPaymentDetails, paymentDetails, (err, result) => {
+				db.query(insertPaymentDetails, order.payment, (err, result) => {
 					if(err) return reject(err);
 					resolve(result);
 				});

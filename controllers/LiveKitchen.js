@@ -1,5 +1,6 @@
 const moment = require('moment');
 const Order = require('../models/Order');
+const Payment = require('../models/payment');
 const Auth = require('../models/Auth');
 const LiveKitchen = require('../models/LiveKitchen');
 
@@ -134,16 +135,26 @@ module.exports.handler = function(socket) {
 			Order.wasOrderUpdated(result);
 
 			// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
-			/**
-			const payment = {
-				amount: order.payment.amount,
-				currency: order.payment.currency,
-				source: order.payment.stripeToken, // the stripe token representing the customer's card details
-				destination: {
-					account: payment.destination, // the recipient restaurant's stripe account ID
-				}
+			if(order.status == Order.statuses.acceptedByKitchen) {
+				return Payment.getOrderPaymentDetails(order.orderId)
+				.then((details) => {
+
+					return Payment.processCustomerPaymentToRestaurant(details[0]);
+					
+				}).then((charge) => {
+					// Inform clients
+
+					// If payment is successful, update the row in payments - paid = 1, chargeId = charge.id; inform clients
+					return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
+					// If payment fails, inform the clients - the apps should handle this accordingly
+				}).then(() => {
+					return true;
+				}).catch((err) => {
+					// Return websockets error of type payment_error
+					console.log('[PAYMENT ERR] ' + err);
+					throw new Error('[PAYMENT ERR] ' + err);
+				});
 			}
-			**/
 			
 			// Emit the order-status confirmation to the sender socket (the restaurant 
 			// that sent the order-status update)

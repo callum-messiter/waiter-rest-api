@@ -134,28 +134,7 @@ module.exports.handler = function(socket) {
 			// Check that the order was indeed updated
 			Order.wasOrderUpdated(result);
 
-			// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
-			if(order.status == Order.statuses.acceptedByKitchen) {
-				return Payment.getOrderPaymentDetails(order.orderId)
-				.then((details) => {
-
-					return Payment.processCustomerPaymentToRestaurant(details[0]);
-					
-				}).then((charge) => {
-					// Inform clients
-
-					// If payment is successful, update the row in payments - paid = 1, chargeId = charge.id; inform clients
-					return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
-					// If payment fails, inform the clients - the apps should handle this accordingly
-				}).then(() => {
-					return true;
-				}).catch((err) => {
-					// Return websockets error of type payment_error
-					console.log('[PAYMENT ERR] ' + err);
-					throw new Error('[PAYMENT ERR] ' + err);
-				});
-			}
-			
+			// Send the order status updates to all relevant clients
 			// Emit the order-status confirmation to the sender socket (the restaurant 
 			// that sent the order-status update)
 			socket.emit('orderStatusUpdated', {
@@ -191,6 +170,29 @@ module.exports.handler = function(socket) {
 					userMsg: Order.setStatusUpdateMsg(order.status)
 				});
 				console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + result[i].socketId + '.');
+			}
+
+			// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
+			if(order.status == Order.statuses.acceptedByKitchen) {
+				return Payment.getOrderPaymentDetails(order.orderId)
+				.then((details) => {
+
+					return Payment.processCustomerPaymentToRestaurant(details[0]);
+					
+				}).then((charge) => {
+
+					// If payment is successful, update the row in payments
+					return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
+
+				}).then(() => {
+					// The diner is informed that their order is accepted; then we process the payment.
+					// The order process will continue as normal for them, unless payment fails - then they will be informed
+					return true;
+				}).catch((err) => {
+					// Return websockets error of type payment_error
+					console.log('[PAYMENT ERR] ' + err);
+					throw new Error('[PAYMENT ERR] ' + err);
+				});
 			}
 
 		}).catch((err) => {

@@ -47,6 +47,12 @@ module.exports.clientSideError = function(msg, type) {
 	getLogger(type).error(msg);
 }
 
+module.exports.liveKitchenError = function(errorType, err, socketId, event) {
+	getLogger(errorType).error(
+		'Error for socket *' + socketId + '* in listener *' + event + '*: ' + err
+	);
+}
+
 function getLogger(type) {
 	return bunyan.createLogger({
 	    name: type,

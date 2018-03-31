@@ -65,7 +65,7 @@ module.exports.saveRestaurantStripeAccountDetails = function(data) {
 
 module.exports.getOrderPaymentDetails = function(orderId) {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT source, destination, currency, amount ' +
+		const query = 'SELECT source, destination, currency, amount, customerEmail ' +
 					  'FROM payments ' +
 					  'WHERE orderId = ?';
 		db.query(query, orderId, (err, details) => {
@@ -83,7 +83,8 @@ module.exports.processCustomerPaymentToRestaurant = function(payment) {
 		  source: payment.source, // the stripe token representing the customer's card details
 		  destination: {
 		    account: payment.destination, // the recipient restaurant's stripe account ID
-		  }
+		  },
+		  receipt_email: payment.customerEmail // the diner may specify an email address that is not their waitr one
 		}).then((charge) => {
 			return resolve(charge);
 		}).catch((err) => {

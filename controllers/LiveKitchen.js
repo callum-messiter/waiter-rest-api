@@ -1,6 +1,6 @@
 const moment = require('moment');
 const Order = require('../models/Order');
-const Payment = require('../models/payment');
+const Payment = require('../models/Payment');
 const Auth = require('../models/Auth');
 const LiveKitchen = require('../models/LiveKitchen');
 const log = require('../helpers/logger');

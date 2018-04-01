@@ -119,6 +119,12 @@ const errors = {
 		type: errorTypes.restaurant,
 		userMsg: defaultUserMsg
 	},
+	restaurantDetailsNotFound: {
+		statusCode: 404,
+		errorKey: 'restaurantDetailsNotFound',
+		type: errorTypes.restaurant,
+		userMsg: defaultUserMsg
+	},
 
 	/**
 		Menus

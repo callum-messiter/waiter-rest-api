@@ -92,10 +92,10 @@ module.exports.getUserByEmail = function(email) {
 module.exports.createNewUser = function(user) {
 	return new Promise((resolve, reject) => {
 		const query = 'INSERT INTO users SET ?';
-		db.query(query, user, (err, users) => {
+		db.query(query, user, (err, result) => {
 			if(err) return reject(err);
 			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
-			resolve(users);
+			resolve(result);
 		});
 	});
 }

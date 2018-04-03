@@ -40,7 +40,7 @@ router.post('/r', (req, res, next) => {
 
 	const requiredParams = {
 		query: [],
-		body: ['email', 'password', 'firstName', 'lastName', 'userType', 'restaurantName'],
+		body: ['email', 'password', 'firstName', 'lastName', 'restaurantName'],
 		route: []
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
@@ -115,7 +115,7 @@ router.post('/d', (req, res, next) => {
 
 	const requiredParams = {
 		query: [],
-		body: ['email', 'password', 'firstName', 'lastName', 'userType'],
+		body: ['email', 'password', 'firstName', 'lastName'],
 		route: []
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;

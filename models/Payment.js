@@ -6,24 +6,24 @@ const e = require('../helpers/error').errors;
 module.exports.createRestaurantStripeAccount = function(account) {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.create({
-			type: "custom",
-			email: account.email,
-			business_name: account.restaurantName,		
-			country: account.country,
-			default_currency: account.currency,
+			type: 'custom',
+			email: 'adam@waterlane.com',
+			business_name: 'Water Lane Brasserie',		
+			country: 'GB',
+			default_currency: 'GBP',
 			legal_entity: {
-				dob: {
-					day: '01',
-					month: '12',
-					year: '1970',
-				},
-				address: {
-					city: 'Canterbury',
-					line1: '12 Baker Street',
-					postal_code: 'Ct33ld'
-				},
-				first_name: 'Jack',
-				last_name: 'Swann',
+				//dob: {
+					//day: '01',
+					//month: '12',
+					//year: '1970',
+				//},
+				//address: {
+					//city: 'Canterbury',
+					//line1: '12 Baker Street',
+					//postal_code: 'Ct33ld'
+				//},
+				first_name: 'Adam',
+				last_name: 'Smith',
 				type: 'individual'
 			}
 			// external_account: account.stripeToken

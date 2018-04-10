@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const stripe = require("stripe")(require('../config/stripe').secretKey);
+const stripe = require("stripe")(require('../config/private').stripeSecretKey);
 stripe.setApiVersion('2018-02-28');
 const e = require('../helpers/error').errors;	
 

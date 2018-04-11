@@ -103,7 +103,16 @@ router.get('/live/:orderId', (req, res, next) => {
 				res.locals.order.items.push(item);
 			});
 		}
-		return res.status(200).json({ order: res.locals.order });
+		// TODO: this is a quick hack; should be retrieved at an earlier point by the customer app
+		// Get the restaurant name for the customer app
+		return Restaurant.getRestaurantById(res.locals.order.restaurantId);
+
+	}).then((r) => {
+
+		return res.status(200).json({ 
+			order: res.locals.order, 
+			restaurantName: r[0].name 
+		});
 
 	}).catch((err) => {
 		return next(err);

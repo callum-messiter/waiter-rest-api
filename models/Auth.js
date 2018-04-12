@@ -1,9 +1,8 @@
 const jwt = require('jsonwebtoken');
 const roles = require('../models/UserRoles').roles;
 const db = require('../config/database');
-const secret = require('../config/jwt').secret;
-const jwtOpts = require('../config/jwt').opts;
 const e = require('../helpers/error').errors;
+const config = require('../config/config');
 
 /**
 	Generate a new json web token (jwt) upon successful login
@@ -12,14 +11,14 @@ module.exports.createUserToken = function(userId, userRole) {
 	return new Promise((resolve, reject) => {
 		const utc_timestamp = new Date().getTime();
 		const data = {
-			algorithm: jwtOpts.alg,
-			issuer: jwtOpts.issuer,
+			algorithm: config.jwt.alg,
+			issuer: config.jwt.issuer,
 			iat: utc_timestamp,
 			exp: utc_timestamp + (3600000*24*7),
 			userId: userId,
 			userRole: userRole
 		}
-		jwt.sign(data, secret, (err, token) => {
+		jwt.sign(data, config.jwt.secret, (err, token) => {
 			if(err) return reject(err);
 			resolve(token);
 		});
@@ -31,7 +30,7 @@ module.exports.createUserToken = function(userId, userRole) {
 **/
 module.exports.verifyToken = function(token) {
 	return new Promise((resolve, reject) => {
-		jwt.verify(token, secret, (err, decodedPayload) => {
+		jwt.verify(token, config.jwt.secret, (err, decodedPayload) => {
 			if(err) return reject(e.jwtMalformed);
 			resolve(decodedPayload);
 		});

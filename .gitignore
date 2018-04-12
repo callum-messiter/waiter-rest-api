@@ -58,7 +58,3 @@ typings/
 
 #vscode editor settings
 .vscode/
-
-#smtp
-config/*
-config/private.js

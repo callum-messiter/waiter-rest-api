@@ -75,7 +75,7 @@ module.exports.getUserById = function(userId) {
 module.exports.getUserByEmail = function(email) {
 	return new Promise((resolve, reject) => {
 		const query = 
-		'SELECT users.userId, users.email, users.password, users.isVerified, users.isActive, ' +
+		'SELECT users.userId, users.firstName, users.lastName, users.email, users.password, users.isVerified, users.isActive, ' +
 		'userroles.roleId FROM users ' +
 		'JOIN userroles ON userroles.userId = users.userId ' +
 		'WHERE email = ?';

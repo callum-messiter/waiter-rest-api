@@ -61,6 +61,8 @@ router.post('/r', (req, res, next) => {
 			lastName: req.body.lastName
 		}
 		res.locals.newUser.userId = user.userId;
+		res.locals.newUser.firstName = user.firstName;
+		res.locals.newUser.lastName = user.lastName;
 		return User.createNewUser(user);
 
 	}).then((result) => {
@@ -96,6 +98,8 @@ router.post('/r', (req, res, next) => {
 			user: {
 				userId: res.locals.newUser.userId, 
 				userRole: res.locals.newUser.role,
+				firstName: res.locals.newUser.firstName,
+				lastName: res.locals.newUser.lastName
 				//isVerified: false,
 			},
 			restaurant: res.locals.newUser.restaurant,

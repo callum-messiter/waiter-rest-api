@@ -161,6 +161,24 @@ module.exports.getItemsFromLiveOrders = function(restaurantId) {
 	});
 }
 
+// We return only ONE of the order's items, for now
+module.exports.getOrdersForUser = function(userId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT orders.orderId, orders.restaurantId, restaurants.name AS restaurantName, ' +
+					  'orders.status, orders.price, orders.time, items.name AS itemName ' +
+					  'FROM orders ' +
+					  'JOIN restaurants ON restaurants.restaurantId = orders.restaurantId ' +
+					  'JOIN orderitems ON orderitems.orderId = orders.orderId ' +
+					  'JOIN items ON items.itemId = orderitems.itemId ' +
+					  'WHERE orders.customerId = ? ' +
+					  'ORDER BY time DESC';
+		db.query(query, userId, (err, orders) => {
+			if(err) reject(err);
+			resolve(orders);
+		})
+	});
+}
+
 module.exports.createNewOrder = function(order) {
 	return new Promise((resolve, reject) => {
 		// Create the array of orderitems, formatted correctly

@@ -15,7 +15,7 @@ const errorTypes = {
 }
 
 // Default error message for client to render to user
-const defaultUserMsg = 'Oops! The waiter system experienced an error - please try again. If the issue persists, contact our support team.';
+const defaultUserMsg = 'The waiter system experienced an error - please try again. If the issue persists, contact our support team.';
 
 /**
 	When adding a new error, ensure that the key of the error object has the same name as its errorKey value

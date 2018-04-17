@@ -2,6 +2,7 @@ const router = require('express').Router();
 const Order = require('../models/Order');
 const Auth = require('../models/Auth');
 const Restaurant = require('../models/Restaurant');
+const User = require('../models/User');
 const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
@@ -117,6 +118,42 @@ router.get('/live/:orderId', (req, res, next) => {
 	}).catch((err) => {
 		return next(err);
 	});
+});
+
+router.get('/history', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	/**
+	 * The userId param should only be provided if the requester wants to retrieve another user's orders.
+	 * Only admins can do this. If the user wishes to retrieve his own team boxes, this parameter is 
+	 * unecessary and will be ignored; the API will use the userId of the requester.
+	 */
+	const ordersOwnerId = req.query.userId || u.userId;
+
+	// Check the user exists
+	User.getUserById(ordersOwnerId)
+	.then((users) => {
+
+		if(users.length < 1) throw e.userNotFound;
+		if(!Auth.userHasAccessRights(u, ordersOwnerId)) throw e.insufficientPermissions;
+		return Order.getOrdersForUser(ordersOwnerId);
+
+	}).then((o) => {
+		return res.status(200).json(o);
+	}).catch((err) => {
+		return next(err);
+	});
+
 });
 
 module.exports = router;

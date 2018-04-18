@@ -67,6 +67,7 @@ module.exports.handler = function(socket) {
 		.then((result) => {
 			return console.log('[DB] Socket ' + socket.id + ' deleted.')
 		}).catch((err) => {
+			console.log(err);
 			return log.liveKitchenError(errorType, err, socket.id, lrn.disconnect);
 		});
 	});
@@ -89,11 +90,11 @@ module.exports.handler = function(socket) {
 				hostRestaurantId: order.metaData.restaurantId
 			}
 
-			return LiveKitchen.addSocketToRestaurantCustomers(socketData);
+			// return LiveKitchen.addSocketToRestaurantCustomers(socketData);
 
-		}).then((result) => {
+		// }).then((result) => {
 
-			console.log('[DB] Socket ' + socket.id + ' added to SocketsRestaurantCustomers.');
+			// console.log('[DB] Socket ' + socket.id + ' added to SocketsRestaurantCustomers.');
 			order.metaData.status = Order.statuses.receivedByServer; // Update order status
 			return Order.createNewOrder(order);
 

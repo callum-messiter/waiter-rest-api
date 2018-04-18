@@ -8,8 +8,8 @@ module.exports.createRestaurantStripeAccount = function(account) {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.create({
 			type: 'custom',
-			email: 'adam@waterlane.com',
-			business_name: 'Water Lane Brasserie',		
+			email: 'emma@theambrette.co.uk',
+			business_name: 'The Ambrette',		
 			country: 'GB',
 			default_currency: 'GBP',
 			legal_entity: {
@@ -23,9 +23,9 @@ module.exports.createRestaurantStripeAccount = function(account) {
 					//line1: '12 Baker Street',
 					//postal_code: 'Ct33ld'
 				//},
-				first_name: 'Adam',
-				last_name: 'Smith',
-				type: 'individual'
+				first_name: 'Emma',
+				last_name: 'Biswal',
+				type: 'company'
 			}
 			// external_account: account.stripeToken
 		}).then((account) => {

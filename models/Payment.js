@@ -4,7 +4,7 @@ const stripe = require("stripe")(config.stripe.secretKey);
 stripe.setApiVersion('2018-02-28');
 const e = require('../helpers/error').errors;	
 
-module.exports.createRestaurantStripeAccount = function(account) {
+module.exports.createRestaurantStripeAccount = function() {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.create({
 			type: 'custom',

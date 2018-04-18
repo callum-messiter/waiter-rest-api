@@ -37,7 +37,7 @@ router.post('/createStripeAccount', (req, res, next) => {
 
 	const requiredParams = {
 		query: [],
-		body: ['restaurantId', 'country', 'email', 'restaurantName', 'currency'], // stripeToken
+		body: ['restaurantId'],
 		route: []
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
@@ -47,21 +47,15 @@ router.post('/createStripeAccount', (req, res, next) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-
-		const details = {
-			type: 'custom',
-			email: req.body.email,
-			business_name: req.body.restaurantName,
-			country: req.body.country,
-			default_currency: req.body.currency,
-			// external_account: req.body.stripeToken
-		};
-		return Payment.createRestaurantStripeAccount(req.body.restaurantId, details);
+		// TODO: Plug in the data dynamically using the req.body
+		return Payment.createRestaurantStripeAccount(req.body.restaurantId);
 
 	}).then((account) => {
 
-		const data = {restaurantId: req.body.restaurantId, stripeAccountId: account.id};
-		return Payment.saveRestaurantStripeAccountDetails(data);
+		return Payment.saveRestaurantStripeAccountDetails({
+			restaurantId: req.body.restaurantId, 
+			stripeAccountId: account.id}
+		);
 
 	}).then(() => {
 		return res.status(200).json();

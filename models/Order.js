@@ -165,11 +165,9 @@ module.exports.getItemsFromLiveOrders = function(restaurantId) {
 module.exports.getOrdersForUser = function(userId) {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT orders.orderId, orders.restaurantId, restaurants.name AS restaurantName, ' +
-					  'orders.status, orders.price, orders.time, items.name AS itemName ' +
+					  'orders.status, orders.price, orders.time ' +
 					  'FROM orders ' +
 					  'JOIN restaurants ON restaurants.restaurantId = orders.restaurantId ' +
-					  'JOIN orderitems ON orderitems.orderId = orders.orderId ' +
-					  'JOIN items ON items.itemId = orderitems.itemId ' +
 					  'WHERE orders.customerId = ? ' +
 					  'ORDER BY time DESC';
 		db.query(query, userId, (err, orders) => {

@@ -47,6 +47,9 @@ const e = require('../helpers/error').errors;
 module.exports.createRestaurantStripeAccount = function(accountObj) {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.create({
+			country: "UK",
+ 			type: "custom"
+			/**
 			legal_entity: {
 				first_name: 'Adam',
 				last_name: 'Smith',
@@ -67,7 +70,7 @@ module.exports.createRestaurantStripeAccount = function(accountObj) {
 					month: '06',
 					year: '1977'
 				}
-			}
+			}**/
 		}).then((account) => {
 			return resolve(account);
 		}).catch((err) => {

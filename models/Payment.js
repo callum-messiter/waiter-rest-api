@@ -4,31 +4,17 @@ const stripe = require("stripe")(config.stripe.secretKey);
 stripe.setApiVersion('2018-02-28');
 const e = require('../helpers/error').errors;	
 
-module.exports.createRestaurantStripeAccount = function() {
+/**
+	TODO: don't create the account upon registration. Only create the account when the user
+	submits the form from the Stripe Settings panel in the restaurant app.
+
+	Send all the params, including the country, default currency, email
+**/
+module.exports.createRestaurantStripeAccount = function(accountObj) {
 	return new Promise((resolve, reject) => {
-		stripe.accounts.create({
-			type: 'custom',
-			email: 'emma@theambrette.co.uk',
-			business_name: 'The Ambrette',		
-			country: 'GB',
-			default_currency: 'GBP',
-			legal_entity: {
-				//dob: {
-					//day: '01',
-					//month: '12',
-					//year: '1970',
-				//},
-				//address: {
-					//city: 'Canterbury',
-					//line1: '12 Baker Street',
-					//postal_code: 'Ct33ld'
-				//},
-				first_name: 'Emma',
-				last_name: 'Biswal',
-				type: 'company'
-			}
-			// external_account: account.stripeToken
-		}).then((account) => {
+		accountObj.type = 'custom';
+		stripe.accounts.create(accountObj)
+		.then((account) => {
 			return resolve(account);
 		}).catch((err) => {
 			return reject(err);
@@ -36,17 +22,11 @@ module.exports.createRestaurantStripeAccount = function() {
 	});
 }
 
-module.exports.tokenizeRestaurantBankAccountDetails = function(account) {
+module.exports.updateStripeAccount = function(accountId, accountObj) {
 	return new Promise((resolve, reject) => {
-		stripe.createToken('bank_account', {
-			country: account.country,
-			currency: account.currency,
-			routing_number: account.routingNum,
-			account_number: account.accountNum,
-			account_holder_name: account.holderName,
-			account_holder_type: account.holderType,
-		}).then((token) => {
-			return resolve(token);
+		stripe.accounts.update(accountId, accountObj)
+		.then((account) => {
+			return resolve(account);
 		}).catch((err) => {
 			return reject(err);
 		});

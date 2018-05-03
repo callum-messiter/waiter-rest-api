@@ -94,6 +94,7 @@ router.post('/r', (req, res, next) => {
 
 	}).then((result) => {
 
+		// TODO: create restaurant's Stripe account
 		return res.status(201).json({
 			user: {
 				userId: res.locals.newUser.userId, 

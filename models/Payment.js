@@ -10,11 +10,65 @@ const e = require('../helpers/error').errors;
 
 	Send all the params, including the country, default currency, email
 **/
+
+/**
+
+	*Parameters required for verification*
+
+	external_account,
+	tos_acceptance: {
+		date,
+		ip
+	},
+	legal_entity: {
+		first_name,
+		last_name,
+		type,
+		business_name,
+		business_tax_id,
+		address: {
+			line1,
+			city,
+			postal_code
+		},
+		personal_address: {
+			line1,
+			city,
+			postal_code
+		},
+		dob: {
+			day,
+			month,
+			year
+		}
+	}
+
+**/
 module.exports.createRestaurantStripeAccount = function(accountObj) {
 	return new Promise((resolve, reject) => {
-		accountObj.type = 'custom';
-		stripe.accounts.create(accountObj)
-		.then((account) => {
+		stripe.accounts.create({
+			legal_entity: {
+				first_name: 'Adam',
+				last_name: 'Smith',
+				type: 'company',
+				business_name: 'Water Lane Brasserie',
+				address: {
+					line1: '56 Castle Street',
+					city: 'Canterbury',
+					postal_code: 'ct12py'
+				},
+				personal_address: {
+					line1: '56 Castle Street',
+					city: 'Canterbury',
+					postal_code: 'ct12py'
+				},
+				dob: {
+					day: '26',
+					month: '06',
+					year: '1977'
+				}
+			}
+		}).then((account) => {
 			return resolve(account);
 		}).catch((err) => {
 			return reject(err);

@@ -230,7 +230,7 @@ module.exports.handler = function(socket) {
 
 				}).catch((err) => {
 					console.log(err);
-					const errorMsg = 'Payment error (Waitr): ' + err;
+					var errorMsg = 'Payment error (Waitr): ' + err;
 					// TODO: update the order status to paymentFailed (998)
 					// TODO: check explicitly if the charge was successful (we can check in the database)
 					if(err.hasOwnProperty('type')) {

@@ -139,38 +139,38 @@ module.exports.handler = function(socket) {
 
 	/**
 	// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
-		if(order.status == Order.statuses.acceptedByKitchen) {
-			return Payment.getOrderPaymentDetails(order.orderId)
-			.then((details) => {
+	if(order.status == Order.statuses.acceptedByKitchen) {
+		return Payment.getOrderPaymentDetails(order.orderId)
+		.then((details) => {
 
-				return Payment.processCustomerPaymentToRestaurant(details[0]);
+			return Payment.processCustomerPaymentToRestaurant(details[0]);
 
-			}).catch((err) => {
-				console.log(err);
-				return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
-				
-				// Inform the restaurant and the customer of the payment error
-				const payload = {
-					orderId: order.orderId, 
-					status: Order.statuses.paymentFailed,
-					userMsg: 'Oops! ' + err
-				};
+		}).catch((err) => {
+			console.log(err);
+			return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
+			
+			// Inform the restaurant and the customer of the payment error
+			const payload = {
+				orderId: order.orderId, 
+				status: Order.statuses.paymentFailed,
+				userMsg: 'Oops! ' + err
+			};
 
-				socket.broadcast.to(result[i].socketId).emit(events.orderStatusUpdated, payload);
-				socket.emit(events.orderStatusUpdated, payload);
-				return;
+			socket.broadcast.to(result[i].socketId).emit(events.orderStatusUpdated, payload);
+			socket.emit(events.orderStatusUpdated, payload);
+			return;
 
-			}).then((charge) => {
+		}).then((charge) => {
 
-				// If payment is successful, update the row in payments
-				return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
+			// If payment is successful, update the row in payments
+			return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
 
-			}).catch((err) => {
+		}).catch((err) => {
 
-				return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
+			return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
 
-			});
-		}
+		});
+	}
 	**/
 
 	/**
@@ -201,26 +201,82 @@ module.exports.handler = function(socket) {
 			// Retrieve all connected sockets associated with the recipient restaurant (who updated the order's status)
 			return LiveKitchen.getAllInterestedSockets(order.restaurantId, order.customerId);
 
-		}).then((result) => {
+		}).then((interestedSockets) => {
 
-			if(result.length < 1) {
+			if(interestedSockets.length < 1) {
 				return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.orderStatusUpdate);
 			}
 			// Emit order-status=update confirmation to all connected sockets representing the recipient restaurant
-			for(i = 0; i < result.length; i++) {
-				socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
+			for(i = 0; i < interestedSockets.length; i++) {
+				socket.broadcast.to(interestedSockets[i].socketId).emit('orderStatusUpdated', {
 					orderId: order.orderId, 
 					status: order.status,
 					userMsg: Order.setStatusUpdateMsg(order.status)
 				});
 			}
-			console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + result.length + ' sockets.');
+			console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + interestedSockets.length + ' sockets.');
 			
-			return true;
+			// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
+			if(order.status == Order.statuses.acceptedByKitchen) {
+				return Payment.getOrderPaymentDetails(order.orderId)
+				.then((details) => {
+
+					return Payment.processCustomerPaymentToRestaurant(details[0]);
+
+				}).then((charge) => {
+
+					// If payment is successful, update the row in payments
+					return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
+
+				}).catch((err) => {
+					console.log(err);
+					const errorMsg = 'Payment error (Waitr): ' + err;
+					// TODO: update the order status to paymentFailed (998)
+					// TODO: check explicitly if the charge was successful (we can check in the database)
+					if(err.hasOwnProperty('type')) {
+						errorMsg = 'Payment error (Stripe): ' + err.message + ' (' + err.decline_code + ').';
+						
+						const payload = {
+							orderId: order.orderId, 
+							status: Order.statuses.paymentFailed,
+							userMsg: setPaymentErrorMsg(err)
+						};
+
+						// Inform the restaurant and the customer of the payment error
+						for(var i = 0; i < interestedSockets.length; i++) {
+							socket.broadcast.to(interestedSockets[i].socketId).emit(events.orderStatusUpdated, payload);
+						}
+						socket.emit(events.orderStatusUpdated, payload);
+					}
+
+					log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
+
+				});
+			}
 
 		}).catch((err) => {
 			// TODO: inform client
 			return log.liveKitchenError(errorType, err, socket.id, lrn.orderStatusUpdate);
 		});
 	});
+}
+
+function setPaymentErrorMsg(err) {
+	var errorMsg = 'Oops. There was an error processing your payment - your order has been cancelled.';
+
+	switch (err.type) {
+		case 'StripeCardError':
+			// A declined card error
+			return err.message + ' Your order has been cancelled.'; // => e.g. "Your card's expiration year is invalid."
+			break;
+		case 'RateLimitError':
+		case 'StripeInvalidRequestError':
+		case 'StripeAPIError':
+		case 'StripeConnectionError':
+		case 'StripeAuthenticationError':
+		default: 
+			// Too many requests made to the API too quickly
+			return errorMsg;
+			break;
+	}
 }

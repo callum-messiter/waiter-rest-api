@@ -14,6 +14,10 @@ const lrn = {
 	orderStatusUpdate: 'orderStatusUpdate'
 }
 
+const events = {
+	orderStatusUpdated: 'orderStatusUpdated'
+}
+
 const e = {
 	missingToken: 'order.headers.token is not set.',
 	missingUserParam: '`socket.handshake.query.{userType}Id` not set',
@@ -134,6 +138,42 @@ module.exports.handler = function(socket) {
 	});
 
 	/**
+	// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
+		if(order.status == Order.statuses.acceptedByKitchen) {
+			return Payment.getOrderPaymentDetails(order.orderId)
+			.then((details) => {
+
+				return Payment.processCustomerPaymentToRestaurant(details[0]);
+
+			}).catch((err) => {
+				console.log(err);
+				return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
+				
+				// Inform the restaurant and the customer of the payment error
+				const payload = {
+					orderId: order.orderId, 
+					status: Order.statuses.paymentFailed,
+					userMsg: 'Oops! ' + err
+				};
+
+				socket.broadcast.to(result[i].socketId).emit(events.orderStatusUpdated, payload);
+				socket.emit(events.orderStatusUpdated, payload);
+				return;
+
+			}).then((charge) => {
+
+				// If payment is successful, update the row in payments
+				return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
+
+			}).catch((err) => {
+
+				return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
+
+			});
+		}
+	**/
+
+	/**
 		Listen to order-status updates made by the restauraut, e.g. "accepted", "rejected", and "enroute"
 	**/
 	socket.on(lrn.orderStatusUpdate, (order) => {
@@ -159,7 +199,7 @@ module.exports.handler = function(socket) {
 			});
 
 			// Retrieve all connected sockets associated with the recipient restaurant (who updated the order's status)
-			return LiveKitchen.getRecipientRestaurantSockets(order.restaurantId);
+			return LiveKitchen.getAllInterestedSockets(order.restaurantId, order.customerId);
 
 		}).then((result) => {
 
@@ -173,41 +213,10 @@ module.exports.handler = function(socket) {
 					status: order.status,
 					userMsg: Order.setStatusUpdateMsg(order.status)
 				});
-				console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + result[i].socketId + '.');
 			}
-
-			return LiveKitchen.getRecipientCustomerSockets(order.customerId);
-
-		}).then((result)=> {
-
-			// TODO: we can combine the two socket arrays (restuarants and customers) and broadcast once
-			if(result.length < 1) { 
-				return log.liveKitchenError(errorType, e.recipientDinerNotConnected, socket.id, lrn.orderStatusUpdate);
-			}
-
-			// Emit the order-status update to all connected sockets representing the recipient customer
-			for(i = 0; i < result.length; i++) {
-				socket.broadcast.to(result[i].socketId).emit('orderStatusUpdated', {
-					orderId: order.orderId, 
-					status: order.status,
-					userMsg: Order.setStatusUpdateMsg(order.status)
-				});
-				console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + result[i].socketId + '.');
-			}
-
-			// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
-			if(order.status == Order.statuses.acceptedByKitchen) {
-				return Payment.getOrderPaymentDetails(order.orderId)
-				.then((details) => {
-					return Payment.processCustomerPaymentToRestaurant(details[0]);
-				}).then((charge) => {
-					// If payment is successful, update the row in payments
-					return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
-				}).catch((err) => {
-					// TODO: inform clients
-					return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
-				});
-			}
+			console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + result.length + ' sockets.');
+			
+			return true;
 
 		}).catch((err) => {
 			// TODO: inform client

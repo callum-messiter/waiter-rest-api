@@ -22,6 +22,7 @@ module.exports.statuses = {
 	sentToKitchen: 200,
 	receivedByKitchen: 300,
 	acceptedByKitchen: 400,
+	paymentFailed: 998,
 	rejectedByKitchen: 999,
 	enRouteToCustomer: 1000,
 	// receivedByCustomer: 2000 // would be set by deliverer of food

@@ -80,3 +80,21 @@ module.exports.getRecipientCustomerSockets = function(customerId) {
 		});
 	});
 }
+
+/**
+	For when we want to emit an event to all connected restaurant AND customer sockets (e.g. a server confirmation
+	of order-status update)
+**/
+module.exports.getAllInterestedSockets = function(restaurantId, customerId) {
+	return new Promise((resolve, reject) => {
+		const restaurantQuery = 'SELECT socketId FROM socketsrestaurants WHERE restaurantId = ?';
+		const customerQuery = 'SELECT socketId FROM socketscustomers WHERE customerId = ?';
+		db.query(restaurantQuery, restaurantId, (err, restaurantSockets) => {
+			if(err) return reject(err);
+			db.query(customerQuery, customerId, (err, customerSockets) => {
+				if(err) return reject(err);
+				return resolve(restaurantSockets.concat(customerSockets));
+			});
+		});
+	});
+}

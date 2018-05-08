@@ -262,20 +262,19 @@ module.exports.handler = function(socket) {
 }
 
 function setPaymentErrorMsg(err) {
-	var errorMsg = 'Oops. There was an error processing your payment - your order has been cancelled.';
+	var errorMsg = 'Oops. There was an error processing your payment. Your order has been cancelled and your bank account has not been charged.';
 
 	switch (err.type) {
 		case 'StripeCardError':
 			// A declined card error
-			return err.message + ' Your order has been cancelled.'; // => e.g. "Your card's expiration year is invalid."
+			return err.message + ' Your order has been cancelled and your bank account has not been charged.'; // => e.g. "Your card's expiration year is invalid."
 			break;
 		case 'RateLimitError':
 		case 'StripeInvalidRequestError':
 		case 'StripeAPIError':
 		case 'StripeConnectionError':
 		case 'StripeAuthenticationError':
-		default: 
-			// Too many requests made to the API too quickly
+		default:
 			return errorMsg;
 			break;
 	}

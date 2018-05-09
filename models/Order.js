@@ -71,13 +71,7 @@ module.exports.getLiveOrder = function(orderId) {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
 					  'FROM orders ' +
-					  'WHERE orderId = ? ' +
-					  'AND (status = ' + this.statuses.receivedByServer + ' ' +
-					  'OR status = ' + this.statuses.sentToKitchen + ' ' +
-					  'OR status = ' + this.statuses.receivedByKitchen + ' ' +
-					  'OR status = ' + this.statuses.rejectedByKitchen + ' ' +
-					  'OR status = ' + this.statuses.acceptedByKitchen + ' ' +
-					  'OR status = ' + this.statuses.enRouteToCustomer + ')';
+					  'WHERE orderId = ? ';
 		db.query(query, orderId, (err, order) => {
 			if(err) return reject(err);
 			resolve(order);

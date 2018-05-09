@@ -212,7 +212,7 @@ module.exports.handler = function(socket) {
 				}).catch((err) => {
 					
 					// Check if the payment succeeded
-					Order.getOrderPaymentDetails(order.orderId)
+					Payment.getOrderPaymentDetails(order.orderId)
 					.then((details) => {
 
 						// Payment succeeded - so `err` is an application error; just log it

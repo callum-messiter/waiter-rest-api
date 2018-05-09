@@ -138,42 +138,6 @@ module.exports.handler = function(socket) {
 	});
 
 	/**
-	// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
-	if(order.status == Order.statuses.acceptedByKitchen) {
-		return Payment.getOrderPaymentDetails(order.orderId)
-		.then((details) => {
-
-			return Payment.processCustomerPaymentToRestaurant(details[0]);
-
-		}).catch((err) => {
-			console.log(err);
-			return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
-			
-			// Inform the restaurant and the customer of the payment error
-			const payload = {
-				orderId: order.orderId, 
-				status: Order.statuses.paymentFailed,
-				userMsg: 'Oops! ' + err
-			};
-
-			socket.broadcast.to(result[i].socketId).emit(events.orderStatusUpdated, payload);
-			socket.emit(events.orderStatusUpdated, payload);
-			return;
-
-		}).then((charge) => {
-
-			// If payment is successful, update the row in payments
-			return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
-
-		}).catch((err) => {
-
-			return log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
-
-		});
-	}
-	**/
-
-	/**
 		Listen to order-status updates made by the restauraut, e.g. "accepted", "rejected", and "enroute"
 	**/
 	socket.on(lrn.orderStatusUpdate, (order) => {
@@ -228,14 +192,55 @@ module.exports.handler = function(socket) {
 					// If payment is successful, update the row in payments
 					return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
 
+				}).then(() => {
+
+					return Order.updateOrderStatus(order.orderId, Order.statuses.paymentSuccessful);
+
+				}).then(() => {
+
+					const payload = {
+						orderId: order.orderId, 
+						status: Order.statuses.paymentSuccessful,
+						userMsg: Order.setStatusUpdateMsg(order.status)
+					}
+					socket.emit('orderStatusUpdated', payload);
+					for(i = 0; i < interestedSockets.length; i++) {
+						socket.broadcast.to(interestedSockets[i].socketId).emit('orderStatusUpdated', payload);
+					}
+
+
 				}).catch((err) => {
-					console.log(err);
-					var errorMsg = 'Payment error (Waitr): ' + err;
-					// TODO: update the order status to paymentFailed (998)
-					// TODO: check explicitly if the charge was successful (we can check in the database)
-					if(err.hasOwnProperty('type')) {
-						errorMsg = 'Payment error (Stripe): ' + err.message + ' (' + err.decline_code + ').';
-						
+					
+					// Check if the payment succeeded
+					Order.getOrderPaymentDetails(order.orderId)
+					.then((details) => {
+
+						// Payment succeeded - so `err` is an application error; just log it
+						if(details[0].paid === 1) {
+							log.liveKitchenError(
+								errorType, 'Payment (Waitr) Error (payment succeeded): '+err, socket.id, lrn.orderStatusUpdate
+							);
+							return;
+						}
+
+						// If payment failed, update the order status and then inform the clients
+						return Order.updateOrderStatus(order.orderId, Order.statuses.paymentFailed);
+
+					}).then(() => {
+
+						if(!err.hasOwnProperty('type')) {
+							log.liveKitchenError(
+								errorType, 
+								'Payment (Waitr) Error (payment failed): '+err, 
+								socket.id, 
+								lrn.orderStatusUpdate
+							);
+							return;
+						}
+
+						errorMsg = 'Payment (Stripe) Error (payment failed): '+err.message+' ('+err.decline_code+').';
+						log.liveKitchenError(errorType, errMsg, socket.id, lrn.orderStatusUpdate);
+
 						const payload = {
 							orderId: order.orderId, 
 							status: Order.statuses.paymentFailed,
@@ -244,18 +249,20 @@ module.exports.handler = function(socket) {
 
 						// Inform the restaurant and the customer of the payment error
 						for(var i = 0; i < interestedSockets.length; i++) {
-							socket.broadcast.to(interestedSockets[i].socketId).emit(events.orderStatusUpdated, payload);
+							socket.broadcast
+							.to(interestedSockets[i].socketId)
+							.emit(events.orderStatusUpdated, payload);
 						}
 						socket.emit(events.orderStatusUpdated, payload);
-					}
 
-					log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
+					}).catch((err) => {
+						log.liveKitchenError(errorType, 'Payment error: '+err, socket.id, lrn.orderStatusUpdate);
+					});
 
 				});
 			}
 
 		}).catch((err) => {
-			// TODO: inform client
 			return log.liveKitchenError(errorType, err, socket.id, lrn.orderStatusUpdate);
 		});
 	});

@@ -103,7 +103,7 @@ module.exports.saveRestaurantStripeAccountDetails = function(data) {
 
 module.exports.getOrderPaymentDetails = function(orderId) {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT source, destination, currency, amount, customerEmail ' +
+		const query = 'SELECT source, destination, currency, amount, customerEmail, paid ' +
 					  'FROM payments ' +
 					  'WHERE orderId = ?';
 		db.query(query, orderId, (err, details) => {

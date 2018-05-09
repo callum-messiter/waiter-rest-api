@@ -239,7 +239,7 @@ module.exports.handler = function(socket) {
 						}
 
 						errorMsg = 'Payment (Stripe) Error (payment failed): '+err.message+' ('+err.decline_code+').';
-						log.liveKitchenError(errorType, errMsg, socket.id, lrn.orderStatusUpdate);
+						log.liveKitchenError(errorType, errorMsg, socket.id, lrn.orderStatusUpdate);
 
 						const payload = {
 							orderId: order.orderId, 

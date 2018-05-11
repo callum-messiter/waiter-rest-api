@@ -67,11 +67,12 @@ module.exports.getOrderOwnerId = function(orderId) {
 	});
 }
 
+/* Get a payment error if the order status is 998 */
 module.exports.getLiveOrder = function(orderId) {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
 					  'FROM orders ' +
-					  'WHERE orderId = ? ';
+					  'WHERE orderId = ?';
 		db.query(query, orderId, (err, order) => {
 			if(err) return reject(err);
 			resolve(order);
@@ -85,13 +86,7 @@ module.exports.getItemsFromLiveOrder = function(orderId) {
 					  'FROM items ' +
 					  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
 					  'JOIN orders ON orders.orderId = orderitems.orderId ' +
-					  'WHERE orders.orderId = ? ' +
-					  'AND (orders.status = ' + this.statuses.receivedByServer + ' ' +
-					  'OR orders.status = ' + this.statuses.sentToKitchen + ' ' +
-					  'OR orders.status = ' + this.statuses.receivedByKitchen + ' ' +
-					  'OR orders.status = ' + this.statuses.rejectedByKitchen + ' ' +
-					  'OR orders.status = ' + this.statuses.acceptedByKitchen + ' ' +
-					  'OR orders.status = ' + this.statuses.enRouteToCustomer + ')';
+					  'WHERE orders.orderId = ?	';
 		db.query(query, orderId, (err, orderItems) => {
 			if(err) return reject(err);
 			resolve(orderItems);
@@ -145,11 +140,7 @@ module.exports.getItemsFromLiveOrders = function(restaurantId) {
 					  'FROM items ' +
 					  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
 					  'JOIN orders ON orders.orderId = orderitems.orderId ' +
-					  'WHERE orders.restaurantId = ? ' +
-					  'AND (orders.status = ' + this.statuses.receivedByServer + ' ' +
-					  'OR orders.status = ' + this.statuses.sentToKitchen + ' ' +
-					  'OR orders.status = ' + this.statuses.receivedByKitchen + ' ' +
-					  'OR orders.status = ' + this.statuses.acceptedByKitchen + ')';
+					  'WHERE orders.restaurantId = ? ';
 		db.query(query, restaurantId, (err, orderItems) => {
 			if(err) return reject(err);
 			resolve(orderItems);

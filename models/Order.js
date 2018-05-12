@@ -1,5 +1,6 @@
-const uuidv4 = require('uuid/v4');
 const db = require('../config/database');
+const uuidv4 = require('uuid/v4');
+const moment = require('moment');
 
 /**
 	Order schema
@@ -166,6 +167,7 @@ module.exports.getOrdersForUser = function(userId) {
 
 module.exports.createNewOrder = function(order) {
 	return new Promise((resolve, reject) => {
+
 		// Create the array of orderitems, formatted correctly
 		orderItems = [];
 		for(var i = 0; i < order.items.length; i++) {

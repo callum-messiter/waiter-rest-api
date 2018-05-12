@@ -81,8 +81,10 @@ module.exports.handler = function(socket) {
 	**/
 	socket.on(lrn.newOrder, (order) => {
 		console.log('[ORDER] Received from ' + socket.id + '.');
-		// Convert the UNIX timestamp to a DATETIME for the DB
-		order.metaData.time = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
+
+		/* Times: store mysqlTimestamp in db; send unix timestamp to clients */
+		const mysqlTimestamp = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
+		const unixTimestamp = order.metaData.time;
 
 		// Verify the auth token
 		Auth.verifyToken(order.headers.token).
@@ -94,17 +96,15 @@ module.exports.handler = function(socket) {
 				hostRestaurantId: order.metaData.restaurantId
 			}
 
-			// return LiveKitchen.addSocketToRestaurantCustomers(socketData);
-
-		// }).then((result) => {
-
 			// console.log('[DB] Socket ' + socket.id + ' added to SocketsRestaurantCustomers.');
+			order.metaData.time = mysqlTimestamp;
 			order.metaData.status = Order.statuses.receivedByServer; // Update order status
 			return Order.createNewOrder(order);
 
 		}).then((result) => {
 
 			console.log('[DB] Order ' + order.metaData.orderId  + ' from ' + socket.id + ' added.');
+			order.metaData.time = unixTimestamp; 
 			// Notify customer who placed the order
 			socket.emit('orderStatusUpdated', {
 				orderId: order.metaData.orderId, 
@@ -126,6 +126,7 @@ module.exports.handler = function(socket) {
 			orderForRestaurant.items = order.items;
 
 			for(i = 0; i < result.length; i++) {
+				console.log('order: ' + JSON.stringify(orderForRestaurant));
 				socket.broadcast.to(result[i].socketId).emit(lrn.newOrder, orderForRestaurant);
 				console.log('[ORDER] Order ' + order.metaData.orderId  + ' from ' + socket.id + ' sent to ' + result[i].socketId + '.');
 			}

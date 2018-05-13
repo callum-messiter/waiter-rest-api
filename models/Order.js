@@ -123,11 +123,7 @@ module.exports.getAllLiveOrdersForRestaurant = function(restaurantId) {
 		// Orders with the below statuses are those that are visible to the restaurant kitchen
 		const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
 					  'FROM orders ' +
-					  'WHERE restaurantId = ? ' +
-					  'AND (status = ' + this.statuses.receivedByServer + ' ' +
-					  'OR status = ' + this.statuses.sentToKitchen + ' ' +
-					  'OR status = ' + this.statuses.receivedByKitchen + ' ' +
-					  'OR status = ' + this.statuses.acceptedByKitchen + ')';
+					  'WHERE restaurantId = ?';
 		db.query(query, restaurantId, (err, orders) => {
 			if(err) return reject(err);
 			resolve(orders);

@@ -123,7 +123,12 @@ module.exports.getAllLiveOrdersForRestaurant = function(restaurantId) {
 		// Orders with the below statuses are those that are visible to the restaurant kitchen
 		const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
 					  'FROM orders ' +
-					  'WHERE restaurantId = ?';
+					  'WHERE restaurantId = ? ' +
+					  'AND (status = ' + this.statuses.receivedByServer + ' ' +
+					  'OR status = ' + this.statuses.sentToKitchen + ' ' +
+					  'OR status = ' + this.statuses.receivedByKitchen + ' ' +
+					  'OR status = ' + this.statuses.acceptedByKitchen + ' ' +
+					  'OR status = ' + this.statuses.paymentSuccessful + ')';
 		db.query(query, restaurantId, (err, orders) => {
 			if(err) return reject(err);
 			resolve(orders);
@@ -137,7 +142,12 @@ module.exports.getItemsFromLiveOrders = function(restaurantId) {
 					  'FROM items ' +
 					  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
 					  'JOIN orders ON orders.orderId = orderitems.orderId ' +
-					  'WHERE orders.restaurantId = ? ';
+					  'WHERE orders.restaurantId = ? ' +
+					  'AND (status = ' + this.statuses.receivedByServer + ' ' +
+					  'OR status = ' + this.statuses.sentToKitchen + ' ' +
+					  'OR status = ' + this.statuses.receivedByKitchen + ' ' +
+					  'OR status = ' + this.statuses.acceptedByKitchen + ' ' +
+					  'OR status = ' + this.statuses.paymentSuccessful + ')';
 		db.query(query, restaurantId, (err, orderItems) => {
 			if(err) return reject(err);
 			resolve(orderItems);

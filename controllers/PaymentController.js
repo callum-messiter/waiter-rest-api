@@ -91,14 +91,14 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		return Payment.getRestaurantPaymentDetails(req.body.restaurantId);
 
-	}).then((details) => {
-
+	}).then((details) => {	
+		console.log(req.headers['x-forwarded-for']);
 		if(details.length < 1) throw e.restaurantDetailsNotFound;
 		// const account = parseAndValidateRequestParams(req); // Build the Stripe Account object
 		return Payment.updateStripeAccount(details[0].destination, {
-			external_account: req.body.external_account,
-			legal_entity: {
-				additional_owners: req.body.legal_entity_additional_owners
+			tos_acceptance: {
+				date: Math.floor(Date.now() / 1000),
+				ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress
 			}
 		});	
 

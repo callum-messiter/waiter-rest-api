@@ -94,8 +94,13 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 	}).then((details) => {
 
 		if(details.length < 1) throw e.restaurantDetailsNotFound;
-		const account = parseAndValidateRequestParams(req); // Build the Stripe Account object
-		return Payment.updateStripeAccount(details[0].destination, account);	
+		// const account = parseAndValidateRequestParams(req); // Build the Stripe Account object
+		return Payment.updateStripeAccount(details[0].destination, {
+			external_account: req.body.external_account,
+			legal_entity: {
+				additional_owners: req.body.legal_entity_additional_owners
+			}
+		});	
 
 	}).then((account) => {
 		return res.status(200).json(account);

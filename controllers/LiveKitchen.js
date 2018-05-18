@@ -2,6 +2,7 @@ const moment = require('moment');
 const Order = require('../models/Order');
 const Payment = require('../models/Payment');
 const Auth = require('../models/Auth');
+const TableUser = require('../models/TableUser');
 const LiveKitchen = require('../models/LiveKitchen');
 const log = require('../helpers/logger');
 
@@ -79,7 +80,25 @@ module.exports.handler = function(socket) {
 	});
 
 	socket.on(lrn.tableUpdate, (data) => {
-		console.log('[TABLE_UPDATE]: Restaurant ' + data.restaurantId + ', table ' + data.tableNo);
+		console.log('[TABLE_UPDATE]: Restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
+		TableUser.addUserToTable(data.table)
+		.then((result) => {
+			return LiveKitchen.getRecipientRestaurantSockets(data.table.restaurantId);
+		}).then((rSockets) => {
+
+			if(rSockets.length < 1) {
+				return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.newOrder);
+			}
+
+			for(i = 0; i < rSockets.length; i++) {
+				socket.broadcast.to(rSockets[i].socketId).emit(lrn.tableUpdate, data.table);
+			}
+			console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+			return true;
+
+		}).catch((err) => {
+			return log.liveKitchenError(errorType, err, socket.id, lrn.tableUpdate);
+		})
 	});
 
 	/**

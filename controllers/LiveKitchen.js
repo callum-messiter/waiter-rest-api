@@ -11,11 +11,13 @@ const lrn = {
 	connection: 'connection',
 	disconnect: 'disconnect',
 	newOrder: 'newOrder',
-	orderStatusUpdate: 'orderStatusUpdate'
+	orderStatusUpdate: 'orderStatusUpdate',
+	tableUpdate: 'tableUpdate'
 }
 
 const events = {
-	orderStatusUpdated: 'orderStatusUpdated'
+	orderStatusUpdated: 'orderStatusUpdated',
+	tableUpdate: 'tableUpdate'
 }
 
 const e = {
@@ -74,6 +76,10 @@ module.exports.handler = function(socket) {
 			console.log(err);
 			return log.liveKitchenError(errorType, err, socket.id, lrn.disconnect);
 		});
+	});
+
+	socket.on(lrn.tableUpdate, (data) => {
+		console.log('[TABLE_UPDATE]: Restaurant ' + data.restaurantId + ', table ' + data.tableNo);
 	});
 
 	/**

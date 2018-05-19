@@ -104,6 +104,32 @@ module.exports.handler = function(socket) {
 		})
 	});
 
+	socket.on(lrn.userLeftTable, (data) => {
+		console.log('[TABLE_UPDATE]: Restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
+		TableUser.removeUserFromTable(data.table.customerId)
+		.then((result) => {
+
+			if(result.affectedRows < 1) return true;
+			console.log('[DB] Table ' + data.table.tableNo + ' removed for restaurant ' + data.table.restaurantId);
+			return LiveKitchen.getRecipientRestaurantSockets(data.table.restaurantId);
+
+		}).then((rSockets) => {
+
+			if(rSockets.length < 1) {
+				return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.userLeftTable);
+			}
+
+			for(i = 0; i < rSockets.length; i++) {
+				socket.broadcast.to(rSockets[i].socketId).emit(lrn.userLeftTable, data.table);
+			}
+			console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+			return true;
+
+		}).catch((err) => {
+			return log.liveKitchenError(errorType, err, socket.id, lrn.userLeftTable);
+		})
+	});
+
 	/**
 		Listen to new orders sent by a customer
 	**/

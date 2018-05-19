@@ -13,12 +13,14 @@ const lrn = {
 	disconnect: 'disconnect',
 	newOrder: 'newOrder',
 	orderStatusUpdate: 'orderStatusUpdate',
-	tableUpdate: 'tableUpdate'
+	userJoinedTable: 'userJoinedTable',
+	userLeftTable: 'userLeftTable'
 }
 
 const events = {
 	orderStatusUpdated: 'orderStatusUpdated',
-	tableUpdate: 'tableUpdate'
+	userJoinedTable: 'userJoinedTable',
+	userLeftTable: 'userLeftTable'
 }
 
 const e = {
@@ -66,29 +68,24 @@ module.exports.handler = function(socket) {
 			return socket.disconnect();
 		}
 
+		const tableData = {};
 		LiveKitchen.removeSocket(socket.id, type)
 		.then((result) => {
 			console.log('[DB] Socket ' + socket.id + ' deleted.');
-			if(data.hasOwnProperty('customerId')) {
-				return TableUser.removeUserFromTable(data.customerId);
-			}
-			return true;
-		}).then((result) => {
-			// The user may not exist in the tableusers table (affectedRows = 0)
-			if(data.hasOwnProperty('customerId') && result.affectedRows > 0) {
-				console.log('[DB] User ' + data.customerId + ' deleted from table.');
-			}
-			return true;
+			if(!data.hasOwnProperty('customerId')) return true;
+			return updateTableInfo(data.customerId, socket.id, errorType, lrn, e, socket);
 		}).catch((err) => {
 			console.log(err);
 			return log.liveKitchenError(errorType, err, socket.id, lrn.disconnect);
 		});
+
 	});
 
-	socket.on(lrn.tableUpdate, (data) => {
+	socket.on(lrn.userJoinedTable, (data) => {
 		console.log('[TABLE_UPDATE]: Restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
 		TableUser.addUserToTable(data.table)
 		.then((result) => {
+			console.log('[DB] Table info added for restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
 			return LiveKitchen.getRecipientRestaurantSockets(data.table.restaurantId);
 		}).then((rSockets) => {
 
@@ -97,13 +94,13 @@ module.exports.handler = function(socket) {
 			}
 
 			for(i = 0; i < rSockets.length; i++) {
-				socket.broadcast.to(rSockets[i].socketId).emit(lrn.tableUpdate, data.table);
+				socket.broadcast.to(rSockets[i].socketId).emit(lrn.userJoinedTable, data.table);
 			}
 			console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
 			return true;
 
 		}).catch((err) => {
-			return log.liveKitchenError(errorType, err, socket.id, lrn.tableUpdate);
+			return log.liveKitchenError(errorType, err, socket.id, lrn.userJoinedTable);
 		})
 	});
 
@@ -300,8 +297,36 @@ module.exports.handler = function(socket) {
 	});
 }
 
+async function updateTableInfo(customerId, socketId, errorType, lrn, e, socket) {
+	const tableData = {};
+
+	/* Get table info to be sent to the restaurant */
+	const tableInfo = await TableUser.getTableInfoByCustomer(customerId);
+	if(tableInfo.length < 1) return true;
+	tableData.restaurantId = tableInfo[0].restaurantId;
+	tableData.customerId = tableInfo[0].customerId;
+	tableData.tableNo = tableInfo[0].tableNo;
+
+	/* Delete the user from the table */
+	const removeUserFromTable = await TableUser.removeUserFromTable(tableData.customerId);
+	if(removeUserFromTable.affectedRows < 1) return true;
+	console.log('[DB] Table ' + tableData.tableNo + ' removed for restaurant ' + tableData.restaurantId);
+
+	/* Forward the table update to the restaurant */
+	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
+	if(rSockets.length < 1) {
+		log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socketId, lrn.newOrder);
+		return true;
+	}
+	for(i = 0; i < rSockets.length; i++) {
+		socket.broadcast.to(rSockets[i].socketId).emit(lrn.userLeftTable, tableData);
+	}
+	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+	return true;
+}
+
 function setPaymentErrorMsg(err) {
-	var errorMsg = 'Oops. There was an error processing your payment. Your order has been cancelled and your bank account has not been charged.';
+	var errorMsg = 'There was an error processing your payment. Your order has been cancelled and your bank account has not been charged.';
 
 	switch (err.type) {
 		case 'StripeCardError':

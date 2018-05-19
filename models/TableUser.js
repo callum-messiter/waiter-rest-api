@@ -29,4 +29,14 @@ module.exports.removeUserFromTable = function(customerId) {
 			resolve(result);
 		});
 	})
+}
+
+module.exports.getTableInfoByCustomer = function(customerId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT * FROM tableusers WHERE customerId = ?';
+		db.query(query, customerId, (err, tableInfo) => {
+			if(err) return reject(err);
+			resolve(tableInfo);
+		});
+	})
 } 

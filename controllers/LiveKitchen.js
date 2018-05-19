@@ -33,7 +33,7 @@ const e = {
 module.exports.handler = function(socket) {
 	var socketType;
 	const query = socket.handshake.query;
-	const data = {socketId: socket.id}
+	const data = {socketId: socket.id};
 
 	if(query.hasOwnProperty('restaurantId')) {
 		socketType = 'RestaurantSocket';
@@ -50,7 +50,9 @@ module.exports.handler = function(socket) {
 
 	LiveKitchen.addSocket(data)
 	.then((result) => {
-		return console.log('[DB] ' + socketType + ' ' + socket.id + ' added.');
+		console.log('[DB] ' + socketType + ' ' + socket.id + ' added.');
+		if(query.table === undefined) return true;
+		return handleUserJoinedTable(JSON.parse(query.table), socket.id, errorType, lrn, e, socket)
 	}).catch((err) => {
 		return log.liveKitchenError(errorType, err, socket.id, lrn.connection);
 	});
@@ -101,7 +103,7 @@ module.exports.handler = function(socket) {
 
 		}).catch((err) => {
 			return log.liveKitchenError(errorType, err, socket.id, lrn.userJoinedTable);
-		})
+		});
 	});
 
 	socket.on(lrn.userLeftTable, (data) => {
@@ -346,6 +348,22 @@ async function updateTableInfo(customerId, socketId, errorType, lrn, e, socket) 
 	}
 	for(i = 0; i < rSockets.length; i++) {
 		socket.broadcast.to(rSockets[i].socketId).emit(lrn.userLeftTable, tableData);
+	}
+	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+	return true;
+}
+
+async function handleUserJoinedTable(tableData, socketId, errorType, lrn, e, socket) {
+	const addUserToTable = await TableUser.addUserToTable(tableData);
+	console.log('[DB] Table info added for restaurant ' + tableData.restaurantId + ', table ' + tableData.tableNo);
+	
+	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
+	if(rSockets.length < 1) {
+		return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.userJoinedTable);
+	}
+
+	for(i = 0; i < rSockets.length; i++) {
+		socket.broadcast.to(rSockets[i].socketId).emit(lrn.userJoinedTable, tableData);
 	}
 	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
 	return true;

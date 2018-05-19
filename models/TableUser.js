@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const e = require('../helpers/error').errors;
 
 /*
 	There is a unique constraint on the `customerId` field.
@@ -14,7 +15,18 @@ module.exports.addUserToTable = function(data) {
 					  'UPDATE tableNo = ?, restaurantId = ?, time = NOW()';
 		db.query(query, [data, data.tableNo, data.restaurantId], (err, result) => {
 			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
 			resolve(result);
 		});
 	});
 }
+
+module.exports.removeUserFromTable = function(customerId) {
+	return new Promise((resolve, reject) => {
+		const query = 'DELETE FROM tableusers WHERE customerId = ?';
+		db.query(query, customerId, (err, result) => {
+			if(err) return reject(err);
+			resolve(result);
+		});
+	})
+} 

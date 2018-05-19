@@ -34,8 +34,8 @@ module.exports.handler = function(socket) {
 	const data = {socketId: socket.id}
 
 	if(query.hasOwnProperty('restaurantId')) {
-		data.restaurantId = query.restaurantId;
 		socketType = 'RestaurantSocket';
+		data.restaurantId = query.restaurantId;
 	} else if(query.hasOwnProperty('customerId')) {
 		socketType = 'CustomerSocket';
 		data.customerId = query.customerId;
@@ -55,24 +55,30 @@ module.exports.handler = function(socket) {
 
 	// Note when a client disconnects
 	socket.on(lrn.disconnect, function () {
-		var type;
 		console.log('[DISCONN] Client ' + socket.id + ' disconnected.');
+		var type;
 		if(query.hasOwnProperty('restaurantId')) {
 			type = 'restaurant';
 		} else if(query.hasOwnProperty('customerId')) {
 			type = 'customer';
 		} else {
-			// ToDO: Inform client
 			log.liveKitchenError(errorType, e.missingUserParam, socket.id, lrn.disconnect);
 			return socket.disconnect();
 		}
 
-		// TODO: if customer socket, also remove from SocketsRestaurantCustomers
-
-		// ToDO: log to server, inform client
 		LiveKitchen.removeSocket(socket.id, type)
 		.then((result) => {
-			return console.log('[DB] Socket ' + socket.id + ' deleted.')
+			console.log('[DB] Socket ' + socket.id + ' deleted.');
+			if(data.hasOwnProperty('customerId')) {
+				return TableUser.removeUserFromTable(data.customerId);
+			}
+			return true;
+		}).then((result) => {
+			// The user may not exist in the tableusers table (affectedRows = 0)
+			if(data.hasOwnProperty('customerId') && result.affectedRows > 0) {
+				console.log('[DB] User ' + data.customerId + ' deleted from table.');
+			}
+			return true;
 		}).catch((err) => {
 			console.log(err);
 			return log.liveKitchenError(errorType, err, socket.id, lrn.disconnect);

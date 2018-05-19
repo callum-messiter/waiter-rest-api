@@ -38,5 +38,15 @@ module.exports.getTableInfoByCustomer = function(customerId) {
 			if(err) return reject(err);
 			resolve(tableInfo);
 		});
-	})
-} 
+	});
+}
+
+module.exports.getAllTableUsersForRestaurant = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT * FROM tableusers WHERE restaurantId = ?';
+		db.query(query, restaurantId, (err, tableUsers) => {
+			if(err) return reject(err);
+			resolve(tableUsers);
+		});
+	});
+}

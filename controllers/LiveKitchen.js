@@ -90,7 +90,7 @@ module.exports.handler = function(socket) {
 		}).then((rSockets) => {
 
 			if(rSockets.length < 1) {
-				return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.newOrder);
+				return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.userJoinedTable);
 			}
 
 			for(i = 0; i < rSockets.length; i++) {

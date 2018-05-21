@@ -144,13 +144,20 @@ module.exports.updateRestaurant = function(restaurantId, restaurantData) {
 /**
 	Deactivate a restaurant
 **/
-module.exports.deactivateRestaurant = function(restaurantId) {
+module.exports.deactivateRestaurant = function(restaurantId, details) {
 	return new Promise((resolve, reject) => {
-		const query = 'UPDATE restaurants SET active = 0 WHERE restaurantId = ?';
-		db.query(query, restaurantId, (err, result) => {
+		/* Add the restaurantId to each object */
+		for(var i = 0; i < details.length; i++) {
+			details[i].restaurantId = restaurantId;
+		}
+
+		/* restaurantId-key has a unique constraint; if this already exists, update the value */
+		const query = 'INSERT INTO restaurantdetails SET ? ' + 
+					  'ON DUPLICATE KEY ' + 
+					  'UPDATE value = VALUES(value), date = NOW()';
+		db.query(query, [details], (err, result) => {
 			if(err) return reject(err);
-			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
-			if(result.changedRows < 1) return reject(e.resourceAlreadyInactive);
+			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
 			resolve(result);
 		});
 	});

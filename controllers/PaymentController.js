@@ -118,12 +118,16 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 		if(details.length < 1) throw e.restaurantDetailsNotFound;
 		const result = parseAndValidateRequestParams(req); // Build the Stripe Account object
 		res.locals.response = result;
-		console.log(JSON.stringify(result));
 		return Payment.updateStripeAccount(details[0].destination, result.stripeAcc);	
 
 	}).then((account) => {
+
+		const r = res.locals.response;
 		res.locals.response.account = account;
-		return res.status(200).json(res.locals.response);
+		return Restaurant.updateRestaurantDetails(req.body.restaurantId, r.restaurantDetails);
+
+	}).then(() => {
+		return res.status(200).json(res.locals.response.account);
 	}).catch((err) => {
 		return next(err);
 	});
@@ -147,7 +151,7 @@ function parseAndValidateRequestParams(req) {
 	**/
 	if(isSetAndNotEmpty(r.external_account)) {
 		account.external_account = r.external_account;
-		restaurantDetails.push({key: rd.bankAccountConnected, value: true});
+		restaurantDetails.push([r.restaurantId, rd.bankAccountConnected, true]);
 	}
 
 	/**
@@ -160,7 +164,7 @@ function parseAndValidateRequestParams(req) {
 		
 		if(!isNaN(r.tos_acceptance.date)) {
 			tosa.date = r.tos_acceptance.date;
-			restaurantDetails.push({key: rd.tosAccepted, value: true});
+			restaurantDetails.push([r.restaurantId, rd.tosAccepted, true]);
 		}
 	}
 
@@ -178,28 +182,28 @@ function parseAndValidateRequestParams(req) {
 
 		if(isSetAndNotEmpty(r.legal_entity.first_name)) {
 			le.first_name = r.legal_entity.first_name;
-			restaurantDetails.push({key: rd.companyRepFName, value: le.first_name});
+			restaurantDetails.push([r.restaurantId, rd.companyRepFName, le.first_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.last_name)) {
 			le.last_name = r.legal_entity.last_name;
-			restaurantDetails.push({key: rd.companyRepLName, value: le.last_name});
+			restaurantDetails.push([r.restaurantId, rd.companyRepLName, le.last_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.business_name)) {
 			le.business_name = r.legal_entity.business_name;
-			restaurantDetails.push({key: rd.companyName, value: le.business_name});
+			restaurantDetails.push([r.restaurantId, rd.companyName, le.business_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.business_tax_id)) {
 			le.business_tax_id = r.legal_entity.business_tax_id;
-			restaurantDetails.push({key: rd.taxIdProvided, value: true});
+			restaurantDetails.push([r.restaurantId, rd.taxIdProvided, true]);
 		}
 
 		const allowedTypes = ['company']; /* Later we may accept `individual` */
 		if(allowedTypes.includes(r.legal_entity.company)) {
 			le.company = r.legal_entity.company;
-			restaurantDetails.push({key: rd.legalEntityType, value: le.company});
+			restaurantDetails.push([r.restaurantId, rd.legalEntityType, le.company]);
 		}
 
 		/**
@@ -211,17 +215,17 @@ function parseAndValidateRequestParams(req) {
 			
 			if(isSetAndNotEmpty(r.legal_entity.address.line1)) {
 				a.line1 = r.legal_entity.address.line1;
-				restaurantDetails.push({key: rd.addressLine1, value: a.line1});
+				restaurantDetails.push([r.restaurantId, rd.addressLine1, a.line1]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.address.city)) {
 				a.city = r.legal_entity.address.city;
-				restaurantDetails.push({key: rd.addressCity, value: a.city});
+				restaurantDetails.push([r.restaurantId, rd.addressCity, a.city]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.address.postal_code)) {
 				a.postal_code = r.legal_entity.address.postal_code;
-				restaurantDetails.push({key: rd.addressPostcode, value: a.postal_code});
+				restaurantDetails.push([r.restaurantId, rd.addressPostcode, a.postal_code]);
 			}
 		}
 
@@ -234,17 +238,17 @@ function parseAndValidateRequestParams(req) {
 			
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.line1)) {
 				pa.line1 = r.legal_entity.personal_address.line1;
-				restaurantDetails.push({key: rd.companyRepAddressLine1, value: pa.line1});
+				restaurantDetails.push([r.restaurantId, rd.companyRepAddressLine1, pa.line1]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.city)) {
 				pa.city = r.legal_entity.personal_address.city;
-				restaurantDetails.push({key: rd.companyRepAddressCity, value: pa.city});
+				restaurantDetails.push([r.restaurantId, rd.companyRepAddressCity, pa.city]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.postal_code)) {
 				pa.postal_code = r.legal_entity.personal_address.postal_code;
-				restaurantDetails.push({key: rd.companyRepAddressPostcode, value: pa.postal_code});
+				restaurantDetails.push([r.restaurantId, rd.companyRepAddressPostcode, pa.postal_code]);
 			}
 		}
 
@@ -263,10 +267,11 @@ function parseAndValidateRequestParams(req) {
 			}
 
 			if(isValidDate(dobString)) {
-				restaurantDetails.push({key: rd.companyRepDob, value: dobString});
+				restaurantDetails.push([r.restaurantId, rd.companyRepDob, dobString]);
 			}
 		}
 	}
+	console.log(JSON.stringify(restaurantDetails));
 	return {stripeAcc: account, restaurantDetails: restaurantDetails};
 }
 

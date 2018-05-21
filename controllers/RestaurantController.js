@@ -143,7 +143,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Restaurant.updateRestaurantDetails(restaurantId, restaurantData);
+		return Restaurant.updateRestaurant(restaurantId, restaurantData);
 
 	}).then((result) => {
 		// TODO: change to 204

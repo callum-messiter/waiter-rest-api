@@ -119,9 +119,9 @@ module.exports.createRestaurantWithDefaultMenu = function(restaurant, menu) {
 }
 
 /**
-	Update a restaurant's details
+	Update a restaurant
 **/
-module.exports.updateRestaurantDetails = function(restaurantId, restaurantData) {
+module.exports.updateRestaurant = function(restaurantId, restaurantData) {
 	return new Promise((resolve, reject) => {
 		const query = 'UPDATE restaurants SET ? ' +
 					  'WHERE restaurantId = ?';
@@ -134,6 +134,12 @@ module.exports.updateRestaurantDetails = function(restaurantId, restaurantData) 
 		});
 	});
 }
+
+/** 
+	Update restaurant details (Stripe account details etc.)
+**/
+
+
 
 /**
 	Deactivate a restaurant

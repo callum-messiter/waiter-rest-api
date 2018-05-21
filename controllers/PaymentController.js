@@ -6,6 +6,28 @@ const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 
+const allowedRestaurantDetails = [
+	'companyName',  
+	'addressLine1',
+	'addressCity', 
+	'addressPostcode',
+	'companiesHouseRegNum',
+	'companyRepFName',
+	'companyRepLName',
+	'companyRepDob',
+	'companyRepAddressLine1', 
+	'companyRepAddressCity',
+	'companyRepAddressPostcode',
+	'companyBankAccountHolderName',
+	'legalEntityType', /* company or individual */
+	'bankAccountConnected', /* boolean */
+	'tosAccepted'
+]
+
+/* Stripe requires this info in the below format; we only handle the following values: */
+const allowedCountries = ['GB'];
+const allowedCurrencies = ['gbp'];
+
 /**
 	In order to allow a restaurant receive payments via waitr, we must create a Stripe account that 
 	represents the restaurant.
@@ -18,7 +40,7 @@ const p = require('../helpers/params');
 	Stripe account to their bank account:
 
 	{
-		country: "UK",
+		country: "GB",
 		type: "custom",
 		email: "accountHolder@email.com",
 		business_name: "restaurantName",
@@ -82,7 +104,7 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 		route: []
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
-
+	console.log(JSON.stringify(req.body));
 	// Get the restaurant's Stripe account details
 	Restaurant.getRestaurantOwnerId(req.body.restaurantId)
 	.then((r) => {
@@ -92,20 +114,17 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 		return Payment.getRestaurantPaymentDetails(req.body.restaurantId);
 
 	}).then((details) => {	
-		console.log(req.headers['x-forwarded-for']);
+
 		if(details.length < 1) throw e.restaurantDetailsNotFound;
-		// const account = parseAndValidateRequestParams(req); // Build the Stripe Account object
-		return Payment.updateStripeAccount(details[0].destination, {
-			tos_acceptance: {
-				date: Math.floor(Date.now() / 1000),
-				ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress
-			}
-		});	
+		const result = parseAndValidateRequestParams(req); // Build the Stripe Account object
+		res.locals.response = result;
+		console.log(JSON.stringify(result.stripeAcc));
+		return Payment.updateStripeAccount(details[0].destination, result.stripeAcc);	
 
 	}).then((account) => {
-		return res.status(200).json(account);
+		res.locals.response.account = account;
+		return res.status(200).json(res.locals.response);
 	}).catch((err) => {
-		// We must return the Stripe error if one is returned
 		return next(err);
 	});
 });
@@ -117,133 +136,157 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 	Any parameter which is undefined or equal to whitespace, will not be passed to Stripe.
 **/
 function parseAndValidateRequestParams(req) {
-	const account = {};
+	const account = {}; /* Stripe account object for the Stripe API */
+	const restaurantDetails = []; /* To be inserted into our DB, so we can keep track of details provided */
 	const r = req.body;
 
 	/**
 		External Account (the restaurant's bank account details in tokenised form)
 	**/
-	if(paramIsSetAndNotEmpty(r.external_account)) {
+	if(isSetAndNotEmpty(r.external_account)) {
 		account.external_account = r.external_account;
+		restaurantDetails.push({key: '', value: ''});
 	}
 
 	/**
 		Terms of Acceptance (date and IP address)
 	**/
-	if(paramIsSetAndIsType(r.tos_acceptance, 'object')) {
+	if(isNonEmptyObj(r.tos_acceptance)) {
 		account.tos_acceptance = {};
 		const tosa = account.tos_acceptance;
-		
-		if(paramIsSetAndIsType(r.tos_acceptance.date, 'number')) {
-			tosa.date = r.tos_acceptance.date;
-		}
-		// TODO: add `proxy_set_header X-Forwarded-For $remote_addr;` to NGINX config
 		tosa.ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+		
+		if(!isNaN(r.tos_acceptance.date)) {
+			tosa.date = r.tos_acceptance.date;
+			restaurantDetails.push({key: '', value: ''});
+		}
 	}
 
 	/**
 		Legal Entity Object
 	**/
-	if(paramIsSetAndIsType(r.legal_entity, 'object')) {
+	if(isNonEmptyObj(r.legal_entity)) {
 		account.legal_entity = {};
 		const le = account.legal_entity;
 
 		/**
 			Legal Entity Basic Details
 		**/
-		if(paramIsSetAndNotEmpty(r.external_account.first_name)) {
+		le.additional_owners = ''; /* Currently we don't allow the user to specify this in the restaurant app */
+		
+		if(isSetAndNotEmpty(r.external_account.first_name)) {
 			le.first_name = r.legal_entity.first_name;
+			restaurantDetails.push({key: '', value: ''});
 		}
 
-		if(paramIsSetAndNotEmpty(r.external_account.last_name)) {
+		if(isSetAndNotEmpty(r.external_account.last_name)) {
 			le.last_name = r.legal_entity.last_name;
+			restaurantDetails.push({key: '', value: ''});
 		}
 
-		if(paramIsSetAndNotEmpty(r.external_account.business_name)) {
+		if(isSetAndNotEmpty(r.external_account.business_name)) {
 			le.business_name = r.legal_entity.business_name;
+			restaurantDetails.push({key: '', value: ''});
 		}
 
-		if(paramIsSetAndNotEmpty(r.external_account.business_tax_id)) {
+		if(isSetAndNotEmpty(r.external_account.business_tax_id)) {
 			le.business_tax_id = r.legal_entity.business_tax_id;
+			restaurantDetails.push({key: '', value: ''});
 		}
 
-		const allowedTypes = ['company', /**'individual'**/]; // Some of the following params are only for company account
-		if(r.legal_entity.company != undefined && allowedTypes.includes(r.legal_entity.company)) {
+		const allowedTypes = ['company']; /* Later we may accept `individual` */
+		if(allowedTypes.includes(r.legal_entity.company)) {
 			le.company = r.legal_entity.company;
+			restaurantDetails.push({key: '', value: ''});
 		}
 
 		/**
 			Legal Entity Address (Company)
 		**/
-		if(paramIsSetAndIsType(r.legal_entity.address, 'object')) {
+		if(isNonEmptyObj(r.legal_entity.address)) {
 			account.legal_entity.address = {};
 			const a = account.legal_entity.address;
 			
-			if(paramIsSetAndNotEmpty(r.legal_entity.address.line1)) {
+			if(isSetAndNotEmpty(r.legal_entity.address.line1)) {
 				a.line1 = r.legal_entity.address.line1;
+				restaurantDetails.push({key: '', value: ''});
 			}
 
-			if(paramIsSetAndNotEmpty(r.legal_entity.address.city)) {
+			if(isSetAndNotEmpty(r.legal_entity.address.city)) {
 				a.city = r.legal_entity.address.city;
+				restaurantDetails.push({key: '', value: ''});
 			}
 
-			if(paramIsSetAndNotEmpty(r.legal_entity.address.postal_code)) {
+			if(isSetAndNotEmpty(r.legal_entity.address.postal_code)) {
 				a.postal_code = r.legal_entity.address.postal_code;
+				restaurantDetails.push({key: '', value: ''});
 			}
 		}
 
 		/**
 			Legal Entity Personal Address (Company Representative)
 		**/
-		if(paramIsSetAndIsType(r.legal_entity.personal_address, 'object')) {
+		if(isNonEmptyObj(r.legal_entity.personal_address)) {
 			account.legal_entity.personal_address = {};
 			const pa = account.legal_entity.personal_address;
 			
-			if(paramIsSetAndNotEmpty(r.legal_entity.personal_address.line1)) {
+			if(isSetAndNotEmpty(r.legal_entity.personal_address.line1)) {
 				pa.line1 = r.legal_entity.personal_address.line1;
+				restaurantDetails.push({key: '', value: ''});
 			}
 
-			if(paramIsSetAndNotEmpty(r.legal_entity.personal_address.city)) {
+			if(isSetAndNotEmpty(r.legal_entity.personal_address.city)) {
 				pa.city = r.legal_entity.personal_address.city;
+				restaurantDetails.push({key: '', value: ''});
 			}
 
-			if(paramIsSetAndNotEmpty(r.legal_entity.personal_address.postal_code)) {
+			if(isSetAndNotEmpty(r.legal_entity.personal_address.postal_code)) {
 				pa.postal_code = r.legal_entity.personal_address.postal_code;
+				restaurantDetails.push({key: '', value: ''});
 			}
 		}
 
 		/**
 			Legal Entity Date of Birth (Company Representative)
 		**/
-		if(paramIsSetAndIsType(r.legal_entity.dob, 'object')) {
+		if(isNonEmptyObj(r.legal_entity.dob)) {
 			account.legal_entity.dob = {};
 			const dob = account.legal_entity.dob;
 			
-			if(paramIsSetAndIsType(r.legal_entity.dob.day, 'number')) {
+			if(isSetAndNotEmpty(r.legal_entity.dob.day) && !isNaN(r.legal_entity.dob.day)) {
 				dob.day = r.legal_entity.dob.day;
+				restaurantDetails.push({key: '', value: ''});
 			}
 
-			if(paramIsSetAndIsType(r.legal_entity.dob.month, 'number')) {
+			if(isSetAndNotEmpty(r.legal_entity.dob.month) && !isNaN(r.legal_entity.dob.month)) {
 				dob.month = r.legal_entity.dob.month;
+				restaurantDetails.push({key: '', value: ''});
 			}
 
-			if(paramIsSetAndIsType(r.legal_entity.dob.year, 'number')) {
+			if(isSetAndNotEmpty(r.legal_entity.dob.year) && !isNaN(r.legal_entity.dob.year)) {
 				dob.year = r.legal_entity.dob.year;
+				restaurantDetails.push({key: '', value: ''});
 			}
 		}
 	}
-	return account;
+	return {stripeAcc: account, restaurantDetails: restaurantDetails};
 }
 
-function paramIsSetAndNotEmpty(param) {
-	if(param != undefined  && param.replace(/\s+/g, '') != '') return true;
+function isNonEmptyObj(param) {
+	if(typeof param === 'object' && !isEmpty(param)) return true;
 	return false;
 }
 
-function paramIsSetAndIsType(param, type) {
-	if(type == 'number') { param = Number(param) };
-	if(param != undefined && typeof param == type) return true;
+function isSetAndNotEmpty(param) {
+	if(param !== undefined && param.replace(/\s+/g, '') != '') return true;
 	return false;
+}
+
+function isEmpty(obj) {
+    for(var key in obj) {
+        if(obj.hasOwnProperty(key)) return false;
+    }
+    return true;
 }
 
 /**

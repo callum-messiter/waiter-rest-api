@@ -11,6 +11,7 @@ const errorTypes = {
 	order: '_order',
 	liveKitchen: '_liveKitchen',
 	clientSide: '_clientSide',
+	stripe: '_stripe',
 	unhandled: '_unhandled'
 }
 
@@ -198,6 +199,16 @@ const errors = {
 		userMsg: defaultUserMsg
 	},
 
+	/**
+		Stripe
+	**/
+	stripeError: {
+		statusCode: '',
+		errorKey: 'stripeError',
+		type: errorTypes.stripe,
+		userMsg: ''
+	},
+
 
 	/**
 		Unhandled
@@ -212,8 +223,9 @@ const errors = {
 
 function errorHandler(err, req, res, next) {
 	const requester = getRequester(req, res);
-	// Log the error to the console
+	err = checkIfStripeErrorAndHandle(err, errors.stripeError);
 	console.log('[ERR]: ' + err.errorKey);
+	
 	// Check that we are handling the error
 	if(errors.hasOwnProperty(err.errorKey)) {
 		log.error(req.path, err.errorKey, err.type, requester);
@@ -231,6 +243,26 @@ function getRequester(req, res) {
 	if(req.body.email != undefined) return req.body.email;
 	if(req.query.email != undefined) return req.query.email;
 	return 'undetermined';
+}
+
+function checkIfStripeErrorAndHandle(err, stripeError) {
+	if(!err.hasOwnProperty('type')) return err;
+	switch (err.type) {
+		case 'StripeCardError':
+		case 'StripeInvalidRequestError':
+			stripeError.userMsg = err.message;
+			stripeError.statusCode = 400;
+			return stripeError;
+		case 'RateLimitError':
+		case 'StripeAPIError':
+		case 'StripeConnectionError':
+		case 'StripeAuthenticationError':
+			stripeError.userMsg = defaultUserMsg;
+			stripeError.statusCode = 500;
+			return stripeError;
+		default:
+			return err;
+	}
 }
 
 module.exports.errors = errors;

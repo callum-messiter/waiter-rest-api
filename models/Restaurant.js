@@ -156,4 +156,13 @@ module.exports.updateRestaurantDetails = function(restaurantId, details) {
 	Deactivate a restaurant
 **/
 module.exports.deactivateRestaurant = function(restaurantId, details) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE restaurants SET active = 0 WHERE restaurantId = ?';
+		db.query(query, restaurantId, (err, result) => {
+			if(err) return reject(err);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			if(result.changedRows < 1) return reject(e.resourceAlreadyInactive);
+ 			resolve(result);
+ 		});
+ 	});
 }

@@ -69,23 +69,11 @@ router.get('/:restaurantId', (req, res, next) => {
 		return Restaurant.getRestaurantById(restaurantId);
 
 	}).then((r) => {
-
 		return Restaurant.getRestaurantDetails(restaurantId);
 	}).then((details) => {
 
-		/* Loop through array of objects and build the JSON response obj */
-		const resObj = setKeyValuePairs(details);
-
-		// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
-		// return res.status(200).json({
-		//	data: {
-		//		name: r[0].name,
-		//		description: r[0].description,
-		//		location: r[0].location,
-		//		phoneNumber: r[0].phoneNumber,
-		//		emailAddress: r[0].emailAddress
-		//	}
-		// });
+		/* Loop through array of key-value pairs from DB; build JSON response obj */
+		const resObj = buildResponseObj(details);
 		return res.status(200).json(resObj);
 
 	}).catch((err) => {
@@ -191,7 +179,7 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 });
 
 /* Get all restaurant details from DB, and assign them to correct property in res object */
-function setKeyValuePairs(details) {
+function buildResponseObj(details) {
 	if (details.length < 1) return restaurant;
 	for (const item of details) {
 		switch (item.key) {
@@ -211,7 +199,6 @@ function setKeyValuePairs(details) {
 				restaurant.stripe.taxIdProvided = (item.value == 1) ? true : false;
 				break;
 			case 'tosAccepted_stripe':
-				console.log(item.key + ' = ' + item.value);
 				restaurant.stripe.tosAccepted = (item.value == 1) ? true : false;
 				break;
 			case 'accountVerified_stripe':
@@ -315,7 +302,9 @@ const restaurant = {
 			isConnected: false,
 			holderName: '',
 		}
-	}
+	},
+	// menus: [],
+	// orders: []
 }
 
 module.exports = router;

@@ -2,9 +2,40 @@ const shortId = require('shortid');
 const db = require('../config/database');
 const e = require('../helpers/error').errors;
 
-/**
-	Retrieves a restaurant with the provided ID from the `restaurants` table
-**/
+/* 
+	Allowed restaurant details
+*/
+module.exports.allowedRestaurantDetails = {
+	companyName_stripe: 'companyName_stripe',
+	legalEntityType_stripe: 'legalEntityType_stripe', /* company or individual */
+	country_stripe: 'country_stripe', /* Currently stored in restaurantdetailspayment */
+	currency_stripe: 'currency_stripe', /* Currently stored in restaurantdetailspayment */
+	accountId_stripe: 'accountId_stripe', /* Currently stored in restaurantdetailspayment */
+	
+	taxIdProvided_stripe: 'taxIdProvided_stripe', /* boolean */
+	tosAccepted_stripe: 'tosAccepted_stripe', /* boolean */
+	accountVerified_stripe: 'accountVerified_stripe', /* boolean */
+	
+	addressLine1_stripe: 'addressLine1_stripe', 
+	addressCity_stripe: 'addressCity_stripe', 
+	addressPostcode_stripe: 'addressPostcode_stripe',
+	
+	companyRepFName_stripe: 'companyRepFName_stripe',
+	companyRepLName_stripe: 'companyRepLName_stripe',
+	companyRepDob_stripe: 'companyRepDob_stripe', /* Store as `YYYY-MM-DD` string */
+	companyRepAddressLine1_stripe: 'companyRepAddressLine1_stripe', 
+	companyRepAddressCity_stripe: 'companyRepAddressCity_stripe',
+	companyRepAddressPostcode_stripe: 'companyRepAddressPostcode_stripe',
+	
+	bankAccountHolderName_stripe: 'bankAccountHolderName_stripe',
+	bankAccountConnected_stripe: 'bankAccountConnected_stripe', /* boolean */
+}
+
+/*
+	Entity
+*/
+
+/* Retrieves a restaurant with the provided ID from the `restaurants` table */
 module.exports.getRestaurantById = function(restaurantId) {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT * FROM restaurants WHERE restaurantId = ?';
@@ -15,9 +46,7 @@ module.exports.getRestaurantById = function(restaurantId) {
 	});
 }
 
-/**
-	Get restaurant by owner (user) Id
-**/
+/* Get restaurant by owner (user) Id */
 module.exports.getRestaurantByOwnerId = function(ownerId) {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT * FROM restaurants WHERE ownerId = ?';
@@ -28,9 +57,7 @@ module.exports.getRestaurantByOwnerId = function(ownerId) {
 	});
 }
 
-/**
-	Get the ID of the restaurant's owner
-**/
+/* Get the ID of the restaurant's owner */
 module.exports.getRestaurantOwnerId = function(restaurantId) {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT ownerId FROM restaurants WHERE restaurantId = ?';
@@ -41,9 +68,7 @@ module.exports.getRestaurantOwnerId = function(restaurantId) {
 	});
 }
 
-/**
-	Get all restaurants, and later we will filter this result by location (vicitiny to user's location)
-**/
+/* Get all restaurants, and later we will filter this result by location (vicitiny to user's location */
 module.exports.getAllRestaurants = function() {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT restaurantId, name FROM restaurants WHERE active = 1';
@@ -54,9 +79,7 @@ module.exports.getAllRestaurants = function() {
 	});
 }
 
-/**
-	Get all the menus of a specific restaurant
-**/
+/* Get all the menus of a specific restaurant */
 module.exports.getMenusForRestaurant = function(restaurantId) {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT menuId, name, restaurantId ' + 
@@ -65,6 +88,18 @@ module.exports.getMenusForRestaurant = function(restaurantId) {
 		db.query(query, restaurantId, (err, menus) => {
 			if(err) return reject(err);
 			resolve(menus);
+		});
+	});
+}
+
+module.exports.getRestaurantDetails = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT `key`, `value` ' +
+					  'FROM restaurantdetails ' +
+					  'WHERE restaurantId = ?';
+		db.query(query, restaurantId, (err, details) => {
+			if(err) return reject(err);
+			resolve(details);
 		});
 	});
 }
@@ -80,9 +115,7 @@ module.exports.createNewRestaurant = function(restaurant) {
 	});
 }
 
-/**
-	Upon user registration, create the user's restaurant with a default menu
-**/
+/* Upon user registration, create the user's restaurant with a default menu */
 module.exports.createRestaurantWithDefaultMenu = function(restaurant, menu) {
 	return new Promise((resolve, reject) => {
 		// Default categories
@@ -118,9 +151,7 @@ module.exports.createRestaurantWithDefaultMenu = function(restaurant, menu) {
 	});
 }
 
-/**
-	Update a restaurant
-**/
+/* Update a restaurant */
 module.exports.updateRestaurant = function(restaurantId, restaurantData) {
 	return new Promise((resolve, reject) => {
 		const query = 'UPDATE restaurants SET ? ' +
@@ -135,9 +166,7 @@ module.exports.updateRestaurant = function(restaurantId, restaurantData) {
 	});
 }
 
-/** 
-	Update restaurant details (Stripe account details etc.)
-**/
+/* Update restaurant details (Stripe account details etc.) */
 module.exports.updateRestaurantDetails = function(restaurantId, details) {
 	return new Promise((resolve, reject) => {
 		const query = 'INSERT INTO restaurantdetails (`restaurantId`, `key`, `value`) VALUES ? ' +
@@ -151,10 +180,7 @@ module.exports.updateRestaurantDetails = function(restaurantId, details) {
 	});
 }
 
-
-/**
-	Deactivate a restaurant
-**/
+/* Deactivate a restaurant */
 module.exports.deactivateRestaurant = function(restaurantId, details) {
 	return new Promise((resolve, reject) => {
 		const query = 'UPDATE restaurants SET active = 0 WHERE restaurantId = ?';

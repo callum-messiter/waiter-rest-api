@@ -6,24 +6,6 @@ const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 
-const allowedRestaurantDetails = {
-	companyName: 'companyName',  
-	addressLine1: 'addressLine1',
-	addressCity: 'addressCity', 
-	addressPostcode: 'addressPostcode',
-	taxIdProvided: 'companiesHouseRegNum', /* boolean */
-	companyRepFName: 'companyRepFName',
-	companyRepLName: 'companyRepLName',
-	companyRepDob: 'companyRepDob', /* Store as `YYYY-MM-DD` string */
-	companyRepAddressLine1: 'companyRepAddressLine1', 
-	companyRepAddressCity: 'companyRepAddressCity',
-	companyRepAddressPostcode: 'companyRepAddressPostcode',
-	companyBankAccountHolderName: 'companyBankAccountHolderName',
-	legalEntityType: 'legalEntityType', /* company or individual */
-	bankAccountConnected: 'bankAccountConnected', /* boolean */
-	tosAccepted: 'tosAccepted'
-}
-
 /* Stripe requires this info in the below format; we only handle the following values: */
 const allowedCountries = ['GB'];
 const allowedCurrencies = ['gbp'];
@@ -133,6 +115,40 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 	});
 });
 
+router.get('/restaurantDetails/:restaurantId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['restaurantId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	Restaurant.getRestaurantOwnerId(req.params.restaurantId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.restaurantNotFound;
+
+		// Any diner can access this data
+		if(u.userRole == roles.restaurateur) {
+			if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		}
+
+		return Payment.getRestaurantPaymentDetails(req.params.restaurantId);
+
+	}).then((details) => {
+
+		if(details.length < 1) throw e.restaurantDetailsNotFound;
+		return res.status(200).json(details[0]);
+
+	}).catch((err) => {
+		return next(err);
+	});
+});
 
 /**
 	The client may send the entire object, or only the parameters being updated by the user.
@@ -143,15 +159,23 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 function parseAndValidateRequestParams(req) {
 	const account = {}; /* Stripe account object for the Stripe API */
 	const restaurantDetails = []; /* To be inserted into our DB, so we can keep track of details provided */
-	const rd = allowedRestaurantDetails;
+	const rd = Restaurant.allowedRestaurantDetails;
 	const r = req.body;
 
 	/**
 		External Account (the restaurant's bank account details in tokenised form)
 	**/
 	if(isSetAndNotEmpty(r.external_account)) {
+		/* Add property to Stripe Account obj, to be sent to Stripe's API */
 		account.external_account = r.external_account;
-		restaurantDetails.push([r.restaurantId, rd.bankAccountConnected, true]);
+		/* Keep a record of this detail in the `restaurantdetails` table (`restaurantId`, `key`, `value`) */
+		restaurantDetails.push([
+			r.restaurantId, /* `restaurantId` */
+			rd.bankAccountConnected_stripe, /* `key` (must be an allowed key - see Restaurant model) */
+			true /* `value` */
+		]);
+
+		/* Each block below works in the same way as explained here... */
 	}
 
 	/**
@@ -164,7 +188,7 @@ function parseAndValidateRequestParams(req) {
 		
 		if(!isNaN(r.tos_acceptance.date)) {
 			tosa.date = r.tos_acceptance.date;
-			restaurantDetails.push([r.restaurantId, rd.tosAccepted, true]);
+			restaurantDetails.push([r.restaurantId, rd.tosAccepted_stripe, true]);
 		}
 	}
 
@@ -182,28 +206,28 @@ function parseAndValidateRequestParams(req) {
 
 		if(isSetAndNotEmpty(r.legal_entity.first_name)) {
 			le.first_name = r.legal_entity.first_name;
-			restaurantDetails.push([r.restaurantId, rd.companyRepFName, le.first_name]);
+			restaurantDetails.push([r.restaurantId, rd.companyRepFName_stripe, le.first_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.last_name)) {
 			le.last_name = r.legal_entity.last_name;
-			restaurantDetails.push([r.restaurantId, rd.companyRepLName, le.last_name]);
+			restaurantDetails.push([r.restaurantId, rd.companyRepLName_stripe, le.last_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.business_name)) {
 			le.business_name = r.legal_entity.business_name;
-			restaurantDetails.push([r.restaurantId, rd.companyName, le.business_name]);
+			restaurantDetails.push([r.restaurantId, rd.companyName_stripe, le.business_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.business_tax_id)) {
 			le.business_tax_id = r.legal_entity.business_tax_id;
-			restaurantDetails.push([r.restaurantId, rd.taxIdProvided, true]);
+			restaurantDetails.push([r.restaurantId, rd.taxIdProvided_stripe, true]);
 		}
 
 		const allowedTypes = ['company']; /* Later we may accept `individual` */
-		if(allowedTypes.includes(r.legal_entity.company)) {
-			le.company = r.legal_entity.company;
-			restaurantDetails.push([r.restaurantId, rd.legalEntityType, le.company]);
+		if(allowedTypes.includes(r.legal_entity.type)) {
+			le.type = r.legal_entity.type;
+			restaurantDetails.push([r.restaurantId, rd.legalEntityType_stripe, le.type]);
 		}
 
 		/**
@@ -215,17 +239,18 @@ function parseAndValidateRequestParams(req) {
 			
 			if(isSetAndNotEmpty(r.legal_entity.address.line1)) {
 				a.line1 = r.legal_entity.address.line1;
-				restaurantDetails.push([r.restaurantId, rd.addressLine1, a.line1]);
+				restaurantDetails.push([r.restaurantId, rd.addressLine1_stripe, a.line1]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.address.city)) {
 				a.city = r.legal_entity.address.city;
-				restaurantDetails.push([r.restaurantId, rd.addressCity, a.city]);
+				restaurantDetails.push([r.restaurantId, rd.addressCity_stripe, a.city]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.address.postal_code)) {
 				a.postal_code = r.legal_entity.address.postal_code;
-				restaurantDetails.push([r.restaurantId, rd.addressPostcode, a.postal_code]);
+				const postcode = a.postal_code.replace(/\s+/g, '').toUpperCase();
+				restaurantDetails.push([r.restaurantId, rd.addressPostcode_stripe, postcode]);
 			}
 		}
 
@@ -238,17 +263,18 @@ function parseAndValidateRequestParams(req) {
 			
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.line1)) {
 				pa.line1 = r.legal_entity.personal_address.line1;
-				restaurantDetails.push([r.restaurantId, rd.companyRepAddressLine1, pa.line1]);
+				restaurantDetails.push([r.restaurantId, rd.companyRepAddressLine1_stripe, pa.line1]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.city)) {
 				pa.city = r.legal_entity.personal_address.city;
-				restaurantDetails.push([r.restaurantId, rd.companyRepAddressCity, pa.city]);
+				restaurantDetails.push([r.restaurantId, rd.companyRepAddressCity_stripe, pa.city]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.postal_code)) {
 				pa.postal_code = r.legal_entity.personal_address.postal_code;
-				restaurantDetails.push([r.restaurantId, rd.companyRepAddressPostcode, pa.postal_code]);
+				const postcode = pa.postal_code.replace(/\s+/g, '').toUpperCase();
+				restaurantDetails.push([r.restaurantId, rd.companyRepAddressPostcode_stripe, postcode]);
 			}
 		}
 
@@ -267,11 +293,10 @@ function parseAndValidateRequestParams(req) {
 			}
 
 			if(isValidDate(dobString)) {
-				restaurantDetails.push([r.restaurantId, rd.companyRepDob, dobString]);
+				restaurantDetails.push([r.restaurantId, rd.companyRepDob_stripe, dobString]);
 			}
 		}
 	}
-	console.log(JSON.stringify(restaurantDetails));
 	return {stripeAcc: account, restaurantDetails: restaurantDetails};
 }
 
@@ -333,41 +358,5 @@ function isValidDate(dateString) {
 	}
 
 **/
-
-
-router.get('/restaurantDetails/:restaurantId', (req, res, next) => {
-	const u = res.locals.authUser;
-
-	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
-
-	const requiredParams = {
-		query: [],
-		body: [],
-		route: ['restaurantId']
-	}
-	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
-
-	Restaurant.getRestaurantOwnerId(req.params.restaurantId)
-	.then((r) => {
-
-		if(r.length < 1) throw e.restaurantNotFound;
-
-		// Any diner can access this data
-		if(u.userRole == roles.restaurateur) {
-			if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		}
-
-		return Payment.getRestaurantPaymentDetails(req.params.restaurantId);
-
-	}).then((details) => {
-
-		if(details.length < 1) throw e.restaurantDetailsNotFound;
-		return res.status(200).json(details[0]);
-
-	}).catch((err) => {
-		return next(err);
-	});
-});
 
 module.exports = router;

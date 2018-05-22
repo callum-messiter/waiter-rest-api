@@ -64,22 +64,29 @@ router.get('/:restaurantId', (req, res, next) => {
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		// A menu restaurant's details can be retrieved by any user
+		// A restaurant's details can be retrieved by any user
 		// if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		return Restaurant.getRestaurantById(restaurantId);
 
 	}).then((r) => {
 
+		return Restaurant.getRestaurantDetails(restaurantId);
+	}).then((details) => {
+
+		/* Loop through array of objects and build the JSON response obj */
+		const resObj = setKeyValuePairs(details);
+
 		// There may be multiple restaurants owned by a single user; for now, get the first restuarant returned
-		return res.status(200).json({
-			data: {
-				name: r[0].name,
-				description: r[0].description,
-				location: r[0].location,
-				phoneNumber: r[0].phoneNumber,
-				emailAddress: r[0].emailAddress
-			}
-		});
+		// return res.status(200).json({
+		//	data: {
+		//		name: r[0].name,
+		//		description: r[0].description,
+		//		location: r[0].location,
+		//		phoneNumber: r[0].phoneNumber,
+		//		emailAddress: r[0].emailAddress
+		//	}
+		// });
+		return res.status(200).json(resObj);
 
 	}).catch((err) => {
 		return next(err);
@@ -182,5 +189,133 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 		return next(err);
 	});
 });
+
+/* Get all restaurant details from DB, and assign them to correct property in res object */
+function setKeyValuePairs(details) {
+	if (details.length < 1) return restaurant;
+	for (const item of details) {
+		switch (item.key) {
+			case 'companyName_stripe':
+				restaurant.stripe.companyName = item.value;
+				break;
+			case 'country_stripe':
+				restaurant.stripe.country = item.value;
+				break;
+			case 'currency_stripe':
+				restaurant.stripe.currency = item.value;
+				break;
+			case 'legalEntityType_stripe':
+				restaurant.stripe.legalEntityType = item.value;
+				break;
+			case 'taxIdProvided_stripe':
+				restaurant.stripe.taxIdProvided = (item.value == 1) ? true : false;
+				break;
+			case 'tosAccepted_stripe':
+				console.log(item.key + ' = ' + item.value);
+				restaurant.stripe.tosAccepted = (item.value == 1) ? true : false;
+				break;
+			case 'accountVerified_stripe':
+				restaurant.stripe.accountVerified = (item.value == 1) ? true : false;
+				break;
+
+			case 'addressLine1_stripe':
+				restaurant.stripe.companyAddress.line1 = item.value;
+				break;
+			case 'addressCity_stripe':
+				restaurant.stripe.companyAddress.city = item.value;
+				break;
+			case 'addressPostcode_stripe':
+				restaurant.stripe.companyAddress.postcode = item.value;
+				break;
+
+			case 'companyRepFName_stripe':
+				restaurant.stripe.companyRep.firstName = item.value;
+				break;
+			case 'companyRepLName_stripe':
+				restaurant.stripe.companyRep.lastName = item.value;
+				break;
+			case 'companyRepDob_stripe':
+				restaurant.stripe.companyRep.dob = item.value;
+				break;
+			case 'companyRepAddressLine1_stripe':
+				restaurant.stripe.companyRep.address.line1 = item.value;
+				break;
+			case 'companyRepAddressCity_stripe':
+				restaurant.stripe.companyRep.address.city = item.value;
+				break;
+			case 'companyRepAddressPostcode_stripe':
+				restaurant.stripe.companyRep.address.postcode = item.value;
+				break;
+
+			case 'bankAccountHolderName_stripe':
+				restaurant.stripe.companyBankAccount.holder = item.value;
+				break;
+			case 'bankAccountConnected_stripe':
+				restaurant.stripe.companyBankAccount.isConnected = (item.value == 1) ? true : false;
+				break;
+
+			default:
+				break;
+		}
+	}
+	return restaurant;
+}
+
+/* Restaurant Details response object */
+const restaurant = {
+	general: {
+		restaurantId: '',
+		name: '',
+		description: '',
+		email: '',
+		phoneNumber: '',
+		address: {
+			line1: '',
+			city: '',
+			postcode: '',
+			country: ''
+		},
+		owner: {
+			id: '',
+			role: '',
+			firstName: '',
+			lastName: '',
+			email: ''
+		},
+		registrationDate: ''
+	},
+	stripe: {
+		companyName: '',
+		country: '',
+		legalEntityType: '', /* company or individual */
+		currency: '',
+		accountId: '',
+		taxIdProvided: false,
+		tosAccepted: false,
+		accountVerified: false,
+
+		companyAddress: {
+			line1: '',
+			city: '', 
+			postcode: '',
+		},
+
+		companyRep: {
+			firstName: '',
+			lastName: '',
+			dob: '', /* Store as `YYYY-MM-DD` string */
+			address: {
+				line1: '', 
+				city: '',
+				postcode: '',
+			}
+		},
+
+		companyBankAccount: {
+			isConnected: false,
+			holderName: '',
+		}
+	}
+}
 
 module.exports = router;

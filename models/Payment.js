@@ -4,6 +4,14 @@ const stripe = require("stripe")(config.stripe.secretKey);
 stripe.setApiVersion('2018-02-28');
 const e = require('../helpers/error').errors;	
 
+module.exports.getRestaurantStripeAccount = function(stripeAccountId) {
+	return new Promise((resolve, reject) => {
+		stripe.accounts.retrieve(stripeAccountId)
+		.then((account) => { resolve(account); })
+		.catch((err) => { return reject(err); });
+	});
+}
+
 /**
 	TODO: don't create the account upon registration. Only create the account when the user
 	submits the form from the Stripe Settings panel in the restaurant app.

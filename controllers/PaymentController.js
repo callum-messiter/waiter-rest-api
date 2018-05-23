@@ -11,6 +11,38 @@ const _ = require('underscore');
 const allowedCountries = ['GB'];
 const allowedCurrencies = ['gbp'];
 
+router.get('/stripeAccount/:restaurantId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['restaurantId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	Restaurant.getRestaurantOwnerId(req.params.restaurantId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.restaurantNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return Payment.getRestaurantPaymentDetails(req.params.restaurantId);
+
+	}).then((details) => {	
+
+		if(details.length < 1) throw e.restaurantDetailsNotFound;
+		return Payment.getRestaurantStripeAccount(details[0].stripeAccountId);
+
+	}).then((account) => {
+		return res.status(200).json(account);
+	}).catch((err) => {
+		return next(err);
+	});
+});
+
 /**
 	In order to allow a restaurant receive payments via waitr, we must create a Stripe account that 
 	represents the restaurant.
@@ -52,11 +84,14 @@ router.post('/createStripeAccount', (req, res, next) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		// TODO: Plug in the data dynamically using the req.body
-		return Payment.createRestaurantStripeAccount(req.body.restaurantId);
+		if(_.isEmpty(result.stripe) || result.restaurantDetails.length < 1) throw e.malformedRestaurantDetails;
+		const result = parseAndValidateRequestParams(req); /* Build the Stripe Account object */
+		res.locals.response = result;
+		return Payment.createRestaurantStripeAccount(req.body.restaurantId, result.stripeAcc);
 
 	}).then((account) => {
 
+		/* Add the details to the database */
 		return Payment.saveRestaurantStripeAccountDetails({
 			restaurantId: req.body.restaurantId, 
 			stripeAccountId: account.id}

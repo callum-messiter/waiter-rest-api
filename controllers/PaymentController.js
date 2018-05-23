@@ -5,6 +5,7 @@ const Auth = require('../models/Auth');
 const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
+const _ = require('underscore');
 
 /* Stripe requires this info in the below format; we only handle the following values: */
 const allowedCountries = ['GB'];
@@ -86,7 +87,7 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 		route: []
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
-	console.log(JSON.stringify(req.body));
+
 	// Get the restaurant's Stripe account details
 	Restaurant.getRestaurantOwnerId(req.body.restaurantId)
 	.then((r) => {
@@ -99,6 +100,7 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 
 		if(details.length < 1) throw e.restaurantDetailsNotFound;
 		const result = parseAndValidateRequestParams(req); // Build the Stripe Account object
+		if(_.isEmpty(result.stripe) || result.restaurantDetails.length < 1) throw e.malformedRestaurantDetails;
 		res.locals.response = result;
 		return Payment.updateStripeAccount(details[0].destination, result.stripeAcc);	
 
@@ -196,22 +198,6 @@ function parseAndValidateRequestParams(req) {
 				r.bankAccountHolderType
 			]);
 		}
-	}
-
-	if(isSetAndNotEmpty(r.bankAccountHolderName)) {
-		restaurantDetails.push([
-			r.restaurantId,
-			rd.bankAccountHolderName_stripe,
-			r.bankAccountHolderName
-		]);
-	}
-
-	if(isSetAndNotEmpty(r.bankAccountHolderType)) {
-		restaurantDetails.push([
-			r.restaurantId,
-			rd.bankAccountHolderType_stripe,
-			r.bankAccountHolderType
-		]);
 	}
 
 	/**

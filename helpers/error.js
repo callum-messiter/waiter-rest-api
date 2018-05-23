@@ -126,6 +126,12 @@ const errors = {
 		type: errorTypes.restaurant,
 		userMsg: defaultUserMsg
 	},
+	malformedRestaurantDetails: {
+		statusCode: 500,
+		errorKey: 'malformedRestaurantDetails',
+		type: errorTypes.restaurant,
+		userMsg: defaultUserMsg
+	},
 
 	/**
 		Menus

@@ -33,11 +33,16 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 
 	}).then((details) => {	
 
-		if(details.length < 1) throw e.restaurantDetailsNotFound;
+		/* Return empty obj if restaurant has no stripe account yet */
+		if(details.length < 1) return res.status(200).json({});
 		return Payment.getRestaurantStripeAccount(details[0].destination);
 
 	}).then((account) => {
+
+		/* Stripe will return the master account (Waitr) if can't find connected account (restaurant) */
+		if(account.type !== 'custom') { account = {} };
 		return res.status(200).json(account);
+
 	}).catch((err) => {
 		return next(err);
 	});
@@ -85,12 +90,14 @@ router.post('/createStripeAccount', (req, res, next) => {
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		if(_.isEmpty(result.stripe) || result.restaurantDetails.length < 1) throw e.malformedRestaurantDetails;
-		const result = parseAndValidateRequestParams(req); /* Build the Stripe Account object */
-		res.locals.response = result;
+		// TODO: check if restaurant already has Stripe account
+		const account = parseAndValidateRequestParams(req); /* Build the Stripe Account object */
+		res.locals.account = account;
 		return Payment.createRestaurantStripeAccount(req.body.restaurantId, result.stripeAcc);
 
 	}).then((account) => {
 
+		res.locals.account = account; 
 		/* Add the details to the database */
 		return Payment.saveRestaurantStripeAccountDetails({
 			restaurantId: req.body.restaurantId, 
@@ -98,7 +105,7 @@ router.post('/createStripeAccount', (req, res, next) => {
 		);
 
 	}).then(() => {
-		return res.status(200).json();
+		return res.status(200).json(res.locals.account);
 	}).catch((err) => {
 		return next(err);
 	});
@@ -134,19 +141,12 @@ router.patch('/updateStripeAccount', (req, res, next) => {
 	}).then((details) => {	
 
 		if(details.length < 1) throw e.restaurantDetailsNotFound;
-		const result = parseAndValidateRequestParams(req); // Build the Stripe Account object
-		if(_.isEmpty(result.stripe) || result.restaurantDetails.length < 1) throw e.malformedRestaurantDetails;
-		res.locals.response = result;
-		return Payment.updateStripeAccount(details[0].destination, result.stripeAcc);	
+		const account = parseAndValidateRequestParams(req); // Build the Stripe Account object
+		if(_.isEmpty(account)) throw e.malformedRestaurantDetails;
+		return Payment.updateStripeAccount(details[0].destination, account);	
 
 	}).then((account) => {
-
-		const r = res.locals.response;
-		res.locals.response.account = account;
-		return Restaurant.updateRestaurantDetails(req.body.restaurantId, r.restaurantDetails);
-
-	}).then(() => {
-		return res.status(200).json(res.locals.response.account);
+		return res.status(200).json(account);
 	}).catch((err) => {
 		return next(err);
 	});
@@ -195,8 +195,6 @@ router.get('/restaurantDetails/:restaurantId', (req, res, next) => {
 // TODO: return validation errors to client
 function parseAndValidateRequestParams(req) {
 	const account = {}; /* Stripe account object for the Stripe API */
-	const restaurantDetails = []; /* To be inserted into our DB, so we can keep track of details provided */
-	const rd = Restaurant.allowedRestaurantDetails;
 	const r = req.body;
 
 	/**
@@ -205,34 +203,6 @@ function parseAndValidateRequestParams(req) {
 	if(isSetAndNotEmpty(r.external_account)) {
 		/* Add property to Stripe Account obj, to be sent to Stripe's API */
 		account.external_account = r.external_account;
-		/* Keep a record of this detail in the `restaurantdetails` table (`restaurantId`, `key`, `value`) */
-		restaurantDetails.push([
-			r.restaurantId, /* `restaurantId` */
-			rd.bankAccountConnected_stripe, /* `key` (must be an allowed key - see Restaurant model) */
-			true /* `value` */
-		]);
-
-		/**
-			All conditional blocks hereafter work in the same way as explained here... 
-		**/
-
-		/* We don't store sensitive bank account data: only the holder name and... */
-		if(isSetAndNotEmpty(r.bankAccountHolderName)) {
-			restaurantDetails.push([
-				r.restaurantId,
-				rd.bankAccountHolderName_stripe,
-				r.bankAccountHolderName
-			]);
-		}
-
-		/* ...holder type. This is so we can pre-fill the form in the restaurant app with the user's current data */
-		if(isSetAndNotEmpty(r.bankAccountHolderType)) {
-			restaurantDetails.push([
-				r.restaurantId,
-				rd.bankAccountHolderType_stripe,
-				r.bankAccountHolderType
-			]);
-		}
 	}
 
 	/**
@@ -245,7 +215,6 @@ function parseAndValidateRequestParams(req) {
 		
 		if(!isNaN(r.tos_acceptance.date)) {
 			tosa.date = r.tos_acceptance.date;
-			restaurantDetails.push([r.restaurantId, rd.tosAccepted_stripe, true]);
 		}
 	}
 
@@ -263,28 +232,23 @@ function parseAndValidateRequestParams(req) {
 
 		if(isSetAndNotEmpty(r.legal_entity.first_name)) {
 			le.first_name = r.legal_entity.first_name;
-			restaurantDetails.push([r.restaurantId, rd.companyRepFName_stripe, le.first_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.last_name)) {
 			le.last_name = r.legal_entity.last_name;
-			restaurantDetails.push([r.restaurantId, rd.companyRepLName_stripe, le.last_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.business_name)) {
 			le.business_name = r.legal_entity.business_name;
-			restaurantDetails.push([r.restaurantId, rd.companyName_stripe, le.business_name]);
 		}
 
 		if(isSetAndNotEmpty(r.legal_entity.business_tax_id)) {
 			le.business_tax_id = r.legal_entity.business_tax_id;
-			restaurantDetails.push([r.restaurantId, rd.taxIdProvided_stripe, true]);
 		}
 
 		const allowedTypes = ['company']; /* Later we may accept `individual` */
 		if(allowedTypes.includes(r.legal_entity.type)) {
 			le.type = r.legal_entity.type;
-			restaurantDetails.push([r.restaurantId, rd.legalEntityType_stripe, le.type]);
 		}
 
 
@@ -297,18 +261,15 @@ function parseAndValidateRequestParams(req) {
 			
 			if(isSetAndNotEmpty(r.legal_entity.address.line1)) {
 				a.line1 = r.legal_entity.address.line1;
-				restaurantDetails.push([r.restaurantId, rd.addressLine1_stripe, a.line1]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.address.city)) {
 				a.city = r.legal_entity.address.city;
-				restaurantDetails.push([r.restaurantId, rd.addressCity_stripe, a.city]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.address.postal_code)) {
 				a.postal_code = r.legal_entity.address.postal_code;
 				const postcode = a.postal_code.replace(/\s+/g, '').toUpperCase();
-				restaurantDetails.push([r.restaurantId, rd.addressPostcode_stripe, postcode]);
 			}
 		}
 
@@ -321,18 +282,14 @@ function parseAndValidateRequestParams(req) {
 			
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.line1)) {
 				pa.line1 = r.legal_entity.personal_address.line1;
-				restaurantDetails.push([r.restaurantId, rd.companyRepAddressLine1_stripe, pa.line1]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.city)) {
 				pa.city = r.legal_entity.personal_address.city;
-				restaurantDetails.push([r.restaurantId, rd.companyRepAddressCity_stripe, pa.city]);
 			}
 
 			if(isSetAndNotEmpty(r.legal_entity.personal_address.postal_code)) {
 				pa.postal_code = r.legal_entity.personal_address.postal_code;
-				const postcode = pa.postal_code.replace(/\s+/g, '').toUpperCase();
-				restaurantDetails.push([r.restaurantId, rd.companyRepAddressPostcode_stripe, postcode]);
 			}
 		}
 
@@ -342,20 +299,14 @@ function parseAndValidateRequestParams(req) {
 		if(isNonEmptyObj(r.legal_entity.dob)) {
 			account.legal_entity.dob = {};
 			const dob = account.legal_entity.dob;
-			var dobString = '';
 			const d = r.legal_entity.dob.day, m = r.legal_entity.dob.month, y = r.legal_entity.dob.year;
 
 			if(isSetAndNotEmpty(d) && isSetAndNotEmpty(m) && isSetAndNotEmpty(y)) {
 				dob.day = d, dob.month = m, dob.year = y; /* Set Stripe account obj props */
-				dobString = y + '-' + m + '-' + d; /* Create date string to be stored in the DB */
-			}
-
-			if(isValidDate(dobString)) {
-				restaurantDetails.push([r.restaurantId, rd.companyRepDob_stripe, dobString]);
 			}
 		}
 	}
-	return {stripeAcc: account, restaurantDetails: restaurantDetails};
+	return account;
 }
 
 function isNonEmptyObj(param) {

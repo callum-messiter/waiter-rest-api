@@ -2,41 +2,6 @@ const shortId = require('shortid');
 const db = require('../config/database');
 const e = require('../helpers/error').errors;
 
-/* 
-	Allowed restaurant details - key names to be stored in the DB
-*/
-module.exports.allowedRestaurantDetails = {
-	companyName_stripe: 'companyName_stripe',
-	country_stripe: 'country_stripe', /* Currently stored in restaurantdetailspayment */
-	currency_stripe: 'currency_stripe', /* Currently stored in restaurantdetailspayment */
-	accountId_stripe: 'accountId_stripe', /* Currently stored in restaurantdetailspayment */
-	
-	legalEntityType_stripe: 'legalEntityType_stripe', /* company or individual */
-	additionalOwners_stripe: 'additionalOwners_stripe', /* We do not store currently */
-	taxIdProvided_stripe: 'taxIdProvided_stripe', /* boolean */
-	tosAccepted_stripe: 'tosAccepted_stripe', /* boolean */
-	accountVerified_stripe: 'accountVerified_stripe', /* boolean */
-	
-	addressLine1_stripe: 'addressLine1_stripe', 
-	addressCity_stripe: 'addressCity_stripe', 
-	addressPostcode_stripe: 'addressPostcode_stripe',
-	
-	companyRepFName_stripe: 'companyRepFName_stripe',
-	companyRepLName_stripe: 'companyRepLName_stripe',
-	companyRepDob_stripe: 'companyRepDob_stripe', /* Store as `YYYY-MM-DD` string */
-	companyRepAddressLine1_stripe: 'companyRepAddressLine1_stripe', 
-	companyRepAddressCity_stripe: 'companyRepAddressCity_stripe',
-	companyRepAddressPostcode_stripe: 'companyRepAddressPostcode_stripe',
-	
-	bankAccountHolderName_stripe: 'bankAccountHolderName_stripe',
-	bankAccountHolderType_stripe: 'bankAccountHolderType_stripe',
-	bankAccountConnected_stripe: 'bankAccountConnected_stripe', /* boolean */
-}
-
-/*
-	Entity
-*/
-
 /* Retrieves a restaurant with the provided ID from the `restaurants` table */
 module.exports.getRestaurantById = function(restaurantId) {
 	return new Promise((resolve, reject) => {

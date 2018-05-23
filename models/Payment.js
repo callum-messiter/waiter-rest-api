@@ -54,32 +54,8 @@ module.exports.getRestaurantStripeAccount = function(stripeAccountId) {
 **/
 module.exports.createRestaurantStripeAccount = function(accountObj) {
 	return new Promise((resolve, reject) => {
-		stripe.accounts.create({
-			country: "GB",
- 			type: "custom"
-			/**
-			legal_entity: {
-				first_name: 'Adam',
-				last_name: 'Smith',
-				type: 'company',
-				business_name: 'Water Lane Brasserie',
-				address: {
-					line1: '56 Castle Street',
-					city: 'Canterbury',
-					postal_code: 'ct12py'
-				},
-				personal_address: {
-					line1: '56 Castle Street',
-					city: 'Canterbury',
-					postal_code: 'ct12py'
-				},
-				dob: {
-					day: '26',
-					month: '06',
-					year: '1977'
-				}
-			}**/
-		}).then((account) => {
+		stripe.accounts.create(accountObj)
+		.then((account) => {
 			return resolve(account);
 		}).catch((err) => {
 			return reject(err);

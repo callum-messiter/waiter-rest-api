@@ -34,7 +34,7 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 	}).then((details) => {	
 
 		if(details.length < 1) throw e.restaurantDetailsNotFound;
-		return Payment.getRestaurantStripeAccount(details[0].stripeAccountId);
+		return Payment.getRestaurantStripeAccount(details[0].destination);
 
 	}).then((account) => {
 		return res.status(200).json(account);

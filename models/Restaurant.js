@@ -12,7 +12,7 @@ module.exports.allowedRestaurantDetails = {
 	accountId_stripe: 'accountId_stripe', /* Currently stored in restaurantdetailspayment */
 	
 	legalEntityType_stripe: 'legalEntityType_stripe', /* company or individual */
-	additionalOwners_stripe: 'additionalOwners_stripe',
+	additionalOwners_stripe: 'additionalOwners_stripe', /* We do not store currently */
 	taxIdProvided_stripe: 'taxIdProvided_stripe', /* boolean */
 	tosAccepted_stripe: 'tosAccepted_stripe', /* boolean */
 	accountVerified_stripe: 'accountVerified_stripe', /* boolean */

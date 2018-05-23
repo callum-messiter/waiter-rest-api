@@ -175,7 +175,43 @@ function parseAndValidateRequestParams(req) {
 			true /* `value` */
 		]);
 
-		/* Each block below works in the same way as explained here... */
+		/**
+			All conditional blocks hereafter work in the same way as explained here... 
+		**/
+
+		/* We don't store sensitive bank account data: only the holder name and... */
+		if(isSetAndNotEmpty(r.bankAccountHolderName)) {
+			restaurantDetails.push([
+				r.restaurantId,
+				rd.bankAccountHolderName_stripe,
+				r.bankAccountHolderName
+			]);
+		}
+
+		/* ...holder type. This is so we can pre-fill the form in the restaurant app with the user's current data */
+		if(isSetAndNotEmpty(r.bankAccountHolderType)) {
+			restaurantDetails.push([
+				r.restaurantId,
+				rd.bankAccountHolderType_stripe,
+				r.bankAccountHolderType
+			]);
+		}
+	}
+
+	if(isSetAndNotEmpty(r.bankAccountHolderName)) {
+		restaurantDetails.push([
+			r.restaurantId,
+			rd.bankAccountHolderName_stripe,
+			r.bankAccountHolderName
+		]);
+	}
+
+	if(isSetAndNotEmpty(r.bankAccountHolderType)) {
+		restaurantDetails.push([
+			r.restaurantId,
+			rd.bankAccountHolderType_stripe,
+			r.bankAccountHolderType
+		]);
 	}
 
 	/**
@@ -229,6 +265,7 @@ function parseAndValidateRequestParams(req) {
 			le.type = r.legal_entity.type;
 			restaurantDetails.push([r.restaurantId, rd.legalEntityType_stripe, le.type]);
 		}
+
 
 		/**
 			Legal Entity Address (Company)

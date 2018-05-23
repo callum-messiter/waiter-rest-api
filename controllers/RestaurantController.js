@@ -235,7 +235,10 @@ function buildResponseObj(details) {
 				break;
 
 			case 'bankAccountHolderName_stripe':
-				restaurant.stripe.companyBankAccount.holder = item.value;
+				restaurant.stripe.companyBankAccount.holderName = item.value;
+				break;
+			case 'bankAccountHolderType_stripe':
+				restaurant.stripe.companyBankAccount.holderType = item.value;
 				break;
 			case 'bankAccountConnected_stripe':
 				restaurant.stripe.companyBankAccount.isConnected = (item.value == 1) ? true : false;
@@ -275,10 +278,11 @@ const restaurant = {
 		companyName: '',
 		country: '',
 		legalEntityType: '', /* company or individual */
+		additionalOwners: '', /* For now we set as empty string, send to Stripe, and don't store */
 		currency: '',
 		accountId: '',
 		taxIdProvided: false,
-		tosAccepted: false,
+		tosAccepted_stripe: false,
 		accountVerified: false,
 
 		companyAddress: {
@@ -301,6 +305,7 @@ const restaurant = {
 		companyBankAccount: {
 			isConnected: false,
 			holderName: '',
+			holderType: ''
 		}
 	},
 	// menus: [],

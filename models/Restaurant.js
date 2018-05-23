@@ -3,15 +3,16 @@ const db = require('../config/database');
 const e = require('../helpers/error').errors;
 
 /* 
-	Allowed restaurant details
+	Allowed restaurant details - key names to be stored in the DB
 */
 module.exports.allowedRestaurantDetails = {
 	companyName_stripe: 'companyName_stripe',
-	legalEntityType_stripe: 'legalEntityType_stripe', /* company or individual */
 	country_stripe: 'country_stripe', /* Currently stored in restaurantdetailspayment */
 	currency_stripe: 'currency_stripe', /* Currently stored in restaurantdetailspayment */
 	accountId_stripe: 'accountId_stripe', /* Currently stored in restaurantdetailspayment */
 	
+	legalEntityType_stripe: 'legalEntityType_stripe', /* company or individual */
+	additionalOwners_stripe: 'additionalOwners_stripe',
 	taxIdProvided_stripe: 'taxIdProvided_stripe', /* boolean */
 	tosAccepted_stripe: 'tosAccepted_stripe', /* boolean */
 	accountVerified_stripe: 'accountVerified_stripe', /* boolean */
@@ -28,6 +29,7 @@ module.exports.allowedRestaurantDetails = {
 	companyRepAddressPostcode_stripe: 'companyRepAddressPostcode_stripe',
 	
 	bankAccountHolderName_stripe: 'bankAccountHolderName_stripe',
+	bankAccountHolderType_stripe: 'bankAccountHolderType_stripe',
 	bankAccountConnected_stripe: 'bankAccountConnected_stripe', /* boolean */
 }
 

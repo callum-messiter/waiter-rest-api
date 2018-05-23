@@ -306,7 +306,7 @@ function isNonEmptyObj(param) {
 }
 
 function isSetAndNotEmpty(param) {
-	if(param !== undefined && param.replace(/\s+/g, '') != '') return true;
+	if(param !== undefined && param.toString().replace(/\s+/g, '') != '') return true;
 	return false;
 }
 

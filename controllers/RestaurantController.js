@@ -248,7 +248,7 @@ function buildResponseObj(details) {
 	return restaurant;
 }
 
-/* Restaurant Details response object */
+/* Default Restaurant Details response object */
 const restaurant = {
 	general: {
 		restaurantId: '',

@@ -282,7 +282,7 @@ const restaurant = {
 		currency: '',
 		accountId: '',
 		taxIdProvided: false,
-		tosAccepted_stripe: false,
+		tosAccepted: false,
 		accountVerified: false,
 
 		companyAddress: {

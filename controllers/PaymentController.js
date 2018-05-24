@@ -84,23 +84,28 @@ router.post('/createStripeAccount', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Restaurant.getRestaurantOwnerId(req.body.restaurantId)
+	const rid = req.body.restaurantId;
+	Restaurant.getRestaurantOwnerId(rid)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		if(_.isEmpty(result.stripe) || result.restaurantDetails.length < 1) throw e.malformedRestaurantDetails;
-		// TODO: check if restaurant already has Stripe account
+		return Payment.getRestaurantPaymentDetails(rid);
+
+	}).then((details) => {
+
+		if(details.length > 0) throw e.multipleStripeAccountsForbidden;
 		const account = parseAndValidateRequestParams(req); /* Build the Stripe Account object */
+		if(_.isEmpty(account)) throw e.malformedRestaurantDetails;
 		res.locals.account = account;
-		return Payment.createRestaurantStripeAccount(req.body.restaurantId, result.stripeAcc);
+		return Payment.createRestaurantStripeAccount(rid, result.stripeAcc);
 
 	}).then((account) => {
 
 		res.locals.account = account; 
 		/* Add the details to the database */
 		return Payment.saveRestaurantStripeAccountDetails({
-			restaurantId: req.body.restaurantId, 
+			restaurantId: rid, 
 			stripeAccountId: account.id}
 		);
 

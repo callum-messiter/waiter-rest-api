@@ -132,6 +132,12 @@ const errors = {
 		type: errorTypes.restaurant,
 		userMsg: defaultUserMsg
 	},
+	multipleStripeAccountsForbidden: {
+		statusCode: 409,
+		errorKey: 'multipleStripeAccountsForbidden',
+		type: errorTypes.restaurant,
+		userMsg: defaultUserMsg
+	},
 
 	/**
 		Menus

@@ -12,46 +12,6 @@ module.exports.getRestaurantStripeAccount = function(stripeAccountId) {
 	});
 }
 
-/**
-	TODO: don't create the account upon registration. Only create the account when the user
-	submits the form from the Stripe Settings panel in the restaurant app.
-
-	Send all the params, including the country, default currency, email
-**/
-
-/**
-
-	*Parameters required for verification*
-
-	external_account,
-	tos_acceptance: {
-		date,
-		ip
-	},
-	legal_entity: {
-		first_name,
-		last_name,
-		type,
-		business_name,
-		business_tax_id,
-		address: {
-			line1,
-			city,
-			postal_code
-		},
-		personal_address: {
-			line1,
-			city,
-			postal_code
-		},
-		dob: {
-			day,
-			month,
-			year
-		}
-	}
-
-**/
 module.exports.createRestaurantStripeAccount = function(accountObj) {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.create(accountObj)

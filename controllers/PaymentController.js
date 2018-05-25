@@ -29,18 +29,21 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		/* Get restaurants Stripe account ID */
 		return Payment.getRestaurantPaymentDetails(req.params.restaurantId);
 
 	}).then((details) => {	
 
 		/* Return empty obj if restaurant has no stripe account yet */
 		if(details.length < 1) return res.status(200).json({});
+		res.locals.stripeAccountId = details[0].destination;
 		return Payment.getRestaurantStripeAccount(details[0].destination);
 
 	}).then((account) => {
 
 		/* Stripe will return the master account (Waitr) if can't find connected account (restaurant) */
-		if(account.type !== 'custom') { account = {} };
+		// if(account.type !== 'custom') { account = {} };
+		if(account.id != res.locals.stripeAccountId) { account = {} };
 		return res.status(200).json(account);
 
 	}).catch((err) => {
@@ -48,30 +51,7 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 	});
 });
 
-/**
-	In order to allow a restaurant receive payments via waitr, we must create a Stripe account that 
-	represents the restaurant.
-
-	This account will be connected to the waitr Stripe account. Money will flow like so:
-
-	Customer bank account -> Waitr Stripe account -> Recipient Restaurant Stripe account -> Restaurant bank account
-
-	The following details are required to create the restaurant's Stripe account, and to allow payouts from the restaurant's
-	Stripe account to their bank account:
-
-	{
-		country: "GB",
-		type: "custom",
-		email: "accountHolder@email.com",
-		business_name: "restaurantName",
-		default_currency: "GBP",
-		external_account: "stripeToken" // returned when we send the card details to the Stripe API via the checkout form
-	}
-
-	When we create the account via Stripe, Stripe will respond with an object, containing an ID. We must store this ID in 
-	the database, so that we can reference the restaurant's Stripe account for payments/charges (`destination`).
-**/
-router.post('/createStripeAccount', (req, res, next) => {
+router.post('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
@@ -97,7 +77,6 @@ router.post('/createStripeAccount', (req, res, next) => {
 		if(details.length > 0) throw e.multipleStripeAccountsForbidden;
 		const account = parseAndValidateRequestParams(req); /* Build the Stripe Account object */
 		if(_.isEmpty(account)) throw e.malformedRestaurantDetails;
-		res.locals.account = account;
 		return Payment.createRestaurantStripeAccount(rid, result.stripeAcc);
 
 	}).then((account) => {
@@ -122,7 +101,7 @@ router.post('/createStripeAccount', (req, res, next) => {
 	The requested must provide ther restaurant's ID. We will use this to query the database for the restaurant's
 	Stripe Account ID. We will use this ID to call Stripe's API.
 **/
-router.patch('/updateStripeAccount', (req, res, next) => {
+router.patch('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
@@ -354,6 +333,7 @@ function isValidDate(dateString) {
 		type,
 		business_name,
 		business_tax_id,
+		additional_owners, // Just provide an empty string for now
 		address: {
 			line1,
 			city,

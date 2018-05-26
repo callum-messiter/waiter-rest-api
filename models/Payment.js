@@ -23,13 +23,25 @@ module.exports.createRestaurantStripeAccount = function(accountObj) {
 	});
 }
 
-module.exports.	updateStripeAccount = function(accountId, accountObj) {
+module.exports.updateStripeAccount = function(accountId, accountObj) {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.update(accountId, accountObj)
 		.then((account) => {
 			return resolve(account);
 		}).catch((err) => {
 			return reject(err);
+		});
+	});
+}
+
+module.exports.getRestaurantPaymentDetails = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT stripeAccountId AS destination, currency, isVerified ' + 
+					  'FROM restaurantdetailspayment ' +
+					  'WHERE restaurantId = ?';
+		db.query(query, restaurantId, (err, details) => {
+			if(err) return reject(err);
+			resolve(details);
 		});
 	});
 }
@@ -84,18 +96,6 @@ module.exports.processCustomerPaymentToRestaurant = function(payment) {
 			return resolve(charge);
 		}).catch((err) => {
 			return reject(err);
-		});
-	});
-}
-
-module.exports.getRestaurantPaymentDetails = function(restaurantId) {
-	return new Promise((resolve, reject) => {
-		const query = 'SELECT stripeAccountId AS destination, currency, isVerified ' + 
-					  'FROM restaurantdetailspayment ' +
-					  'WHERE restaurantId = ?';
-		db.query(query, restaurantId, (err, details) => {
-			if(err) return reject(err);
-			resolve(details);
 		});
 	});
 }

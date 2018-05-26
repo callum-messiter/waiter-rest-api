@@ -2,6 +2,7 @@ const router = require('express').Router();
 const Auth = require('../models/Auth');
 const User = require('../models/User');
 const Restaurant = require('../models/Restaurant');
+const Payment = require('../models/Payment');
 const Menu = require('../models/Menu');
 const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
@@ -40,7 +41,18 @@ router.get('/login', (req, res, next) => {
 
 		if(restaurant.length < 1) throw e.restaurantNotFound; // For now it is mandatory
 		res.locals.restaurant = JSON.parse(JSON.stringify(restaurant[0]));
-		return Menu.getMenuByRestaurantId(restaurant[0].restaurantId);
+		/* Check if the restaurant's Stripe account is verified */
+		return Payment.getRestaurantPaymentDetails(restaurant[0].restaurantId);
+
+	}).then((details) => {
+
+		var isVerified = false;
+		if(details.length > 0) {
+			isVerified = (details[0].isVerified) ? true : false;
+		}
+		res.locals.restaurant.isStripeAccountVerified = isVerified;
+		/* TODO: later, when we have unit tests in place, combine this function with the one above */
+		return Menu.getMenuByRestaurantId(res.locals.restaurant.restaurantId);
 
 	}).then((menu) => {
 
@@ -59,7 +71,8 @@ router.get('/login', (req, res, next) => {
 			// For now we will return the first restaurant, since each user will only have one
 			restaurant: {
 				restaurantId: r.restaurantId,
-				name: r.name
+				name: r.name,
+				isStripeAccountVerified: r.isStripeAccountVerified
 			},
 			// For now we will return the first menu, since each restaurant will only have one
 			menu: {

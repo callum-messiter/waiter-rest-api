@@ -79,7 +79,6 @@ router.post('/stripeAccount', (req, res, next) => {
 		if(details.length > 0) throw e.multipleStripeAccountsForbidden;
 		const account = parseAndValidateRequestParams(req); /* Build the Stripe Account object */
 		if(_.isEmpty(account)) throw e.malformedRestaurantDetails;
-		console.log(account);
 		return Payment.createRestaurantStripeAccount(account);
 
 	}).then((account) => {
@@ -106,7 +105,6 @@ router.post('/stripeAccount', (req, res, next) => {
 **/
 router.patch('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
-
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
 	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
@@ -319,8 +317,10 @@ function isNonEmptyObj(param) {
 }
 
 function isSetAndNotEmpty(param) {
-	if(param !== undefined && param.toString().replace(/\s+/g, '') != '') return true;
-	return false;
+	if(param === undefined) return false;
+	if(param === null) return false; 
+	if(param.toString().replace(/\s+/g, '') == '') return false;
+	return true;
 }
 
 function isEmpty(obj) {

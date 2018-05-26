@@ -38,7 +38,9 @@ module.exports.getRestaurantOwnerId = function(restaurantId) {
 /* Get all restaurants, and later we will filter this result by location (vicitiny to user's location */
 module.exports.getAllRestaurants = function() {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT restaurantId, name FROM restaurants WHERE active = 1';
+		const query = 'SELECT restaurants.restaurantId, restaurants.name FROM restaurants ' +
+					  'JOIN restaurantdetailspayment ON restaurantdetailspayment.restaurantId = restaurants.restaurantId ' +
+					  'WHERE restaurants.active = 1 AND restaurantdetailspayment.isVerified = 1';
 		db.query(query, (err, restaurants) => {
 			if(err) return reject(err);
 			resolve(restaurants);

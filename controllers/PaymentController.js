@@ -71,6 +71,7 @@ router.post('/stripeAccount', (req, res, next) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		/* Check that the restaurant doesn't already have a Stripe account */
 		return Payment.getRestaurantPaymentDetails(rid);
 
 	}).then((details) => {
@@ -78,7 +79,8 @@ router.post('/stripeAccount', (req, res, next) => {
 		if(details.length > 0) throw e.multipleStripeAccountsForbidden;
 		const account = parseAndValidateRequestParams(req); /* Build the Stripe Account object */
 		if(_.isEmpty(account)) throw e.malformedRestaurantDetails;
-		return Payment.createRestaurantStripeAccount(rid, result.stripeAcc);
+		console.log(account);
+		return Payment.createRestaurantStripeAccount(account);
 
 	}).then((account) => {
 
@@ -182,9 +184,26 @@ function parseAndValidateRequestParams(req) {
 	const account = {}; /* Stripe account object for the Stripe API */
 	const r = req.body;
 
-	/**
-		External Account (the restaurant's bank account details in tokenised form)
+	/** 
+		General details
 	**/
+	if(isSetAndNotEmpty(r.type)) {
+		// Return validation error if not 'custom'
+		/* Add property to Stripe Account obj, to be sent to Stripe's API */
+		account.type = r.type;
+	}
+
+	if(isSetAndNotEmpty(r.country)) {
+		// Return validation error if not 'GB'
+		account.country = r.country;
+	}
+
+	if(isSetAndNotEmpty(r.email)) {
+		// Return validation error if not 'email'
+		account.email = r.email;
+	}
+
+	/* The restaurant's bank account details in tokenised form */
 	if(isSetAndNotEmpty(r.external_account)) {
 		/* Add property to Stripe Account obj, to be sent to Stripe's API */
 		account.external_account = r.external_account;

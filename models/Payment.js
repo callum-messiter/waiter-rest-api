@@ -23,7 +23,7 @@ module.exports.createRestaurantStripeAccount = function(accountObj) {
 	});
 }
 
-module.exports.updateStripeAccount = function(accountId, accountObj) {
+module.exports.	updateStripeAccount = function(accountId, accountObj) {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.update(accountId, accountObj)
 		.then((account) => {
@@ -34,13 +34,26 @@ module.exports.updateStripeAccount = function(accountId, accountObj) {
 	});
 }
 
-module.exports.saveRestaurantStripeAccountDetails = function(data) {
+module.exports.saveRestaurantStripeMetaData = function(data) {
 	return new Promise((resolve, reject) => {
 		const query = 'INSERT INTO restaurantdetailspayment SET ?';
 		db.query(query, data, (err, result) => {
 			if(err) return reject(err);
 			if(result.affectedRows < 1) return reject(e.sqlInsertFailed);
 			return resolve(result);
+		});
+	});
+}
+
+module.exports.updateRestaurantStripeMetaData = function(stripeAccountId, data) {
+	return new Promise((resolve, reject) => {
+		const query = 'UPDATE restaurantdetailspayment SET ? ' +
+					  'WHERE stripeAccountId = ?';
+		db.query(query, [data, stripeAccountId], (err, result) => {
+			if(err) return reject(err);
+			console.log(result);
+			if(result.affectedRows < 1) return reject(e.sqlUpdateFailed);
+			resolve(result);
 		});
 	});
 }
@@ -77,7 +90,7 @@ module.exports.processCustomerPaymentToRestaurant = function(payment) {
 
 module.exports.getRestaurantPaymentDetails = function(restaurantId) {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT stripeAccountId AS destination, currency ' + 
+		const query = 'SELECT stripeAccountId AS destination, currency, isVerified ' + 
 					  'FROM restaurantdetailspayment ' +
 					  'WHERE restaurantId = ?';
 		db.query(query, restaurantId, (err, details) => {

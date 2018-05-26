@@ -11,6 +11,7 @@ const _ = require('underscore');
 const allowedCountries = ['GB'];
 const allowedCurrencies = ['gbp'];
 
+/* Get a restaurant's stripe account details */
 router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
@@ -52,6 +53,7 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 	});
 });
 
+/* Create a restaurant's stripe account */
 router.post('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 
@@ -82,13 +84,16 @@ router.post('/stripeAccount', (req, res, next) => {
 		return Payment.createRestaurantStripeAccount(account);
 
 	}).then((account) => {
-
-		res.locals.account = account; 
+		
+		res.locals.account = account; /* Add so we can access it later */
+		var isVerified = false;
+		if(account.charges_enabled && account.payouts_enabled) { isVerified = true; }
 		/* Add the details to the database */
-		return Payment.saveRestaurantStripeAccountDetails({
-			restaurantId: rid, 
-			stripeAccountId: account.id}
-		);
+		return Payment.saveRestaurantStripeMetaData({
+			restaurantId: rid,
+			isVerified: isVerified,
+			stripeAccountId: account.id
+		});
 
 	}).then(() => {
 		return res.status(200).json(res.locals.account);
@@ -97,12 +102,7 @@ router.post('/stripeAccount', (req, res, next) => {
 	});
 });
 
-/**
-	For when the restaurant needs to update the details of their account, e.g. their bank account details.
-
-	The requested must provide ther restaurant's ID. We will use this to query the database for the restaurant's
-	Stripe Account ID. We will use this ID to call Stripe's API.
-**/
+/* Update a restaurant's stripe account */
 router.patch('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
@@ -115,23 +115,35 @@ router.patch('/stripeAccount', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	// Get the restaurant's Stripe account details
 	Restaurant.getRestaurantOwnerId(req.body.restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		/* Get the restaurant's Stripe account ID */
 		return Payment.getRestaurantPaymentDetails(req.body.restaurantId);
 
 	}).then((details) => {	
 
 		if(details.length < 1) throw e.restaurantDetailsNotFound;
+		res.locals.details = details[0];
 		const account = parseAndValidateRequestParams(req); // Build the Stripe Account object
 		if(_.isEmpty(account)) throw e.malformedRestaurantDetails;
 		return Payment.updateStripeAccount(details[0].destination, account);	
 
 	}).then((account) => {
-		return res.status(200).json(account);
+		
+		res.locals.account = account;
+		const preEdit = res.locals.details; /* Stripe account meta data before the account was updated */
+		const isVerified = (account.charges_enabled && account.payouts_enabled) ? true : false;
+		/* If the verification status has changed, update the meta data in the DB */
+		if( isVerified !== Boolean(Number(preEdit.isVerified)) ) {
+			return Payment.updateRestaurantStripeMetaData(preEdit.destination, {isVerified});
+		}
+		return true;
+
+	}).then(() => {
+		return res.status(200).json(res.locals.account);
 	}).catch((err) => {
 		return next(err);
 	});

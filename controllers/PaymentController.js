@@ -35,15 +35,16 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 	}).then((details) => {	
 
 		/* Return empty obj if restaurant has no stripe account yet */
-		if(details.length < 1) return res.status(200).json({});
+		if(details.length < 1) return {};
 		res.locals.stripeAccountId = details[0].destination;
 		return Payment.getRestaurantStripeAccount(details[0].destination);
 
 	}).then((account) => {
 
 		/* Stripe will return the master account (Waitr) if can't find connected account (restaurant) */
-		// if(account.type !== 'custom') { account = {} };
-		if(account.id != res.locals.stripeAccountId) { account = {} };
+		if(!_.isEmpty(account)) {
+			if(account.id != res.locals.stripeAccountId) { account = {} };
+		}
 		return res.status(200).json(account);
 
 	}).catch((err) => {

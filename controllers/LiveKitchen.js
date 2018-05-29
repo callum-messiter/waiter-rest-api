@@ -2,6 +2,7 @@ const moment = require('moment');
 const Order = require('../models/Order');
 const Payment = require('../models/Payment');
 const Auth = require('../models/Auth');
+const TableUser = require('../models/TableUser');
 const LiveKitchen = require('../models/LiveKitchen');
 const log = require('../helpers/logger');
 
@@ -11,11 +12,15 @@ const lrn = {
 	connection: 'connection',
 	disconnect: 'disconnect',
 	newOrder: 'newOrder',
-	orderStatusUpdate: 'orderStatusUpdate'
+	orderStatusUpdate: 'orderStatusUpdate',
+	userJoinedTable: 'userJoinedTable',
+	userLeftTable: 'userLeftTable'
 }
 
 const events = {
-	orderStatusUpdated: 'orderStatusUpdated'
+	orderStatusUpdated: 'orderStatusUpdated',
+	userJoinedTable: 'userJoinedTable',
+	userLeftTable: 'userLeftTable'
 }
 
 const e = {
@@ -28,11 +33,11 @@ const e = {
 module.exports.handler = function(socket) {
 	var socketType;
 	const query = socket.handshake.query;
-	const data = {socketId: socket.id}
+	const data = {socketId: socket.id};
 
 	if(query.hasOwnProperty('restaurantId')) {
-		data.restaurantId = query.restaurantId;
 		socketType = 'RestaurantSocket';
+		data.restaurantId = query.restaurantId;
 	} else if(query.hasOwnProperty('customerId')) {
 		socketType = 'CustomerSocket';
 		data.customerId = query.customerId;
@@ -45,35 +50,86 @@ module.exports.handler = function(socket) {
 
 	LiveKitchen.addSocket(data)
 	.then((result) => {
-		return console.log('[DB] ' + socketType + ' ' + socket.id + ' added.');
+		console.log('[DB] ' + socketType + ' ' + socket.id + ' added.');
+		if(query.table === undefined) return true;
+		return handleUserJoinedTable(JSON.parse(query.table), socket.id, errorType, lrn, e, socket)
 	}).catch((err) => {
 		return log.liveKitchenError(errorType, err, socket.id, lrn.connection);
 	});
 
 	// Note when a client disconnects
 	socket.on(lrn.disconnect, function () {
-		var type;
 		console.log('[DISCONN] Client ' + socket.id + ' disconnected.');
+		var type;
 		if(query.hasOwnProperty('restaurantId')) {
 			type = 'restaurant';
 		} else if(query.hasOwnProperty('customerId')) {
 			type = 'customer';
 		} else {
-			// ToDO: Inform client
 			log.liveKitchenError(errorType, e.missingUserParam, socket.id, lrn.disconnect);
 			return socket.disconnect();
 		}
 
-		// TODO: if customer socket, also remove from SocketsRestaurantCustomers
-
-		// ToDO: log to server, inform client
+		const tableData = {};
 		LiveKitchen.removeSocket(socket.id, type)
 		.then((result) => {
-			return console.log('[DB] Socket ' + socket.id + ' deleted.')
+			console.log('[DB] Socket ' + socket.id + ' deleted.');
+			if(!data.hasOwnProperty('customerId')) return true;
+			return updateTableInfo(data.customerId, socket.id, errorType, lrn, e, socket);
 		}).catch((err) => {
 			console.log(err);
 			return log.liveKitchenError(errorType, err, socket.id, lrn.disconnect);
 		});
+
+	});
+
+	socket.on(lrn.userJoinedTable, (data) => {
+		console.log('[TABLE_UPDATE]: Restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
+		TableUser.addUserToTable(data.table)
+		.then((result) => {
+			console.log('[DB] Table info added for restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
+			return LiveKitchen.getRecipientRestaurantSockets(data.table.restaurantId);
+		}).then((rSockets) => {
+
+			if(rSockets.length < 1) {
+				return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.userJoinedTable);
+			}
+
+			for(i = 0; i < rSockets.length; i++) {
+				socket.broadcast.to(rSockets[i].socketId).emit(lrn.userJoinedTable, data.table);
+			}
+			console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+			return true;
+
+		}).catch((err) => {
+			return log.liveKitchenError(errorType, err, socket.id, lrn.userJoinedTable);
+		});
+	});
+
+	socket.on(lrn.userLeftTable, (data) => {
+		console.log('[TABLE_UPDATE]: Restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
+		TableUser.removeUserFromTable(data.table.customerId)
+		.then((result) => {
+
+			if(result.affectedRows < 1) return true;
+			console.log('[DB] Table ' + data.table.tableNo + ' removed for restaurant ' + data.table.restaurantId);
+			return LiveKitchen.getRecipientRestaurantSockets(data.table.restaurantId);
+
+		}).then((rSockets) => {
+
+			if(rSockets.length < 1) {
+				return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.userLeftTable);
+			}
+
+			for(i = 0; i < rSockets.length; i++) {
+				socket.broadcast.to(rSockets[i].socketId).emit(lrn.userLeftTable, data.table);
+			}
+			console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+			return true;
+
+		}).catch((err) => {
+			return log.liveKitchenError(errorType, err, socket.id, lrn.userLeftTable);
+		})
 	});
 
 	/**
@@ -269,8 +325,52 @@ module.exports.handler = function(socket) {
 	});
 }
 
+async function updateTableInfo(customerId, socketId, errorType, lrn, e, socket) {
+	const tableData = {};
+
+	/* Get table info to be sent to the restaurant */
+	const tableInfo = await TableUser.getTableInfoByCustomer(customerId);
+	if(tableInfo.length < 1) return true;
+	tableData.restaurantId = tableInfo[0].restaurantId;
+	tableData.customerId = tableInfo[0].customerId;
+	tableData.tableNo = tableInfo[0].tableNo;
+
+	/* Delete the user from the table */
+	const removeUserFromTable = await TableUser.removeUserFromTable(tableData.customerId);
+	if(removeUserFromTable.affectedRows < 1) return true;
+	console.log('[DB] Table ' + tableData.tableNo + ' removed for restaurant ' + tableData.restaurantId);
+
+	/* Forward the table update to the restaurant */
+	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
+	if(rSockets.length < 1) {
+		log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socketId, lrn.newOrder);
+		return true;
+	}
+	for(i = 0; i < rSockets.length; i++) {
+		socket.broadcast.to(rSockets[i].socketId).emit(lrn.userLeftTable, tableData);
+	}
+	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+	return true;
+}
+
+async function handleUserJoinedTable(tableData, socketId, errorType, lrn, e, socket) {
+	const addUserToTable = await TableUser.addUserToTable(tableData);
+	console.log('[DB] Table info added for restaurant ' + tableData.restaurantId + ', table ' + tableData.tableNo);
+	
+	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
+	if(rSockets.length < 1) {
+		return log.liveKitchenError(errorType, e.recipientRestaurantNotConnected, socket.id, lrn.userJoinedTable);
+	}
+
+	for(i = 0; i < rSockets.length; i++) {
+		socket.broadcast.to(rSockets[i].socketId).emit(lrn.userJoinedTable, tableData);
+	}
+	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+	return true;
+}
+
 function setPaymentErrorMsg(err) {
-	var errorMsg = 'Oops. There was an error processing your payment. Your order has been cancelled and your bank account has not been charged.';
+	var errorMsg = 'There was an error processing your payment. Your order has been cancelled and your bank account has not been charged.';
 
 	switch (err.type) {
 		case 'StripeCardError':

@@ -171,6 +171,36 @@ module.exports.getOrdersForUser = function(userId) {
 	});
 }
 
+/* New - the above will be deprecated */
+module.exports.getAllOrdersForUser = function(customerId) {
+	return new Promise((resolve, reject) => {
+		const ordersQuery = 'SELECT orders.orderId, orders.customerId, orders.restaurantId, restaurants.name AS restaurantName, ' +
+						    'orders.status, orders.price, orders.time, orders.tableNo ' + 
+						    'FROM orders ' +
+						    'JOIN restaurants ON restaurants.restaurantId = orders.restaurantId ' +
+						    'WHERE orders.customerId = ? ' +
+						    'ORDER BY time DESC';
+		db.query(ordersQuery, customerId, (err, orders) => {
+			if(err) reject(err);
+			resolve(orders);
+		})
+	});
+}
+
+module.exports.getItemsFromUserOrders = function(customerId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT items.itemId, items.name, items.price, orders.orderId ' +
+					  'FROM items ' +
+					  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
+					  'JOIN orders ON orders.orderId = orderitems.orderId ' +
+					  'WHERE orders.customerId = ?';
+		db.query(query, customerId, (err, orderItems) => {
+			if(err) return reject(err);
+			resolve(orderItems);
+		});
+	});
+}
+
 module.exports.createNewOrder = function(order) {
 	return new Promise((resolve, reject) => {
 

@@ -156,4 +156,60 @@ router.get('/history', (req, res, next) => {
 
 });
 
+/* TODO: refactor this mess */
+router.get('/historyV2', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: []
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+	const ordersOwnerId = req.query.userId || u.userId;
+
+	/* Check the user exists */
+	User.getUserById(ordersOwnerId)
+	.then((users) => {
+
+		if(users.length < 1) throw e.userNotFound;
+		if(!Auth.userHasAccessRights(u, ordersOwnerId)) throw e.insufficientPermissions;
+		return Order.getAllOrdersForUser(ordersOwnerId);
+
+	}).then((orders) => {
+
+		/* Add an empty items array to all the live orders */
+		res.locals.orders = [];
+		for(var order of orders) { order.items = [] };
+		res.locals.orders = JSON.parse(JSON.stringify(orders));
+		return Order.getItemsFromUserOrders(ordersOwnerId);
+
+	}).then((items) => {
+
+		const orders = res.locals.orders;
+		if(orders.length < 1) return res.status(200).json({});
+		if(items.length < 1) return res.status(200).json(orders);
+		assignItemsToOrder(items, orders); /* Assign items to their respective orders */
+		return res.status(200).json(orders);
+
+	}).catch((err) => {
+		return next(err);
+	});
+});
+
+function assignItemsToOrder(items, orders) {
+	for(var item of items) {
+		const newItem = { itemId: item.itemId, name: item.name, price: item.price };
+		for(var order of orders) {
+			// If there is an order with the item's orderId, add the item to this order's array of items
+			if(item.orderId == order.orderId) {
+				order.items.push(newItem);
+			}
+		}
+	}
+}
+
 module.exports = router;

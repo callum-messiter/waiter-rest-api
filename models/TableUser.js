@@ -3,6 +3,7 @@ const e = require('../helpers/error').errors;
 
 /*
 	There is a unique constraint on the `customerId` field.
+	The customer can only be assigned to a single table at a time.
 	If a row already exists containing the current customer's ID, 
 	replace the tableNo value with the update table number.
 	This should only happen if the customer initially mistakenly 

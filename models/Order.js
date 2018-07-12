@@ -136,6 +136,19 @@ module.exports.getAllLiveOrdersForRestaurant = function(restaurantId) {
 	});
 }
 
+module.exports.getAllOrdersForRestaurant = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
+					  'FROM orders ' +
+					  'WHERE restaurantId = ? ' + 
+					  'ORDER BY time DESC';
+		db.query(query, restaurantId, (err, orders) => {
+			if(err) return reject(err);
+			resolve(orders);
+		});
+	});
+}
+
 module.exports.getItemsFromLiveOrders = function(restaurantId) {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT items.itemId, items.name, orderitems.orderId ' +

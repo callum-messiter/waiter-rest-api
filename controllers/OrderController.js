@@ -66,6 +66,34 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 	});
 });
 
+router.get('/list/:restaurantId', (req, res, next) => {
+	const u = res.locals.authUser;
+
+	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	
+	const requiredParams = {
+		query: [],
+		body: [],
+		route: ['restaurantId']
+	}
+	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
+
+	const restaurantId = req.params.restaurantId;
+	return Restaurant.getRestaurantOwnerId(restaurantId)
+	.then((r) => {
+
+		if(r.length < 1) throw e.restaurantNotFound;
+		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return Order.getAllOrdersForRestaurant(restaurantId);
+
+	}).then((orders) => {
+		return res.status(200).json(orders);
+	}).catch((err) => {
+		return next(err);
+	});
+});
+
 router.get('/live/:orderId', (req, res, next) => {
 	const u = res.locals.authUser;
 

@@ -88,7 +88,21 @@ router.get('/list/:restaurantId', (req, res, next) => {
 		return Order.getAllOrdersForRestaurant(restaurantId);
 
 	}).then((orders) => {
+
+		/* Add an empty items array to all the live orders */
+		res.locals.orders = [];
+		for(var order of orders) { order.items = [] };
+		res.locals.orders = JSON.parse(JSON.stringify(orders));
+		return Order.getItemsFromRestaurantOrders(restaurantId);
+
+	}).then((items) => {
+
+		const orders = res.locals.orders;
+		if(orders.length < 1) return res.status(200).json({});
+		if(items.length < 1) return res.status(200).json(orders);
+		assignItemsToOrder(items, orders); /* Assign items to their respective orders */
 		return res.status(200).json(orders);
+
 	}).catch((err) => {
 		return next(err);
 	});

@@ -214,6 +214,20 @@ module.exports.getItemsFromUserOrders = function(customerId) {
 	});
 }
 
+module.exports.getItemsFromRestaurantOrders = function(restaurantId) {
+	return new Promise((resolve, reject) => {
+		const query = 'SELECT items.itemId, items.name, items.price, orders.orderId ' +
+					  'FROM items ' +
+					  'JOIN orderitems ON orderitems.itemId = items.itemId ' +
+					  'JOIN orders ON orders.orderId = orderitems.orderId ' +
+					  'WHERE orders.restaurantId = ?';
+		db.query(query, restaurantId, (err, orderItems) => {
+			if(err) return reject(err);
+			resolve(orderItems);
+		});
+	});
+}
+
 module.exports.createNewOrder = function(order) {
 	return new Promise((resolve, reject) => {
 

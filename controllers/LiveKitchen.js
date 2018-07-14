@@ -194,6 +194,10 @@ module.exports.handler = function(socket) {
 		});
 	});
 
+	socket.on(lrn.restaurantAcceptedOrder, (order) => {
+		return restaurantAcceptedOrder(order);
+	});
+
 	/**
 		Listen to order-status updates made by the restauraut, e.g. "accepted", "rejected", and "enroute"
 	**/
@@ -323,6 +327,17 @@ module.exports.handler = function(socket) {
 			return log.liveKitchenError(errorType, err, socket.id, lrn.orderStatusUpdate);
 		});
 	});
+}
+
+async function restaurantAcceptedOrder(order) {
+	/* Each one of these methods must return an object containing an error property, which we will check */
+	const details = await Payment.async.getOrderPaymentDetails(order.orderId);
+	const charge = await Payment.async.processCustomerPaymentToRestaurant(details[0]);
+	const chargeUpdate = await Payment.async.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
+	const statusUpdate = await Order.async.updateOrderStatus(order.orderId, Order.statuses.paymentSuccessful);
+	const sockets = await LiveKitchen.async.getAllInterestedSockets(order.restaurantId, order.customerId);
+	// Emit orderStatusUpdated event to all relevant clients
+
 }
 
 async function updateTableInfo(customerId, socketId, errorType, lrn, e, socket) {

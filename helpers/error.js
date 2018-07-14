@@ -240,7 +240,7 @@ function errorHandler(err, req, res, next) {
 	
 	// Check that we are handling the error
 	if(errors.hasOwnProperty(err.errorKey)) {
-		log.error(req.path, err.errorKey, err.type, requester);
+		log.error(req.path, err.errorKey, err.userMsg, err.type, requester);
 		res.status(errors[err.errorKey].statusCode)
 		return res.json(err);
 	}

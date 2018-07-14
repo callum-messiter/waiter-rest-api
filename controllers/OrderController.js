@@ -7,6 +7,39 @@ const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 
+const Payment = require('../models/Payment');
+router.get('/test', (req, res, next) => testAsync(req, res, next) );
+async function testAsync(req, res, next) {
+	const orderId = 'HypsuMoJX';
+
+	var result = await Payment.async.getOrderPaymentDetails(orderId);
+	if(result.error) return next(result.error);
+	
+	result = await Payment.async.processCustomerPaymentToRestaurant(result.data[0]);
+	if(result.error) return next(result.error);
+	
+	result = await Payment.async.updateChargeDetails(orderId, {
+		chargeId: charge.id,
+		paid: 1
+	});
+
+	if(result.error) return next(result.error);
+
+	result = await Order.async.updateOrderStatus(order.orderId, Order.statuses.paymentSuccessful);
+	if(result.error) return next(result.error);
+	res.status(200).json(result.data);
+}
+
+async function restaurantAcceptedOrder(order) {
+	/* Each one of these methods must return an object containing an error property, which we will check */
+	const details = await Payment.async.getOrderPaymentDetails(order.orderId);
+	const charge = await Payment.async.processCustomerPaymentToRestaurant(details[0]);
+	const chargeUpdate = await Payment.async.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
+	const statusUpdate = await Order.async.updateOrderStatus(order.orderId, Order.statuses.paymentSuccessful);
+	const sockets = await LiveKitchen.async.getAllInterestedSockets(order.restaurantId, order.customerId);
+	// Emit orderStatusUpdated event to all relevant clients
+}
+
 // TODO: only use route parameters that refer specifically to the desired resource (e.g. to get a specific order, use the orderId)
 router.get('/getAllLive/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;

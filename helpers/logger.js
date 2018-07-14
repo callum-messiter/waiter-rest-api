@@ -31,9 +31,10 @@ module.exports.warn = function(reqPath, errKey, type, requester) {
 }
 
 /* error -> level 50 */
-module.exports.error = function(reqPath, errKey, type, requester) {
+module.exports.error = function(reqPath, errKey, userMsg, type, requester) {
 	getLogger(type).error(
-		'Endpoint *' + reqPath + '* requested by user *' + requester + '*; returned error *' + errKey + '*'
+		`Endpoint *${reqPath}*; UserId *${requester}*; Error: *(${errKey}) ${userMsg}*`
+		//'Endpoint *' + reqPath + '*; user *' + requester + '*; error *' + errKey + '() *'
 	);
 }
 

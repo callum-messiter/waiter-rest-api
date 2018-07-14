@@ -2,6 +2,28 @@ const db = require('../config/database');
 const uuidv4 = require('uuid/v4');
 const moment = require('moment');
 
+/*
+	As we migrate to async-await, we will use only the async-await version of the method, and remove the non-async-await version 
+	once it's no longer it use
+*/
+module.exports.async = {
+	updateOrderStatus: (orderId, newStatus) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const query = 'UPDATE orders SET status = ? ' +
+					  	  'WHERE orderId = ?';
+			db.query(query, [newStatus, orderId], (err, result) => {
+				if(err) {
+					response.error = err;
+					return resolve(response);
+				}
+				response.data = result;
+				return resolve(response);
+			});
+		});
+	},
+}
+
 /**
 	Order schema
 **/
@@ -42,6 +64,9 @@ module.exports.setStatusUpdateMsg = function(status) {
 			break;
 		case 400:
 			userMsg = 'Your order has been accepted!';
+			break;
+		case 500:
+			userMsg = 'Payment successful! Your order will be with you soon.';
 			break;
 		case 999:
 			userMsg = 'Your order has been rejected. A member of staff will see you shortly.';

@@ -180,11 +180,9 @@ module.exports.handler = function(socket) {
 			orderForRestaurant.items = order.items;
 
 			for(i = 0; i < result.length; i++) {
-				console.log('order: ' + JSON.stringify(orderForRestaurant));
 				socket.broadcast.to(result[i].socketId).emit(lrn.newOrder, orderForRestaurant);
-				console.log('[ORDER] Order ' + order.metaData.orderId  + ' from ' + socket.id + ' sent to ' + result[i].socketId + '.');
 			}
-			return true;
+			return console.log('[ORDER] Order sent to ' + result.length + ' sockets');
 
 		}).catch((err) => {
 			// TODO: inform client
@@ -234,79 +232,6 @@ module.exports.handler = function(socket) {
 				});
 			}
 			console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + interestedSockets.length + ' sockets.');
-			
-			// If the order was accepted, now process the payment. First get the restaurant's Stripe Account ID
-			if(order.status == Order.statuses.acceptedByKitchen) {
-				return Payment.getOrderPaymentDetails(order.orderId)
-				.then((details) => {
-
-					return Payment.processCustomerPaymentToRestaurant(details[0]);
-
-				}).then((charge) => {
-
-					// If payment is successful, update the row in payments
-					return Payment.updateChargeDetails(order.orderId, {chargeId: charge.id, paid: 1});
-
-				}).then(() => {
-
-					return Order.updateOrderStatus(order.orderId, Order.statuses.paymentSuccessful);
-
-				}).then(() => {
-
-					const payload = {
-						orderId: order.orderId, 
-						status: Order.statuses.paymentSuccessful,
-						userMsg: Order.setStatusUpdateMsg(order.status)
-					}
-					socket.emit('orderStatusUpdated', payload);
-					for(i = 0; i < interestedSockets.length; i++) {
-						socket.broadcast.to(interestedSockets[i].socketId).emit('orderStatusUpdated', payload);
-					}
-
-
-				}).catch((err) => {
-					
-					// Check if the payment succeeded
-					Payment.getOrderPaymentDetails(order.orderId)
-					.then((details) => {
-
-						// Payment succeeded - so `err` is an application error; just log it
-						if(details[0].paid === 1) {
-							return; log.lkError(lrn.orderStatusUpdate, 'Payment (Waitr) Error (payment succeeded): ' + err);
-						}
-
-						// If payment failed, update the order status and then inform the clients
-						return Order.updateOrderStatus(order.orderId, Order.statuses.paymentFailed);
-
-					}).then(() => {
-
-						if(!err.hasOwnProperty('type')) {
-							return log.lkError(lrn.orderStatusUpdate, 'Payment (Waitr) Error (payment failed): ' + err);
-						}
-
-						errorMsg = 'Payment (Stripe) Error (payment failed): ' + err.message + ' (' + err.decline_code + ').';
-						log.lkError(lrn.orderStatusUpdate, errorMsg);
-
-						const payload = {
-							orderId: order.orderId, 
-							status: Order.statuses.paymentFailed,
-							userMsg: setPaymentErrorMsg(err)
-						};
-
-						// Inform the restaurant and the customer of the payment error
-						for(var i = 0; i < interestedSockets.length; i++) {
-							socket.broadcast
-							.to(interestedSockets[i].socketId)
-							.emit(events.orderStatusUpdated, payload);
-						}
-						socket.emit(events.orderStatusUpdated, payload);
-
-					}).catch((err) => {
-						return log.lkError(lrn.orderStatusUpdate, 'Payment error: ' + err);
-					});
-
-				});
-			}
 
 		}).catch((err) => {
 			return log.lkError(lrn.orderStatusUpdate, err);
@@ -314,28 +239,58 @@ module.exports.handler = function(socket) {
 	});
 
 	socket.on(lrn.restaurantAcceptedOrder, (order) => {
-		console.log('restaurantAcceptedOrder');
-		return restaurantAcceptedOrder(order);
+		return restaurantAcceptedOrder(order, socket);
 	});
 }
 
-async function restaurantAcceptedOrder(order, lrn) {
-	const method = 'restaurantAcceptedOrder'; /* For logging purposes */
-	const orderId = order.metaData.orderId;
-	const details = await Payment.async.getOrderPaymentDetails(orderId);
-	if(details.error) return log.lkError(method, details.error);
+async function restaurantAcceptedOrder(order, socket) {
+	order = order.metaData;
+	/* All connected sockets representing the restaurant that accepted the order */
+	const sockets = await LiveKitchen.async.getAllInterestedSockets(order.restaurantId, order.customerId);
+	if(sockets.error) return log.lkError('getAllInterestedSockets', sockets.error);
+
+	/* Once restaurant accepts, process payment (we stored the details in DB when customer placed order) */
+	const details = await Payment.async.getOrderPaymentDetails(order.orderId);
+	if(details.error) return log.lkError('getOrderPaymentDetails', details.error);
+
+	var payload = { orderId: order.orderId, status: '', userMsg: '' };
+
 	const charge = await Payment.async.processCustomerPaymentToRestaurant(details.data[0]);
-	if(charge.error) return log.lkError(method, charge.error);
-	const updateRes = await Payment.async.updateChargeDetails(orderId, {
+	if(charge.error) {
+		/* If failed, update status in DB and emit message to relevant sockets */
+		const payFailStatus = Order.statuses.paymentFailed;
+		const statusUpd = await Order.async.updateOrderStatus(order.orderId, payFailStatus);
+		if(statusUpd.error) return log.lkError('updateOrderStatus', statusUpd.error);
+		payload.status = payFailStatus;
+		payload.userMsg = charge.error; /* Build msg based on Stripe error */
+		emitEvent('orderStatusUpdated', payload, sockets.data, socket);
+		return log.lkError('processCustomerPaymentToRestaurant', charge.error);
+	}
+
+	/* If payment was successful... */
+	const payOkStatus = Order.statuses.paymentSuccessful;
+	const updateRes = await Payment.async.updateChargeDetails(order.orderId, {
 		chargeId: charge.data.id,
 		paid: 1
 	});
-	if(updateRes.error) return log.lkError(method, updateRes.error);
-	const statusUpdate = await Order.async.updateOrderStatus(order.orderId, Order.statuses.paymentSuccessful);
-	if(statusUpdate.error) return log.lkError(method, statusUpdate.error);
-	const sockets = await LiveKitchen.async.getAllInterestedSockets(order.restaurantId, order.customerId);
-	if(sockets.error) return log.lkError(method, sockets.error);
-	return console.log('ACCEPTED: ' + JSON.stringify(sockets.data));
+	if(updateRes.error) return log.lkError('updateChargeDetails', updateRes.error);
+
+	const statusUpdate = await Order.async.updateOrderStatus(order.orderId, payOkStatus);
+	if(statusUpdate.error) return log.lkError('updateOrderStatus', statusUpdate.error);
+	
+	payload.status = payOkStatus;
+	payload.userMsg = Order.setStatusUpdateMsg(payOkStatus);
+	return emitEvent('orderStatusUpdated', payload, sockets.data, socket);
+}
+
+function emitEvent(event, payload, recipients, socket) {
+	socket.emit(event, payload); /* Emit the msg to the connected socket also */
+	if(recipients.length < 1) return;
+	for(var r of recipients) {
+		socket.broadcast
+		.to(r.socketId)
+		.emit(event, payload);
+	}
 }
 
 async function updateTableInfo(customerId, socketId, errorType, lrn, e, socket) {

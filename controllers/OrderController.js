@@ -254,4 +254,29 @@ function assignItemsToOrder(items, orders) {
 	}
 }
 
+/* Refer to this for async-await operations */
+const Payment = require('../models/Payment');
+router.get('/test', (req, res, next) => testAsync(req, res, next) );
+async function testAsync(req, res, next) {
+	const orderId = 'HypsuMoJX';
+
+	var result = await Payment.async.getOrderPaymentDetails(orderId);
+	if(result.error) return next(result.error);
+	
+	result = await Payment.async.processCustomerPaymentToRestaurant(result.data[0]);
+	if(result.error) return next(result.error);
+	
+	result = await Payment.async.updateChargeDetails(orderId, {
+		chargeId: charge.id,
+		paid: 1
+	});
+
+	if(result.error) return next(result.error);
+
+	result = await Order.async.updateOrderStatus(order.orderId, Order.statuses.paymentSuccessful);
+	if(result.error) return next(result.error);
+	res.status(200).json(result.data);
+}
+
+
 module.exports = router;

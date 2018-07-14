@@ -4,6 +4,70 @@ const stripe = require("stripe")(config.stripe.secretKey);
 stripe.setApiVersion('2018-02-28');
 const e = require('../helpers/error').errors;	
 
+/*
+	As we migrate to async-await, we will use only the async-await version of the method, and remove the non-async-await version 
+	once it's no longer it use
+*/
+module.exports.async = {
+	getOrderPaymentDetails: (orderId) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const query = 'SELECT source, destination, currency, amount, customerEmail, paid ' +
+						  'FROM payments ' +
+						  'WHERE orderId = ?';
+			db.query(query, orderId, (err, details) => {
+				if(err) {
+					response.error = err;
+				} else {
+					response.data = details;
+				}
+				return resolve(response);
+			});
+		});
+	},
+
+	processCustomerPaymentToRestaurant: (payment) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			stripe.charges.create({
+			  amount: payment.amount,
+			  currency: payment.currency,
+			  source: payment.source, // the stripe token representing the customer's card details
+			  destination: {
+			    account: payment.destination, // the recipient restaurant's stripe account ID
+			  },
+			  receipt_email: payment.customerEmail // the diner may specify an email address that is not their waitr one
+			}).then((charge) => {
+				response.data = charge;
+				return resolve(response);
+			}).catch((err) => {
+				response.error = err;
+				return resolve(response);
+			});
+		});
+	},
+
+	updateChargeDetails: (orderId, details) => {
+		return new Promise((resolve, reject) => {
+			var response = { error: undefined, data: null };
+			const query = 'UPDATE payments SET ? ' +
+						  'WHERE orderId = ?';
+			db.query(query, [details, orderId], (err, result) => {
+				if(err) {
+					response.error = err;
+					return resolve(response);
+				}
+				if(result.affectedRows < 1) {
+					response.error = e.sqlUpdateFailed;
+				} else {
+					response.data = result;
+				}
+				return resolve(response);
+			});
+		});
+	}
+}
+
 module.exports.getRestaurantStripeAccount = function(stripeAccountId) {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.retrieve(stripeAccountId)

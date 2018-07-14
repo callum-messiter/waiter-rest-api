@@ -1,6 +1,34 @@
 const db = require('../config/database');
 const e = require('../helpers/error').errors;
 
+/*
+	As we migrate to async-await, we will use only the async-await version of the method, and remove the non-async-await version 
+	once it's no longer it use
+*/
+module.exports.async = {
+	getAllInterestedSockets: (restaurantId, customerId) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const restaurantQuery = 'SELECT socketId FROM socketsrestaurants WHERE restaurantId = ?';
+			const customerQuery = 'SELECT socketId FROM socketscustomers WHERE customerId = ?';
+			db.query(restaurantQuery, restaurantId, (err, restaurantSockets) => {
+				if(err) {
+					response.error = err;
+					return resolve(response);
+				}
+				db.query(customerQuery, customerId, (err, customerSockets) => {
+					if(err) {
+						response.error = err;
+						return resolve(response)
+					}
+					response.data = restaurantSockets.concat(customerSockets);
+					return resolve(response);
+				});
+			});
+		});
+	},
+}
+
 module.exports.addSocket = function(data) {
 	return new Promise((resolve, reject) => {
 		var tableName;

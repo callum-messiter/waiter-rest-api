@@ -31,11 +31,9 @@ module.exports.warn = function(reqPath, errKey, type, requester) {
 }
 
 /* error -> level 50 */
-module.exports.error = function(reqPath, errKey, userMsg, type, requester) {
-	getLogger(type).error(
-		`Endpoint *${reqPath}*; UserId *${requester}*; Error: *(${errKey}) ${userMsg}*`
-		//'Endpoint *' + reqPath + '*; user *' + requester + '*; error *' + errKey + '() *'
-	);
+module.exports.error = function(reqPath, requester, err) {
+	getLogger(err.type).error(err);
+	//'Endpoint *' + reqPath + '*; user *' + requester + '*; error *' + errKey + '() *'
 }
 
 module.exports.undhandledError = function(reqPath, err, requester) {
@@ -48,10 +46,8 @@ module.exports.clientSideError = function(msg, type) {
 	getLogger(type).error(msg);
 }
 
-module.exports.liveKitchenError = function(errorType, err, socketId, event) {
-	getLogger(errorType).error(
-		'Error for socket *' + socketId + '* in listener *' + event + '*: ' + err
-	);
+module.exports.lkError = function(lrn, err) {
+	getLogger('_liveKitchen').error(`[${lrn}]: ${err}`);
 }
 
 function getLogger(type) {

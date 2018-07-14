@@ -4,8 +4,11 @@ const stripe = require("stripe")(config.stripe.secretKey);
 stripe.setApiVersion('2018-02-28');
 const e = require('../helpers/error').errors;	
 
+/*
+	As we migrate to async-await, we will use only the async-await version of the method, and remove the non-async-await version 
+	once it's no longer it use
+*/
 module.exports.async = {
-
 	getOrderPaymentDetails: (orderId) => {
 		var response = { error: undefined, data: null };
 		return new Promise((resolve, reject) => {

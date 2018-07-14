@@ -138,8 +138,10 @@ module.exports.getAllLiveOrdersForRestaurant = function(restaurantId) {
 
 module.exports.getAllOrdersForRestaurant = function(restaurantId) {
 	return new Promise((resolve, reject) => {
-		const query = 'SELECT orderId, customerId, restaurantId, tableNo, price, status, time ' +
+		const query = 'SELECT orders.orderId, orders.restaurantId, orders.tableNo, orders.price, orders.status, orders.time, ' +
+					  'orders.customerId, users.firstName AS customerFName, users.lastName AS customerLName ' +
 					  'FROM orders ' +
+					  'JOIN users ON users.userId = orders.customerId ' +
 					  'WHERE restaurantId = ? ' + 
 					  'ORDER BY time DESC';
 		db.query(query, restaurantId, (err, orders) => {

@@ -336,22 +336,3 @@ async function handleUserJoinedTable(tableData, socketId, errorType, lrn, e, soc
 	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
 	return true;
 }
-
-function setPaymentErrorMsg(err) {
-	var errorMsg = 'There was an error processing your payment. Your order has been cancelled and your bank account has not been charged.';
-
-	switch (err.type) {
-		case 'StripeCardError':
-			// A declined card error
-			return err.message + ' Your order has been cancelled and your bank account has not been charged.'; // => e.g. "Your card's expiration year is invalid."
-			break;
-		case 'RateLimitError':
-		case 'StripeInvalidRequestError':
-		case 'StripeAPIError':
-		case 'StripeConnectionError':
-		case 'StripeAuthenticationError':
-		default:
-			return errorMsg;
-			break;
-	}
-}

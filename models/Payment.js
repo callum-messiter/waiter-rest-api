@@ -2,7 +2,8 @@ const db = require('../config/database');
 const config = require('../config/config');
 const stripe = require("stripe")(config.stripe.secretKey);
 stripe.setApiVersion('2018-02-28');
-const e = require('../helpers/error').errors;	
+const e = require('../helpers/error').errors;
+const defaultUserMsg = require('../helpers/error').defaultUserMsg;	
 
 /*
 	As we migrate to async-await, we will use only the async-await version of the method, and remove the non-async-await version 
@@ -12,7 +13,7 @@ module.exports.async = {
 	getOrderPaymentDetails: (orderId) => {
 		var response = { error: undefined, data: null };
 		return new Promise((resolve, reject) => {
-			const query = 'SELECT source, destination, currency, amount, customerEmail, paid ' +
+			const query = 'SELECT chargeId, source, destination, currency, amount, customerEmail, paid ' +
 						  'FROM payments ' +
 						  'WHERE orderId = ?';
 			db.query(query, orderId, (err, details) => {
@@ -59,6 +60,44 @@ module.exports.async = {
 				}
 				if(result.affectedRows < 1) {
 					response.error = e.sqlUpdateFailed;
+				} else {
+					response.data = result;
+				}
+				return resolve(response);
+			});
+		});
+	},
+
+	refundCharge: (charge, totality=1) => {
+		charge = {
+			charge: charge.id,
+			amount: charge.amount * totality
+		}
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			stripe.refunds.create(charge)
+			.then((refund) => {
+				response.data = refund;
+				return resolve(response);
+			}).catch((err) => {
+				response.error = err;
+				return resolve(response);
+			});
+		});
+	},
+
+	storeRefund: (data) => {
+		const refund = {
+			refundId: data.refundId,
+			chargeId: data.chargeId,
+			amount: data.amount,
+		}
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const query = 'INSERT INTO refunds SET ?';
+			db.query(query, refund, (err, result) => {
+				if(err) {
+					response.error = err;
 				} else {
 					response.data = result;
 				}
@@ -189,4 +228,27 @@ module.exports.updateChargeDetails = function(orderId, details) {
 			resolve(result);
 		});
 	});
+}
+
+module.exports.isStripeError = function(err) {
+	switch (err.type) {
+		case 'StripeCardError': // A declined card error
+		case 'RateLimitError':
+		case 'StripeInvalidRequestError':
+		case 'StripeAPIError':
+		case 'StripeConnectionError':
+		case 'StripeAuthenticationError':
+			return true;
+		default:
+			return false;
+	}
+}
+
+module.exports.setStripeMsg = function(err) {
+	switch(err.code) {
+		case 'charge_already_refunded':
+			return 'This order has already been refunded.';
+		default: 
+			return defaultUserMsg;
+	}
 }

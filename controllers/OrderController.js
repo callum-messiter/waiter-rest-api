@@ -6,6 +6,7 @@ const User = require('../models/User');
 const roles = require('../models/UserRoles').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
+const moment = require('moment');
 
 // TODO: only use route parameters that refer specifically to the desired resource (e.g. to get a specific order, use the orderId)
 router.get('/getAllLive/:restaurantId', (req, res, next) => {
@@ -256,27 +257,38 @@ function assignItemsToOrder(items, orders) {
 
 /* Refer to this for async-await operations */
 const Payment = require('../models/Payment');
-router.get('/test', (req, res, next) => testAsync(req, res, next) );
+
+router.get('/refund', (req, res, next) => testAsync(req, res, next) );
 async function testAsync(req, res, next) {
-	const orderId = 'HypsuMoJX';
+	const orderId = 'SJ5nyRKRM';
+	const order = await Payment.async.getOrderPaymentDetails(orderId);
+	if(order.error) return next(order.error);
+	if(order.data.length < 1) return next(e.chargeNotFound);
+	if(order.data[0].paid !== 1) return next(e.cannotRefundUnpaidOrder);
 
-	var result = await Payment.async.getOrderPaymentDetails(orderId);
-	if(result.error) return next(result.error);
-	
-	result = await Payment.async.processCustomerPaymentToRestaurant(result.data[0]);
-	if(result.error) return next(result.error);
-	
-	result = await Payment.async.updateChargeDetails(orderId, {
-		chargeId: charge.id,
-		paid: 1
-	});
+	const charge = {
+		id: order.data[0].chargeId, 
+		amount: order.data[0].amount
+	};
+	const refund = await Payment.async.refundCharge(charge);
+	if(refund.error) {
+		const stripeErr = Payment.isStripeError(refund.error);
+		if(!stripeErr) return next(e.internalServerError);
+		const errorObj = e.stripeError;
+		errorObj.statusCode = refund.error.statusCode;
+		errorObj.userMsg = Payment.setStripeMsg(refund.error);
+		errorObj.devMsg = refund.error.code.concat(': ' + refund.error.stack);
+		return next(errorObj);
+	}
 
-	if(result.error) return next(result.error);
-
-	result = await Order.async.updateOrderStatus(order.orderId, Order.statuses.paymentSuccessful);
-	if(result.error) return next(result.error);
-	res.status(200).json(result.data);
+	const refundObj = {
+		refundId: refund.data.id,
+		chargeId: refund.data.charge,
+		amount: refund.data.amount
+	}
+	const refundRef = await Payment.async.storeRefund(refundObj);
+	if(refundRef.error) return res.status(400).json(refundRef.error);
+	return res.status(200).json(refund.data);
 }
-
 
 module.exports = router;

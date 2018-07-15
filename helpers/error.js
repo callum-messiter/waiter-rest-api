@@ -1,4 +1,5 @@
 const log = require('./logger');
+const devErrors = require('./developerErrors');
 
 const errorTypes = {
 	auth: '_auth',
@@ -9,6 +10,7 @@ const errorTypes = {
 	restaurant: '_restaurant',
 	user: '_user',
 	order: '_order',
+	payment: '_payment',
 	liveKitchen: '_liveKitchen',
 	clientSide: '_clientSide',
 	stripe: '_stripe',
@@ -17,7 +19,8 @@ const errorTypes = {
 
 // Default error message for client to render to user
 const defaultUserMsg = 'The waiter system experienced an error - please try again. If the issue persists, contact our support team.';
-
+const defaultDevMsg = 'Check the docs for more info: https://api.waitr.live';
+const serverErrDevMsg = 'Check the server logs for more info.';
 /**
 	When adding a new error, ensure that the key of the error object has the same name as its errorKey value
 	
@@ -32,48 +35,56 @@ const errors = {
 		statusCode: 400,
 		errorKey: 'missingRequiredHeaders',
 		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 	missingRequiredParams: {
 		statusCode: 400,
 		errorKey: 'missingRequiredParams',
 		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 	jwtMalformed: {
 		statusCode: 401,
 		errorKey: 'jwtMalformed',
 		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
 		userMsg: 'Oops! Your session has expired. Log in to continue using waitr.'
 	},
 	insufficientRolePrivileges: {
 		statusCode: 403,
 		errorKey: 'insufficientRolePrivileges',
 		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 	insufficientPermissions: {
 		statusCode: 403,
 		errorKey: 'insufficientPermissions',
 		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 	emailNotRegistered: {
 		statusCode: 401,
 		errorKey: 'emailNotRegistered',
 		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
 		userMsg: 'The username and password you entered did not match our records. Please double-check and try again.'
 	},
 	passwordIncorrect: {
 		statusCode: 401,
 		errorKey: 'passwordIncorrect',
 		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
 		userMsg: 'The username and password you entered did not match our records. Please double-check and try again.'
 	},
 	userNotActive: {
 		statusCode: 401,
 		errorKey: 'userNotActive',
 		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
 		userMsg: 'This account is not currently active. You can restore your account by clicking here.'
 	},
 
@@ -84,30 +95,35 @@ const errors = {
 		statusCode: 404,
 		errorKey: 'userNotFound',
 		type: errorTypes.user,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 	emailAlreadyRegistered: {
 		statusCode: 404,
 		errorKey: 'emailAlreadyRegistered',
 		type: errorTypes.user,
+		devMsg: defaultDevMsg,
 		userMsg: 'That email address is already registered to an account! If you\'ve forgotten your password, contact support.'
 	},
 	currentPasswordIncorrect: {
 		statusCode: 401,
 		errorKey: 'currentPasswordIncorrect',
 		type: errorTypes.user,
+		devMsg: defaultDevMsg,
 		userMsg: 'Incorrect password. Please double-check and try again.'
 	},
 	userAlreadyVerified: {
 		statusCode: 409,
 		errorKey: 'userAlreadyVerified',
 		type: errorTypes.user,
+		devMsg: defaultDevMsg,
 		userMsg: 'Your account is already verified. Go ahead and log in.'
 	},
 	alreadyCurrentEmail: {
 		statusCode: 409,
 		errorKey: 'alreadyCurrentEmail',
 		type: errorTypes.user,
+		devMsg: defaultDevMsg,
 		userMsg: 'That email address is already registered to your account. Go ahead and log in.'
 	},
 
@@ -118,24 +134,28 @@ const errors = {
 		statusCode: 404,
 		errorKey: 'restaurantNotFound',
 		type: errorTypes.restaurant,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 	restaurantDetailsNotFound: {
 		statusCode: 404,
 		errorKey: 'restaurantDetailsNotFound',
 		type: errorTypes.restaurant,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 	malformedRestaurantDetails: {
 		statusCode: 500,
 		errorKey: 'malformedRestaurantDetails',
 		type: errorTypes.restaurant,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 	multipleStripeAccountsForbidden: {
 		statusCode: 409,
 		errorKey: 'multipleStripeAccountsForbidden',
 		type: errorTypes.restaurant,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 
@@ -146,6 +166,7 @@ const errors = {
 		statusCode: 404,
 		errorKey: 'menuNotFound',
 		type: errorTypes.menu,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 
@@ -156,6 +177,7 @@ const errors = {
 		statusCode: 404,
 		errorKey: 'categoryNotFound',
 		type: errorTypes.category,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 
@@ -166,6 +188,7 @@ const errors = {
 		statusCode: 404,
 		errorKey: 'itemNotFound',
 		type: errorTypes.item,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 
@@ -176,6 +199,26 @@ const errors = {
 		statusCode: 404,
 		errorKey: 'orderNotFound',
 		type: errorTypes.order,
+		devMsg: defaultDevMsg,
+		userMsg: defaultUserMsg
+	},
+
+	/**
+		Payments
+	**/
+	chargeNotFound: {
+		statusCode: 404,
+		errorKey: 'chargeNotFound',
+		type: errorTypes.payment,
+		devMsg: devErrors.chargeNotFound,
+		userMsg: defaultUserMsg
+	},
+
+	cannotRefundUnpaidOrder: {
+		statusCode: 401,
+		errorKey: 'cannotRefundUnpaidOrder',
+		type: errorTypes.payment,
+		devMsg: devErrors.cannotRefundUnpaidOrder,
 		userMsg: defaultUserMsg
 	},
 
@@ -186,18 +229,21 @@ const errors = {
 		statusCode: 500,
 		errorKey: 'sqlInsertFailed',
 		type: errorTypes.db,
+		devMsg: serverErrDevMsg,
 		userMsg: defaultUserMsg
 	},
 	sqlUpdateFailed: {
 		statusCode: 500,
 		errorKey: 'sqlUpdateFailed',
 		type: errorTypes.db,
+		devMsg: serverErrDevMsg,
 		userMsg: defaultUserMsg
 	},
 	resourceAlreadyInactive: {
 		statusCode: 409,
 		errorKey: 'resourceAlreadyInactive',
 		type: errorTypes.db,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 
@@ -208,6 +254,7 @@ const errors = {
 		statusCode: 404,
 		errorKey: 'invalidClientType',
 		type: errorTypes.clientSide,
+		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
 
@@ -218,6 +265,7 @@ const errors = {
 		statusCode: '',
 		errorKey: 'stripeError',
 		type: errorTypes.stripe,
+		devMsg: defaultDevMsg,
 		userMsg: ''
 	},
 
@@ -229,6 +277,7 @@ const errors = {
 		statusCode: 500,
 		errorKey: 'internalServerError',
 		type: errorTypes.unhandled,
+		devMsg: serverErrDevMsg,
 		userMsg: defaultUserMsg
 	}
 }
@@ -277,6 +326,7 @@ function checkIfStripeErrorAndHandle(err, stripeError) {
 	}
 }
 
+module.exports.defaultUserMsg = defaultUserMsg;
 module.exports.errors = errors;
 module.exports.errorTypes = errorTypes;
 module.exports.errorHandler = errorHandler;

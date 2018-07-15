@@ -260,17 +260,17 @@ const Payment = require('../models/Payment');
 
 router.get('/refund', (req, res, next) => testAsync(req, res, next) );
 async function testAsync(req, res, next) {
-	const orderId = 'SJ5nyRKRM';
+	const orderId = 'HyOmYlURM';
 	const order = await Payment.async.getOrderPaymentDetails(orderId);
 	if(order.error) return next(order.error);
 	if(order.data.length < 1) return next(e.chargeNotFound);
 	if(order.data[0].paid !== 1) return next(e.cannotRefundUnpaidOrder);
 
-	const charge = {
+	const chargeObj = {
 		id: order.data[0].chargeId, 
 		amount: order.data[0].amount
 	};
-	const refund = await Payment.async.refundCharge(charge);
+	const refund = await Payment.async.refundCharge(chargeObj);
 	if(refund.error) {
 		const stripeErr = Payment.isStripeError(refund.error);
 		if(!stripeErr) return next(e.internalServerError);

@@ -49,6 +49,7 @@ module.exports.statuses = {
 	paymentFailed: 998,
 	paymentSuccessful: 500,
 	enRouteToCustomer: 1000,
+	refunded: 600 
 	// receivedByCustomer: 2000 // would be set by deliverer of food
 	// returnedByCustomer: 666,
 	// eaten: 500 // May be set once the user has sent feedback
@@ -67,6 +68,9 @@ module.exports.setStatusUpdateMsg = function(status) {
 			break;
 		case 500:
 			userMsg = 'Payment successful! Your order will be with you soon.';
+			break;
+		case 500:
+			userMsg = 'Your order was refunded. Your bank account should be credited within 5-10 business days.';
 			break;
 		case 999:
 			userMsg = 'Your order has been rejected. A member of staff will see you shortly.';

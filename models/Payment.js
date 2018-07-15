@@ -69,13 +69,13 @@ module.exports.async = {
 	},
 
 	refundCharge: (charge, totality=1) => {
-		charge = {
+		chargeObj = {
 			charge: charge.id,
 			amount: charge.amount * totality
 		}
 		var response = { error: undefined, data: null };
 		return new Promise((resolve, reject) => {
-			stripe.refunds.create(charge)
+			stripe.refunds.create(chargeObj)
 			.then((refund) => {
 				response.data = refund;
 				return resolve(response);
@@ -87,7 +87,7 @@ module.exports.async = {
 	},
 
 	storeRefund: (data) => {
-		const refund = {
+		const refundObj = {
 			refundId: data.refundId,
 			chargeId: data.chargeId,
 			amount: data.amount,
@@ -95,7 +95,7 @@ module.exports.async = {
 		var response = { error: undefined, data: null };
 		return new Promise((resolve, reject) => {
 			const query = 'INSERT INTO refunds SET ?';
-			db.query(query, refund, (err, result) => {
+			db.query(query, refundObj, (err, result) => {
 				if(err) {
 					response.error = err;
 				} else {

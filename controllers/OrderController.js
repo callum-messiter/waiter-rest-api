@@ -260,6 +260,9 @@ const Payment = require('../models/Payment');
 
 router.get('/refund', (req, res, next) => testAsync(req, res, next) );
 async function testAsync(req, res, next) {
+	const stackTrace = new Error().stack;
+	e.cannotRefundUnpaidOrder.stackTrace = stackTrace;
+	res.json(e.cannotRefundUnpaidOrder);
 	const orderId = 'HyOmYlURM';
 	const order = await Payment.async.getOrderPaymentDetails(orderId);
 	if(order.error) return next(order.error);

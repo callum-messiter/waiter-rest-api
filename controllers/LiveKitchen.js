@@ -44,7 +44,7 @@ module.exports.handler = function(socket) {
 		data.customerId = query.customerId;
 	} else {
 		// ToDO: inform client
-		log.lkError(lrn.connection, e.missingUserParam);
+		log.lkError(new Error().stack, e.missingUserParam);
 		return socket.disconnect();
 	}
 	console.log('[CONN] ' + socketType + ' ' + socket.id + ' connected.');
@@ -55,7 +55,7 @@ module.exports.handler = function(socket) {
 		if(query.table === undefined) return true;
 		return handleUserJoinedTable(JSON.parse(query.table), socket.id, errorType, lrn, e, socket)
 	}).catch((err) => {
-		return log.lkError(lrn.connection, err);
+		return log.lkError(new Error().stack, err);
 	});
 
 	// Note when a client disconnects
@@ -67,7 +67,7 @@ module.exports.handler = function(socket) {
 		} else if(query.hasOwnProperty('customerId')) {
 			type = 'customer';
 		} else {
-			log.lkError(lrn.disconnect, e.missingUserParam);
+			log.lkError(new Error().stack, e.missingUserParam);
 			return socket.disconnect();
 		}
 
@@ -78,7 +78,7 @@ module.exports.handler = function(socket) {
 			if(!data.hasOwnProperty('customerId')) return true;
 			return updateTableInfo(data.customerId, socket.id, errorType, lrn, e, socket);
 		}).catch((err) => {
-			return log.lkError(lrn.disconnect, err);
+			return log.lkError(new Error().stack, err);
 		});
 
 	});
@@ -102,7 +102,7 @@ module.exports.handler = function(socket) {
 			return true;
 
 		}).catch((err) => {
-			return log.lkError(lrn.userJoinedTable, err);
+			return log.lkError(new Error().stack, err);
 		});
 	});
 
@@ -128,7 +128,7 @@ module.exports.handler = function(socket) {
 			return true;
 
 		}).catch((err) => {
-			return log.lkError(lrn.userLeftTable, err);
+			return log.lkError(new Error().stack, err);
 		})
 	});
 
@@ -173,7 +173,7 @@ module.exports.handler = function(socket) {
 
 			// TODO: inform client
 			if(result.length < 1) {
-				return log.lkError(lrn.newOrder, e.recipientRestaurantNotConnected);
+				return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
 			}
 
 			// Unify the order metaData and order items as a single object
@@ -188,7 +188,7 @@ module.exports.handler = function(socket) {
 
 		}).catch((err) => {
 			// TODO: inform client
-			return log.lkError(lrn.newOrder, err);
+			return log.lkError(new Error().stack, err);
 		});
 	});
 
@@ -223,7 +223,7 @@ module.exports.handler = function(socket) {
 		}).then((interestedSockets) => {
 
 			if(interestedSockets.length < 1) {
-				return log.lkError(lrn.orderStatusUpdate, e.recipientRestaurantNotConnected);
+				return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
 			}
 			// Emit order-status=update confirmation to all connected sockets representing the recipient restaurant
 			for(i = 0; i < interestedSockets.length; i++) {
@@ -236,7 +236,7 @@ module.exports.handler = function(socket) {
 			console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + interestedSockets.length + ' sockets.');
 
 		}).catch((err) => {
-			return log.lkError(lrn.orderStatusUpdate, err);
+			return log.lkError(new Error().stack, err);
 		});
 	});
 
@@ -249,11 +249,11 @@ async function handleOrderAcceptance(order, socket) {
 	order = order.metaData;
 	/* All connected sockets representing the restaurant that accepted the order */
 	const sockets = await LiveKitchen.async.getAllInterestedSockets(order.restaurantId, order.customerId);
-	if(sockets.error) return log.lkError('getAllInterestedSockets', sockets.error);
+	if(sockets.error) return log.lkError(new Error().stack, sockets.error);
 
 	/* Once restaurant accepts, process payment (we stored the details in DB when customer placed order) */
 	const details = await Payment.async.getOrderPaymentDetails(order.orderId);
-	if(details.error) return log.lkError('getOrderPaymentDetails', details.error);
+	if(details.error) return log.lkError(new Error().stack, details.error);
 
 	var payload = { orderId: order.orderId, status: '', userMsg: '' };
 
@@ -262,11 +262,11 @@ async function handleOrderAcceptance(order, socket) {
 		/* If failed, update status in DB and emit message to relevant sockets */
 		const payFailStatus = Order.statuses.paymentFailed;
 		const statusUpd = await Order.async.updateOrderStatus(order.orderId, payFailStatus);
-		if(statusUpd.error) return log.lkError('updateOrderStatus', statusUpd.error);
+		if(statusUpd.error) return log.lkError(new Error().stack, statusUpd.error);
 		payload.status = payFailStatus;
 		payload.userMsg = charge.error; /* Build msg based on Stripe error */
 		emitEvent('orderStatusUpdated', sockets.data, socket, payload);
-		return log.lkError('processCustomerPaymentToRestaurant', charge.error);
+		return log.lkError(new Error().stack, charge.error);
 	}
 
 	/* If payment was successful... */
@@ -275,10 +275,10 @@ async function handleOrderAcceptance(order, socket) {
 		chargeId: charge.data.id,
 		paid: 1
 	});
-	if(updateRes.error) return log.lkError('updateChargeDetails', updateRes.error);
+	if(updateRes.error) return log.lkError(new Error().stack, updateRes.error);
 
 	const statusUpdate = await Order.async.updateOrderStatus(order.orderId, payOkStatus);
-	if(statusUpdate.error) return log.lkError('updateOrderStatus', statusUpdate.error);
+	if(statusUpdate.error) return log.lkError(new Error().stack, statusUpdate.error);
 	
 	payload.status = payOkStatus;
 	payload.userMsg = Order.setStatusUpdateMsg(payOkStatus);
@@ -294,22 +294,15 @@ async function processRefund(order, socket) {
 	
 	/* All connected sockets representing the restaurant that requested the refund */
 	const sockets = await LiveKitchen.async.getAllInterestedSockets(
-		orderObj.restaurantId, 
+		orderObj.restaurantId,
 		orderObj.customerId
 	);
-	if(sockets.error) return log.lkError(
-		'processRefund->getAllInterestedSockets', 
-		sockets.error
-	);
+	if(sockets.error) return log.lkError(new Error().stack, sockets.error);
 
-	var method = 'processRefund->getOrderPaymentDetails';
 	const details = await Payment.async.getOrderPaymentDetails(orderObj.orderId);
-	if(details.error) return log.lkError(method, details.error);
-	if(details.data.length < 1) return log.lkError(method, errors.chargeNotFound);
-	if(details.data[0].paid !== 1) return log.lkError(
-		method, 
-		errors.cannotRefundUnpaidOrder
-	);
+	if(details.error) return log.lkError(new Error().stack, details.error);
+	if(details.data.length < 1) return log.lkError(new Error().stack, errors.chargeNotFound);
+	if(details.data[0].paid !== 1) return log.lkError(new Error().stack, errors.cannotRefundUnpaidOrder);
 
 	const chargeObj = {
 		id: details.data[0].chargeId, 
@@ -318,7 +311,7 @@ async function processRefund(order, socket) {
 	const refund = await Payment.async.refundCharge(chargeObj);
 	if(refund.error) {
 		const stripeErr = buildStripeErrObj(refund.error);
-		return log.lkError('processRefund->refundCharge', stripeErr);
+		return log.lkError(new Error().stack, stripeErr);
 	}
 
 	const refundObj = {
@@ -327,20 +320,14 @@ async function processRefund(order, socket) {
 		amount: refund.data.amount
 	}
 	const refundRef = await Payment.async.storeRefund(refundObj);
-	if(refundRef.error) return log.lkError(
-		'processRefund->storeRefund',
-		refundRef.error
-	);
+	if(refundRef.error) return log.lkError(new Error().stack, refundRef.error);
 	
 	const refundStatus = Order.statuses.refunded;
 	const statusUpdate = await Order.async.updateOrderStatus(
 		orderObj.orderId, 
 		refundStatus
 	);
-	if(statusUpdate.error) return log.lkError(
-		'processRefund->updateOrderStatus',
-		statusUpdate.error
-	);
+	if(statusUpdate.error) return log.lkError(new Error().stack, statusUpdate.error);
 
 	return emitEvent('orderStatusUpdated', sockets.data, socket, {
 		orderId: orderObj.orderId,
@@ -367,7 +354,7 @@ async function updateTableInfo(customerId, socketId, errorType, lrn, e, socket) 
 	/* Forward the table update to the restaurant */
 	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
 	if(rSockets.length < 1) {
-		return log.lkError('updateTableInfo', e.recipientRestaurantNotConnected);
+		return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
 	}
 	for(i = 0; i < rSockets.length; i++) {
 		socket.broadcast.to(rSockets[i].socketId).emit(lrn.userLeftTable, tableData);
@@ -381,7 +368,7 @@ async function handleUserJoinedTable(tableData, socketId, errorType, lrn, e, soc
 	
 	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
 	if(rSockets.length < 1) {
-		return log.lkError('handleUserJoinedTable', e.recipientRestaurantNotConnected);
+		return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
 	}
 
 	for(i = 0; i < rSockets.length; i++) {

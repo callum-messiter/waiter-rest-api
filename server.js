@@ -50,18 +50,6 @@ app.get('/', (req, res, next) => {
 });
 
 // The following routes are used to demo and test the liveKitchen system
-app.get('/mcdonalds', (req, res, next) => {
-	res.render('mcdonalds');
-});
-
-app.get('/burgerking', (req, res, next) => {
-	res.render('burgerking');
-});
-
-app.get('/customer1', (req, res, next) => {
-	res.render('customer1');
-});
-
-app.get('/customer2', (req, res, next) => {
-	res.render('customer2');
+app.get('/tester', (req, res, next) => {
+	res.render('tester');
 });

@@ -46,8 +46,8 @@ module.exports.clientSideError = function(msg, type) {
 	getLogger(type).error(msg);
 }
 
-module.exports.lkError = function(stackTrace, error) {
-	getLogger('_liveKitchen').error( JSON.stringify({ error, stackTrace }) );
+module.exports.lkError = function(err) {
+	getLogger('_liveKitchen').error(err);
 }
 
 module.exports.lkInfo = function(msg) {

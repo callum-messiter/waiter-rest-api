@@ -62,29 +62,6 @@ module.exports.handler = function(socket) {
 		return log.lkError(new Error().stack, err);
 	});
 
-	socket.on(lrn.userJoinedTable, (data) => {
-		console.log('[TABLE_UPDATE]: Restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
-		TableUser.addUserToTable(data.table)
-		.then((result) => {
-			console.log('[DB] Table info added for restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
-			return LiveKitchen.getRecipientRestaurantSockets(data.table.restaurantId);
-		}).then((rSockets) => {
-
-			if(rSockets.length < 1) {
-				return log.lkError(lrn.userJoinedTable, e.recipientRestaurantNotConnected);
-			}
-
-			for(i = 0; i < rSockets.length; i++) {
-				socket.broadcast.to(rSockets[i].socketId).emit(lrn.userJoinedTable, data.table);
-			}
-			console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
-			return true;
-
-		}).catch((err) => {
-			return log.lkError(new Error().stack, err);
-		});
-	});
-
 	socket.on(lrn.userLeftTable, (data) => {
 		console.log('[TABLE_UPDATE]: Restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
 		TableUser.removeUserFromTable(data.table.customerId)
@@ -220,6 +197,7 @@ module.exports.handler = function(socket) {
 	});
 
 	/* We need to authenticate these listeners (or shall we just do it upon connection?) */
+	socket.on(lrn.userJoinedTable, (data) => handleUserJoinedTable(data, socket) );
 	socket.on(lrn.disconnect, () => handleDisconnection(query, socket) );
 	socket.on(lrn.restaurantAcceptedOrder, (order) => handleOrderAcceptance(order, socket) );
 	socket.on(lrn.processRefund, (order) => processRefund(order, socket) );
@@ -371,6 +349,7 @@ async function handleUserJoinedTable(data, socket) {
 	}
 
 	const addUserToTable = await TableUser.async.addUserToTable(tableData);
+	if(addUserToTable.error) return log.lkError(new Error().stack, addUserToTable.error);
 	console.log('[DB] Table info added for restaurant ' + tableData.restaurantId + ', table ' + tableData.tableNo);
 	
 	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(tableData.restaurantId);

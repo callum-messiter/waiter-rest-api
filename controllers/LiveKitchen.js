@@ -62,32 +62,6 @@ module.exports.handler = function(socket) {
 		return log.lkError(new Error().stack, err);
 	});
 
-	socket.on(lrn.userLeftTable, (data) => {
-		console.log('[TABLE_UPDATE]: Restaurant ' + data.table.restaurantId + ', table ' + data.table.tableNo);
-		TableUser.removeUserFromTable(data.table.customerId)
-		.then((result) => {
-
-			if(result.affectedRows < 1) return true;
-			console.log('[DB] Table ' + data.table.tableNo + ' removed for restaurant ' + data.table.restaurantId);
-			return LiveKitchen.getRecipientRestaurantSockets(data.table.restaurantId);
-
-		}).then((rSockets) => {
-
-			if(rSockets.length < 1) {
-				return log.lkError(lrn.userLeftTable, e.recipientRestaurantNotConnected);
-			}
-
-			for(i = 0; i < rSockets.length; i++) {
-				socket.broadcast.to(rSockets[i].socketId).emit(lrn.userLeftTable, data.table);
-			}
-			console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
-			return true;
-
-		}).catch((err) => {
-			return log.lkError(new Error().stack, err);
-		})
-	});
-
 	/**
 		Listen to new orders sent by a customer
 	**/
@@ -197,7 +171,17 @@ module.exports.handler = function(socket) {
 	});
 
 	/* We need to authenticate these listeners (or shall we just do it upon connection?) */
-	socket.on(lrn.userJoinedTable, (data) => handleUserJoinedTable(data, socket) );
+	socket.on(lrn.userLeftTable, (data) => {
+		return handleUserLeftTable(data.table.customerId, socket)
+	});
+	socket.on(lrn.userJoinedTable, (data) => {
+		const tableData = {
+			restaurantId: data.table.restaurantId,
+			customerId: data.table.customerId,
+			tableNo: data.table.tableNo
+		}
+		return handleUserJoinedTable(tableData, socket)
+	});
 	socket.on(lrn.disconnect, () => handleDisconnection(query, socket) );
 	socket.on(lrn.restaurantAcceptedOrder, (order) => handleOrderAcceptance(order, socket) );
 	socket.on(lrn.processRefund, (order) => processRefund(order, socket) );
@@ -219,8 +203,7 @@ async function handleDisconnection(query, socket) {
 	if(removeSocket.error) return log.lkError(new Error().stack, removeSocket.error);
 	if(!query.hasOwnProperty('customerId')) return;
 
-	const update = await removeUserFromTable(query.customerId, socket);
-	if(update.error) return log.lkError(new Error().stack, update.error);
+	return handleUserLeftTable(query.customerId, socket);
 }
 
 async function handleOrderAcceptance(order, socket) {
@@ -314,12 +297,10 @@ async function processRefund(order, socket) {
 	return emitEvent('orderStatusUpdated', sockets.data, payload, socket);
 }
 
-async function removeUserFromTable(customerId, socket) {
-	const result = { error: undefined };
-
+async function handleUserLeftTable(customerId, socket) {
 	const tableInfo = await TableUser.async.getTableInfoByCustomer(customerId);
-	if(tableInfo.error) return { error: tableInfo.error };
-	if(tableInfo.data.length < 1) return { error: e.tableInfoNotFound };
+	if(tableInfo.error) return log.lkError(new Error().stack, tableInfo.error);
+	if(tableInfo.data.length < 1) return log.lkError(new Error().stack, e.tableInfoNotFound);
 
 	const tableData = {
 		restaurantId: tableInfo.data[0].restaurantId,
@@ -328,17 +309,16 @@ async function removeUserFromTable(customerId, socket) {
 	}
 
 	const removeUser = await TableUser.async.removeUserFromTable(tableData.customerId);
-	if(removeUser.error) return { error: removeUser.error };
+	if(removeUser.error) return log.lkError(new Error().stack, removeUser.error);
 	console.log('[DB] Table ' + tableData.tableNo + ' removed for restaurant ' + tableData.restaurantId);
 
 	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(tableData.restaurantId);
-	if(rSockets.error) return { error: rSockets.error };
-	if(rSockets.data.length < 1) return { error: e.recipientRestaurantNotConnected };
+	if(rSockets.error) return log.lkError(new Error().stack, rSockets.error);
+	if(rSockets.data.length < 1) return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
 
 	/* Inform the restaurant that the user is no longer an active member of the table */
 	emitEvent('userLeftTable', rSockets.data, tableData, socket, false);
-	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.data.length + ' restaurant sockets.');
-	return result;
+	return console.log('[TABLE_UPDATE] Update sent to ' + rSockets.data.length + ' restaurant sockets.');
 }
 
 async function handleUserJoinedTable(data, socket) {

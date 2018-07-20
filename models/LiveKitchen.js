@@ -27,6 +27,59 @@ module.exports.async = {
 			});
 		});
 	},
+	getRecipientRestaurantSockets: (restaurantId) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const query = 'SELECT socketId FROM socketsrestaurants WHERE restaurantId = ?';
+			db.query(query, restaurantId, (err, sockets) => {
+				if(err) {
+					response.error = err;
+				} else {
+					response.data = sockets;
+				}
+				return resolve(response);
+			});
+		});
+	},
+	removeSocket: (socketId, type) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			var tableName;
+			(type == 'restaurant') ? tableName = 'socketsrestaurants' : tableName = 'socketscustomers';
+
+			const query = 'DELETE FROM ' + tableName + ' WHERE socketId = ?';
+			db.query(query, socketId, (err, result) => {
+				if(err) {
+					response.error = err;
+				} else {
+					// if(result.affectedRows < 1) -> e.sqlDeleteFailed;
+					response.data = result;
+				}
+				return resolve(response);
+			});
+		});
+	},
+	addSocket: (data) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			var tableName;
+			data.hasOwnProperty('restaurantId') ? tableName = 'socketsrestaurants' : tableName = 'socketscustomers';
+			
+			const query = `INSERT INTO ${tableName} SET ?`;
+			db.query(query, data, (err, result) => {
+				if(err) {
+					response.error = error;
+					return resolve(response);
+				}
+				if(result.affectedRows < 1) {
+					response.error = e.sqlInsertFailed;
+					return resolve(response);
+				}
+				response.data = result;
+				return resolve(response);
+			});
+		});
+	}
 }
 
 module.exports.addSocket = function(data) {

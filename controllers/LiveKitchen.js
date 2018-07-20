@@ -28,59 +28,38 @@ const e = {
 	missingToken: 'order.headers.token is not set.',
 	missingUserParam: '`socket.handshake.query.{userType}Id` not set',
 	recipientRestaurantNotConnected: 'The recipient restaurant is not connected to the WebSockets server',
-	recipientDinerNotConnected: 'The recipient diner is not connected to the WebSockets server'
+	recipientDinerNotConnected: 'The recipient diner is not connected to the WebSockets server',
+	tableInfoNotFound: 'There is no record in the database relating the user to any restaurant table'
 }
 
 module.exports.handler = function(socket) {
 	var socketType;
 	const query = socket.handshake.query;
-	const data = {socketId: socket.id};
+	const socketData = { socketId: socket.id };
 
 	if(query.hasOwnProperty('restaurantId')) {
-		socketType = 'RestaurantSocket';
-		data.restaurantId = query.restaurantId;
+		socketData.restaurantId = query.restaurantId;
 	} else if(query.hasOwnProperty('customerId')) {
-		socketType = 'CustomerSocket';
-		data.customerId = query.customerId;
+		socketData.customerId = query.customerId;
 	} else {
-		// ToDO: inform client
 		log.lkError(new Error().stack, e.missingUserParam);
 		return socket.disconnect();
 	}
-	console.log('[CONN] ' + socketType + ' ' + socket.id + ' connected.');
+	console.log('[CONN] ' + socket.id + ' connected.');
 
-	LiveKitchen.addSocket(data)
+	LiveKitchen.addSocket(socketData)
 	.then((result) => {
-		console.log('[DB] ' + socketType + ' ' + socket.id + ' added.');
-		if(query.table === undefined) return true;
-		return handleUserJoinedTable(JSON.parse(query.table), socket.id, errorType, lrn, e, socket)
+		console.log('[DB] ' + socket.id + ' added.');
+		if(!query.table) return;
+
+		const tableData = {
+			customerId: JSON.parse(query.table).customerId,
+			restaurantId: JSON.parse(query.table).restaurantId,
+			tableNo: JSON.parse(query.table).tableNo
+		}
+		return handleUserJoinedTable(tableData, socket);
 	}).catch((err) => {
 		return log.lkError(new Error().stack, err);
-	});
-
-	// Note when a client disconnects
-	socket.on(lrn.disconnect, function () {
-		console.log('[DISCONN] Client ' + socket.id + ' disconnected.');
-		var type;
-		if(query.hasOwnProperty('restaurantId')) {
-			type = 'restaurant';
-		} else if(query.hasOwnProperty('customerId')) {
-			type = 'customer';
-		} else {
-			log.lkError(new Error().stack, e.missingUserParam);
-			return socket.disconnect();
-		}
-
-		const tableData = {};
-		LiveKitchen.removeSocket(socket.id, type)
-		.then((result) => {
-			console.log('[DB] Socket ' + socket.id + ' deleted.');
-			if(!data.hasOwnProperty('customerId')) return true;
-			return updateTableInfo(data.customerId, socket.id, errorType, lrn, e, socket);
-		}).catch((err) => {
-			return log.lkError(new Error().stack, err);
-		});
-
 	});
 
 	socket.on(lrn.userJoinedTable, (data) => {
@@ -241,8 +220,29 @@ module.exports.handler = function(socket) {
 	});
 
 	/* We need to authenticate these listeners (or shall we just do it upon connection?) */
+	socket.on(lrn.disconnect, () => handleDisconnection(query, socket) );
 	socket.on(lrn.restaurantAcceptedOrder, (order) => handleOrderAcceptance(order, socket) );
 	socket.on(lrn.processRefund, (order) => processRefund(order, socket) );
+}
+
+async function handleDisconnection(query, socket) {
+	console.log('[DISCONN] Client ' + socket.id + ' disconnected.');
+	var type;
+	if(query.hasOwnProperty('restaurantId')) {
+		type = 'restaurant';
+	} else if(query.hasOwnProperty('customerId')) {
+		type = 'customer';
+	} else {
+		log.lkError(new Error().stack, e.missingUserParam);
+		return socket.disconnect();
+	}
+
+	const removeSocket = await LiveKitchen.async.removeSocket(socket.id, type);
+	if(removeSocket.error) return log.lkError(new Error().stack, removeSocket.error);
+	if(!query.hasOwnProperty('customerId')) return;
+
+	const update = await removeUserFromTable(query.customerId, socket);
+	if(update.error) return log.lkError(new Error().stack, update.error);
 }
 
 async function handleOrderAcceptance(order, socket) {
@@ -265,7 +265,7 @@ async function handleOrderAcceptance(order, socket) {
 		if(statusUpd.error) return log.lkError(new Error().stack, statusUpd.error);
 		payload.status = payFailStatus;
 		payload.userMsg = charge.error; /* Build msg based on Stripe error */
-		emitEvent('orderStatusUpdated', sockets.data, socket, payload);
+		emitEvent('orderStatusUpdated', sockets.data, payload, socket);
 		return log.lkError(new Error().stack, charge.error);
 	}
 
@@ -282,7 +282,7 @@ async function handleOrderAcceptance(order, socket) {
 	
 	payload.status = payOkStatus;
 	payload.userMsg = Order.setStatusUpdateMsg(payOkStatus);
-	return emitEvent('orderStatusUpdated', sockets.data, socket, payload);
+	return emitEvent('orderStatusUpdated', sockets.data, payload, socket);
 }
 
 async function processRefund(order, socket) {
@@ -328,58 +328,64 @@ async function processRefund(order, socket) {
 		refundStatus
 	);
 	if(statusUpdate.error) return log.lkError(new Error().stack, statusUpdate.error);
-
-	return emitEvent('orderStatusUpdated', sockets.data, socket, {
+	const payload = {
 		orderId: orderObj.orderId,
 		status: refundStatus,
 		userMsg: Order.setStatusUpdateMsg(refundStatus)
-	});
+	};
+	return emitEvent('orderStatusUpdated', sockets.data, payload, socket);
 }
 
-async function updateTableInfo(customerId, socketId, errorType, lrn, e, socket) {
-	const tableData = {};
+async function removeUserFromTable(customerId, socket) {
+	const result = { error: undefined };
 
-	/* Get table info to be sent to the restaurant */
-	const tableInfo = await TableUser.getTableInfoByCustomer(customerId);
-	if(tableInfo.length < 1) return true;
-	tableData.restaurantId = tableInfo[0].restaurantId;
-	tableData.customerId = tableInfo[0].customerId;
-	tableData.tableNo = tableInfo[0].tableNo;
+	const tableInfo = await TableUser.async.getTableInfoByCustomer(customerId);
+	if(tableInfo.error) return { error: tableInfo.error };
+	if(tableInfo.data.length < 1) return { error: e.tableInfoNotFound };
 
-	/* Delete the user from the table */
-	const removeUserFromTable = await TableUser.removeUserFromTable(tableData.customerId);
-	if(removeUserFromTable.affectedRows < 1) return true;
+	const tableData = {
+		restaurantId: tableInfo.data[0].restaurantId,
+		customerId: tableInfo.data[0].customerId,
+		tableNo: tableInfo.data[0].tableNo
+	}
+
+	const removeUser = await TableUser.async.removeUserFromTable(tableData.customerId);
+	if(removeUser.error) return { error: removeUser.error };
 	console.log('[DB] Table ' + tableData.tableNo + ' removed for restaurant ' + tableData.restaurantId);
 
-	/* Forward the table update to the restaurant */
-	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
-	if(rSockets.length < 1) {
-		return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
-	}
-	for(i = 0; i < rSockets.length; i++) {
-		socket.broadcast.to(rSockets[i].socketId).emit(lrn.userLeftTable, tableData);
-	}
-	return console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
+	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(tableData.restaurantId);
+	if(rSockets.error) return { error: rSockets.error };
+	if(rSockets.data.length < 1) return { error: e.recipientRestaurantNotConnected };
+
+	/* Inform the restaurant that the user is no longer an active member of the table */
+	emitEvent('userLeftTable', rSockets.data, tableData, socket, false);
+	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.data.length + ' restaurant sockets.');
+	return result;
 }
 
-async function handleUserJoinedTable(tableData, socketId, errorType, lrn, e, socket) {
-	const addUserToTable = await TableUser.addUserToTable(tableData);
+async function handleUserJoinedTable(data, socket) {
+	const tableData = {
+		restaurantId: data.restaurantId,
+		customerId: data.customerId,
+		tableNo: data.tableNo
+	}
+
+	const addUserToTable = await TableUser.async.addUserToTable(tableData);
 	console.log('[DB] Table info added for restaurant ' + tableData.restaurantId + ', table ' + tableData.tableNo);
 	
-	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
+	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(tableData.restaurantId);
 	if(rSockets.length < 1) {
 		return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
 	}
 
-	for(i = 0; i < rSockets.length; i++) {
-		socket.broadcast.to(rSockets[i].socketId).emit(lrn.userJoinedTable, tableData);
-	}
-	console.log('[TABLE_UPDATE] Update sent to ' + rSockets.length + ' restaurant sockets.');
-	return true;
+	emitEvent('userJoinedTable', rSockets.data, tableData, socket, false);
+	return console.log('[TABLE_UPDATE] Update sent to ' + rSockets.data.length + ' restaurant sockets.');
 }
 
-function emitEvent(event, recipients, socket, payload) {
-	socket.emit(event, payload); /* Emit the msg to the connected socket also */
+function emitEvent(event, recipients, payload, socket, includeSocket=true) {
+	if(includeSocket) {
+		socket.emit(event, payload); /* Emit the msg to the connected socket also */
+	}
 	if(recipients.length < 1) return;
 	for(var r of recipients) {
 		socket.broadcast

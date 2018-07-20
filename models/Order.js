@@ -22,6 +22,43 @@ module.exports.async = {
 			});
 		});
 	},
+
+	createNewOrder: (order) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			
+			/* Create the array of orderitems, formatted correctly */
+			orderItems = [];
+			for(var item of order.items) {
+				orderItems.push([item.itemId, order.metaData.orderId]);
+			}
+
+			const insertOrder = 'INSERT INTO orders SET ?';
+			const insertOrderItems = 'INSERT INTO orderitems (itemId, orderId) VALUES ?';
+			const insertPaymentDetails = 'INSERT INTO payments SET ?';
+
+			db.query(insertOrder, order.metaData, (err, result) => {
+				if(err) {
+					response.error = err;
+					return resolve(response);
+				}
+				db.query(insertOrderItems, [orderItems], (err, result) => {
+					if(err) {
+						response.error = err;
+						return resolve(response);
+					}
+					db.query(insertPaymentDetails, order.payment, (err, result) => {
+						if(err) {
+							response.error = err;
+							return resolve(response);
+						}
+						response.data = result;
+						return resolve(result);
+					});
+				});
+			});
+		});
+	}
 }
 
 /**

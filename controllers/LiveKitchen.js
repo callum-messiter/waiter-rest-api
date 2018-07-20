@@ -62,13 +62,13 @@ module.exports.handler = function(socket) {
 		return log.lkError(new Error().stack, err);
 	});
 
-	/**
-		Listen to new orders sent by a customer
-	**/
+	/*
+
+	// Listen to new orders sent by a customer
 	socket.on(lrn.newOrder, (order) => {
 		console.log('[ORDER] Received from ' + socket.id + '.');
 
-		/* Times: store mysqlTimestamp in db; send unix timestamp to clients */
+		// Times: store mysqlTimestamp in db; send unix timestamp to clients
 		const mysqlTimestamp = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
 		const unixTimestamp = order.metaData.time;
 
@@ -121,70 +121,89 @@ module.exports.handler = function(socket) {
 			return log.lkError(new Error().stack, err);
 		});
 	});
+	*/
 
-	/**
-		Listen to order-status updates made by the restauraut, e.g. "accepted", "rejected", and "enroute"
-	**/
-	socket.on(lrn.orderStatusUpdate, (order) => {
-		// Verify the auth token
-		Auth.verifyToken(order.headers.token)
-		.then((decodedpayload) => {
-
-			console.log('[STATUS-UPDATE AUTH] ' + socket.id + ' authorised.');
-			order = order.metaData;
-			// TODO: the server should set the status
-			return Order.updateOrderStatus(order.orderId, order.status);
-
-		}).then((result) => {
-
-			// Check that the order was indeed updated
-			Order.wasOrderUpdated(result);
-
-			// Emit the order-status confirmation to the sender socket (the restaurant that sent the order-status update)
-			socket.emit('orderStatusUpdated', {
-				orderId: order.orderId, 
-				status: order.status,
-				userMsg: Order.setStatusUpdateMsg(order.status)
-			});
-
-			// Retrieve all connected sockets associated with the recipient restaurant (who updated the order's status)
-			return LiveKitchen.getAllInterestedSockets(order.restaurantId, order.customerId);
-
-		}).then((interestedSockets) => {
-
-			if(interestedSockets.length < 1) {
-				return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
-			}
-			// Emit order-status=update confirmation to all connected sockets representing the recipient restaurant
-			for(i = 0; i < interestedSockets.length; i++) {
-				socket.broadcast.to(interestedSockets[i].socketId).emit('orderStatusUpdated', {
-					orderId: order.orderId, 
-					status: order.status,
-					userMsg: Order.setStatusUpdateMsg(order.status)
-				});
-			}
-			console.log('[STATUS-UPDATE] Status update for order ' + order.orderId + ' sent to ' + interestedSockets.length + ' sockets.');
-
-		}).catch((err) => {
-			return log.lkError(new Error().stack, err);
-		});
-	});
-
-	/* We need to authenticate these listeners (or shall we just do it upon connection?) */
-	socket.on(lrn.userLeftTable, (data) => {
-		return handleUserLeftTable(data.table.customerId, socket)
-	});
-	socket.on(lrn.userJoinedTable, (data) => {
-		const tableData = {
-			restaurantId: data.table.restaurantId,
-			customerId: data.table.customerId,
-			tableNo: data.table.tableNo
-		}
-		return handleUserJoinedTable(tableData, socket)
-	});
 	socket.on(lrn.disconnect, () => handleDisconnection(query, socket) );
+	socket.on(lrn.newOrder, (order) => handleNewOrder(order, socket) );
+	socket.on(lrn.orderStatusUpdate, (order) => handleOrderStatusUpdate(order, socket) );
 	socket.on(lrn.restaurantAcceptedOrder, (order) => handleOrderAcceptance(order, socket) );
 	socket.on(lrn.processRefund, (order) => processRefund(order, socket) );
+	socket.on(lrn.userJoinedTable, (data) => handleUserJoinedTable(data.table, socket) );
+	socket.on(lrn.userLeftTable, (data) => handleUserLeftTable(data.table.customerId, socket) );
+}
+
+async function handleNewOrder(order, socket) {
+	const orderObj = {
+		metaData: {
+			orderId: order.metaData.orderId,
+			customerId: order.metaData.customerId,
+			restaurantId: order.metaData.restaurantId,
+			tableNo: order.metaData.tableNo,
+			price: order.metaData.price,
+			time: moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss'),
+			status: Order.statuses.receivedByServer
+		},
+		payment: {
+			orderId: order.payment.orderId,
+			amount: order.payment.amount,
+			currency: order.payment.currency,
+			source: order.payment.source,
+			destination: order.payment.destination,
+			customerEmail: order.payment.customerEmail 
+		},
+		items: order.items
+	};
+
+	/* Times: store mysqlTimestamp in db; send unix timestamp to clients */
+	const mysqlTimestamp = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
+	const unixTimestamp = order.metaData.time;
+
+	//Order.createNewOrder(order);
+	const createOrder = await Order.async.createNewOrder(orderObj);
+	if(createOrder.error) return log.lkError(new Error().stack, createOrder.error);
+
+	order.metaData.time = unixTimestamp;
+	order.metaData.status = Order.statuses.receivedByServer;
+	socket.emit('orderStatusUpdated', {
+		orderId: order.metaData.orderId, 
+		status: order.metaData.status,
+		userMsg: Order.setStatusUpdateMsg(order.metaData.status)
+	});
+
+	//LiveKitchen.getRecipientRestaurantSockets(order.metaData.restaurantId);
+	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(order.metaData.restaurantId);
+	if(rSockets.error) return log.lkError(new Error().stack, rSockets.error);
+	if(rSockets.length < 1) {
+		return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
+	}
+
+	/* We modify the order object to be sent to the restaurant - later use consistent models */
+	order.metaData.status = Order.statuses.sentToKitchen
+	const payload = order.metaData;
+	payload.items = order.items;
+	return emitEvent('newOrder', rSockets.data, payload, socket, false);
+}
+
+async function handleOrderStatusUpdate(order, socket) {
+	const orderObj = {
+		orderId: order.metaData.orderId,
+		customerId: order.metaData.customerId,
+		restaurantId: order.metaData.restaurantId,
+		status: order.metaData.status
+	};
+	const updateStatus = await Order.async.updateOrderStatus(orderObj.orderId, orderObj.status);
+	if(updateStatus.error) return log.lkError(new Error().stack, updateStatus.error);
+
+	const sockets = await LiveKitchen.async.getAllInterestedSockets(orderObj.restaurantId, orderObj.customerId);
+	if(sockets.error) return log.lkError(new Error().stack, sockets.error);
+	if(sockets.data.length < 1) return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
+
+	const payload = {
+		orderId: orderObj.orderId,
+		status: orderObj.status,
+		userMsg: Order.setStatusUpdateMsg(orderObj.status)
+	};
+	return emitEvent('orderStatusUpdated', sockets.data, payload, socket);
 }
 
 async function handleDisconnection(query, socket) {
@@ -207,6 +226,7 @@ async function handleDisconnection(query, socket) {
 }
 
 async function handleOrderAcceptance(order, socket) {
+	/* TODO: build orderObj */
 	order = order.metaData;
 	/* All connected sockets representing the restaurant that accepted the order */
 	const sockets = await LiveKitchen.async.getAllInterestedSockets(order.restaurantId, order.customerId);
@@ -333,6 +353,7 @@ async function handleUserJoinedTable(data, socket) {
 	console.log('[DB] Table info added for restaurant ' + tableData.restaurantId + ', table ' + tableData.tableNo);
 	
 	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(tableData.restaurantId);
+	if(rSockets.error) return log.lkError(new Error().stack, rSockets.error);
 	if(rSockets.length < 1) {
 		return log.lkError(new Error().stack, e.recipientRestaurantNotConnected);
 	}

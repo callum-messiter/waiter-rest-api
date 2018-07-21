@@ -1,6 +1,23 @@
 const db = require('../config/database');
 const e = require('../helpers/error').errors;
 
+module.exports.async = {
+	getMenuByRestaurantId: (restaurantId) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const query = 'SELECT menuId, name FROM menus WHERE restaurantId = ?';
+			db.query(query, restaurantId, (err, menu) => {
+				if(err) {
+					response.error = err;
+				} else {
+					response.data = menu;
+				}
+				return resolve(response);
+			});
+		});
+	},
+}
+
 /**
 	Get the menu details
 **/

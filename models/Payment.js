@@ -104,6 +104,23 @@ module.exports.async = {
 				return resolve(response);
 			});
 		});
+	},
+
+	getRestaurantPaymentDetails: (restaurantId) => {
+		var response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const query = 'SELECT stripeAccountId AS destination, currency, isVerified ' + 
+						  'FROM restaurantdetailspayment ' +
+						  'WHERE restaurantId = ?';
+			db.query(query, restaurantId, (err, details) => {
+				if(err) {
+					response.error = err;
+				} else {
+					response.data = details;
+				}
+				return resolve(response);
+			});
+		});
 	}
 }
 

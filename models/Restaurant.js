@@ -2,6 +2,27 @@ const shortId = require('shortid');
 const db = require('../config/database');
 const e = require('../helpers/error').errors;
 
+/*
+	As we migrate to async-await, we will use only the async-await version of the method, and remove the non-async-await version 
+	once it's no longer it use
+*/
+module.exports.async = {
+	getRestaurantByOwnerId: (ownerId) => {
+		const response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const query = 'SELECT * FROM restaurants WHERE ownerId = ?';
+			db.query(query, ownerId, (err, restaurant) => {
+				if(err) {
+					response.error = err;
+				} else {
+					response.data = restaurant;
+				}
+				return resolve(response);
+			});
+		});
+	}
+}
+
 /* Retrieves a restaurant with the provided ID from the `restaurants` table */
 module.exports.getRestaurantById = function(restaurantId) {
 	return new Promise((resolve, reject) => {

@@ -4,6 +4,35 @@ const db = require('../config/database');
 const e = require('../helpers/error').errors;
 const config = require('../config/config');
 
+/*
+	As we migrate to async-await, we will use only the async-await version of the method, and remove the non-async-await version 
+	once it's no longer it use
+*/
+module.exports.async = {
+	createUserToken: (userId, userRole) => {
+		const response = { error: undefined, data: null };
+		return new Promise((resolve, reject) => {
+			const utc_timestamp = new Date().getTime();
+			const data = {
+				algorithm: config.jwt.alg,
+				issuer: config.jwt.issuer,
+				iat: utc_timestamp,
+				exp: utc_timestamp + (3600000*24*7),
+				userId: userId,
+				userRole: userRole
+			}
+			jwt.sign(data, config.jwt.secret, (err, token) => {
+				if(err) {
+					response.error = err;
+				} else {
+					response.data = token;
+				}
+				return resolve(response);
+			});
+		});
+	}
+}
+
 /**
 	Generate a new json web token (jwt) upon successful login
 **/

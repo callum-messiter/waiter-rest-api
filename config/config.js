@@ -18,5 +18,7 @@ module.exports = {
 	smtp: {
 		email: process.env.SMTP_EMAIL,
 		pass: process.env.SMTP_PASS
-	}
+	},
+	baseUrl: process.env.BASE_URL,
+	port: process.env.PORT
 }

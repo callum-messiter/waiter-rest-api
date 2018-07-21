@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const e = require('../helpers/error').errors;
+const roles = require('./UserRoles').roles;
 
 /*
 	As we migrate to async-await, we will use only the async-await version of the method, and remove the non-async-await version 
@@ -41,11 +42,11 @@ module.exports.async = {
 			});
 		});
 	},
-	removeSocket: (socketId, type) => {
+	removeSocket: (socketId, userRole) => {
 		var response = { error: undefined, data: null };
 		return new Promise((resolve, reject) => {
 			var tableName;
-			(type == 'restaurant') ? tableName = 'socketsrestaurants' : tableName = 'socketscustomers';
+			(userRole == roles.restaurateur) ? tableName = 'socketsrestaurants' : tableName = 'socketscustomers';
 
 			const query = 'DELETE FROM ' + tableName + ' WHERE socketId = ?';
 			db.query(query, socketId, (err, result) => {
@@ -62,13 +63,21 @@ module.exports.async = {
 	addSocket: (data) => {
 		var response = { error: undefined, data: null };
 		return new Promise((resolve, reject) => {
+
 			var tableName;
-			data.hasOwnProperty('restaurantId') ? tableName = 'socketsrestaurants' : tableName = 'socketscustomers';
-			
+			var socket = { socketId: data.socketId };
+			if(data.role == roles.restaurateur) {
+				tableName = 'socketsrestaurants';
+				socket.restaurantId = data.userId;
+			} else {
+				tableName = 'socketscustomers';
+				socket.customerId = data.userId;
+			}
+
 			const query = `INSERT INTO ${tableName} SET ?`;
-			db.query(query, data, (err, result) => {
+			db.query(query, socket, (err, result) => {
 				if(err) {
-					response.error = error;
+					response.error = err;
 					return resolve(response);
 				}
 				if(result.affectedRows < 1) {

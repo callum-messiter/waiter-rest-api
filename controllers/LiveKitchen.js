@@ -4,6 +4,7 @@ const Payment = require('../models/Payment');
 const Auth = require('../models/Auth');
 const TableUser = require('../models/TableUser');
 const LiveKitchen = require('../models/LiveKitchen');
+const roles = require('../models/UserRoles').roles;
 const log = require('../helpers/logger');
 const errors = require('../helpers/error').errors;
 
@@ -26,41 +27,61 @@ const events = {
 
 const e = {
 	missingToken: 'order.headers.token is not set.',
-	missingUserParam: '`socket.handshake.query.{userType}Id` not set',
+	missingConnParam: '`socket.handshake.query.user` not set',
+	missingConnUserParam: 'The client must provide the user role and id.',
+	invalidUserRole: 'A valid user role, in integer form, must be provided by the client upon connection.',
 	recipientRestaurantNotConnected: 'The recipient restaurant is not connected to the WebSockets server',
 	recipientDinerNotConnected: 'The recipient diner is not connected to the WebSockets server',
 	tableInfoNotFound: 'There is no record in the database relating the user to any restaurant table'
 }
 
-module.exports.handler = function(socket) {
-	var socketType;
+/* Need to add authentication */
+module.exports.handler = async function(socket) {
 	const query = socket.handshake.query;
-	const socketData = { socketId: socket.id };
-
-	if(query.hasOwnProperty('restaurantId')) {
-		socketData.restaurantId = query.restaurantId;
-	} else if(query.hasOwnProperty('customerId')) {
-		socketData.customerId = query.customerId;
-	} else {
-		log.lkError(e.missingUserParam);
+	if(!query.hasOwnProperty('user')) {
+		log.lkError(e.missingConnParam);
 		return socket.disconnect();
 	}
 
-	LiveKitchen.addSocket(socketData)
-	.then((result) => {
-		if(!query.table) return;
+	const user = JSON.parse(query.user);
+	if(!user.hasOwnProperty('role') || !user.hasOwnProperty('id')) {
+		log.lkError(e.missingConnUserParam);
+		return socket.disconnect();
+	}
 
+	const allowedRoles = [roles.diner, roles.restaurateur]; /* Need to handle admins too */
+	if(!allowedRoles.includes(user.role)) {
+		log.lkError(e.invalidUserRole);
+		return socket.disconnect();
+	}
+
+	const socketData = { 
+		socketId: socket.id,
+		userId: user.id,
+		role: user.role
+	};
+	const addSocket = await LiveKitchen.async.addSocket(socketData);
+	if(addSocket.error) {
+		log.lkError(addSocket.error);
+		return socket.disconnect();
+	}
+
+	/* 
+		If a diner connects, they may become an active member of a table (e.g. they have an item in their cart and they close the app, then open it).
+		In such cases the client app will send the user's table data upon connection. We then add to the DB the user's association to this table,
+		and forward this information to the relevant restaurant.
+	*/
+	if(socketData.role == roles.diner && query.table) {
 		const tableData = {
 			customerId: JSON.parse(query.table).customerId,
 			restaurantId: JSON.parse(query.table).restaurantId,
 			tableNo: JSON.parse(query.table).tableNo
 		}
-		return handleUserJoinedTable(tableData, socket);
-	}).catch((err) => {
-		return log.lkError(err);
-	});
+		handleUserJoinedTable(tableData, socket);
+	}
 
-	socket.on(lrn.disconnect, () => handleDisconnection(query, socket) );
+	/* Add all event listeners here */
+	socket.on(lrn.disconnect, () => handleDisconnection(socketData, socket) );
 	socket.on(lrn.newOrder, (order) => handleNewOrder(order, socket) );
 	socket.on(lrn.orderStatusUpdate, (order) => handleOrderStatusUpdate(order, socket) );
 	socket.on(lrn.restaurantAcceptedOrder, (order) => handleOrderAcceptance(order, socket) );
@@ -69,25 +90,26 @@ module.exports.handler = function(socket) {
 	socket.on(lrn.userLeftTable, (data) => handleUserLeftTable(data.table.customerId, socket) );
 }
 
-async function handleDisconnection(query, socket) {
-	var type;
-	if(query.hasOwnProperty('restaurantId')) {
-		type = 'restaurant';
-	} else if(query.hasOwnProperty('customerId')) {
-		type = 'customer';
-	} else {
-		log.lkError(e.missingUserParam);
-		return socket.disconnect();
-	}
-
-	const removeSocket = await LiveKitchen.async.removeSocket(socket.id, type);
+async function handleDisconnection(data, socket) {
+	/* Change way remove and add sockets figure out user type (pass role) */
+	const removeSocket = await LiveKitchen.async.removeSocket(socket.id, data.role);
 	if(removeSocket.error) return log.lkError(removeSocket.error);
-	if(!query.hasOwnProperty('customerId')) return;
+	if(data.role != roles.diner) return;
 
-	return handleUserLeftTable(query.customerId, socket);
+	/* 
+		When the user disconnects, they may at that point be an active member of a table.
+		We therefore remove their association to the table, in the DB, upon disconnection from the server.
+		This is because a user that is not connected to the server cannot reasonably be considered an active member of any table.
+		This information is then forwarded to the relevant restaurant.
+	*/
+	return handleUserLeftTable(data.userId, socket);
 }
 
 async function handleNewOrder(order, socket) {
+	/* Times: store mysqlTimestamp in db; send unix timestamp to clients */
+	const mysqlTimestamp = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
+	const unixTimestamp = order.metaData.time;
+
 	const orderObj = {
 		metaData: {
 			orderId: order.metaData.orderId,
@@ -95,7 +117,7 @@ async function handleNewOrder(order, socket) {
 			restaurantId: order.metaData.restaurantId,
 			tableNo: order.metaData.tableNo,
 			price: order.metaData.price,
-			time: moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss'),
+			time: mysqlTimestamp,
 			status: Order.statuses.receivedByServer
 		},
 		payment: {
@@ -109,11 +131,6 @@ async function handleNewOrder(order, socket) {
 		items: order.items
 	};
 
-	/* Times: store mysqlTimestamp in db; send unix timestamp to clients */
-	const mysqlTimestamp = moment(order.metaData.time).format('YYYY-MM-DD HH:mm:ss');
-	const unixTimestamp = order.metaData.time;
-
-	//Order.createNewOrder(order);
 	const createOrder = await Order.async.createNewOrder(orderObj);
 	if(createOrder.error) return log.lkError(createOrder.error);
 
@@ -125,7 +142,6 @@ async function handleNewOrder(order, socket) {
 		userMsg: Order.setStatusUpdateMsg(order.metaData.status)
 	});
 
-	//LiveKitchen.getRecipientRestaurantSockets(order.metaData.restaurantId);
 	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(order.metaData.restaurantId);
 	if(rSockets.error) return log.lkError(rSockets.error);
 	if(rSockets.length < 1) {
@@ -164,7 +180,6 @@ async function handleOrderStatusUpdate(order, socket) {
 async function handleOrderAcceptance(order, socket) {
 	/* TODO: build orderObj */
 	order = order.metaData;
-	/* All connected sockets representing the restaurant that accepted the order */
 	const sockets = await LiveKitchen.async.getAllInterestedSockets(order.restaurantId, order.customerId);
 	if(sockets.error) return log.lkError(sockets.error);
 
@@ -176,12 +191,11 @@ async function handleOrderAcceptance(order, socket) {
 
 	const charge = await Payment.async.processCustomerPaymentToRestaurant(details.data[0]);
 	if(charge.error) {
-		/* If failed, update status in DB and emit message to relevant sockets */
 		const payFailStatus = Order.statuses.paymentFailed;
 		const statusUpd = await Order.async.updateOrderStatus(order.orderId, payFailStatus);
 		if(statusUpd.error) return log.lkError(statusUpd.error);
 		payload.status = payFailStatus;
-		payload.userMsg = charge.error; /* Build msg based on Stripe error */
+		payload.userMsg = charge.error;
 		emitEvent('orderStatusUpdated', sockets.data, payload, socket);
 		return log.lkError(charge.error);
 	}
@@ -245,6 +259,7 @@ async function processRefund(order, socket) {
 		refundStatus
 	);
 	if(statusUpdate.error) return log.lkError(statusUpdate.error);
+	
 	const payload = {
 		orderId: orderObj.orderId,
 		status: refundStatus,
@@ -273,6 +288,7 @@ async function handleUserJoinedTable(data, socket) {
 }
 
 async function handleUserLeftTable(customerId, socket) {
+	/* Retrieve table customer is currently assigned to */
 	const tableInfo = await TableUser.async.getTableInfoByCustomer(customerId);
 	if(tableInfo.error) return log.lkError(tableInfo.error);
 	if(tableInfo.data.length < 1) return log.lkError(e.tableInfoNotFound);

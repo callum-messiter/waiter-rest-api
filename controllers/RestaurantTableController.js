@@ -1,8 +1,8 @@
 const router = require('express').Router();
-const TableUser = require('../models/TableUser');
-const Auth = require('../models/Auth');
-const Restaurant = require('../models/Restaurant');
-const roles = require('../models/UserRoles').roles;
+const TableUserEntity = require('../entities/TableUserEntity');
+const AuthEntity = require('../entities/AuthEntity');
+const RestaurantEntity = require('../entities/RestaurantEntity');
+const roles = require('../entities/UserRolesEntity').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 
@@ -10,7 +10,7 @@ router.get('/users/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 	
 	const requiredParams = {
 		query: [],
@@ -21,11 +21,11 @@ router.get('/users/:restaurantId', (req, res, next) => {
 
 	const restaurantId = req.params.restaurantId;
 
-	Restaurant.getRestaurantOwnerId(restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions
-		return TableUser.getAllTableUsersForRestaurant(restaurantId);
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions
+		return TableUserEntity.getAllTableUsersForRestaurant(restaurantId);
 	}).then((tableUsers) => {
 		return res.status(200).json({ data: tableUsers });
 	}).catch((err) => {

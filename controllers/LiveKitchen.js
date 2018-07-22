@@ -1,10 +1,10 @@
 const moment = require('moment');
-const Order = require('../models/Order');
-const Payment = require('../models/Payment');
-const Auth = require('../models/Auth');
-const TableUser = require('../models/TableUser');
-const LiveKitchen = require('../models/LiveKitchen');
-const roles = require('../models/UserRoles').roles;
+const OrderEntity = require('../entities/OrderEntity');
+const PaymentEntity = require('../entities/PaymentEntity');
+const AuthEntity = require('../entities/AuthEntity');
+const TableUserEntity = require('../entities/TableUserEntity');
+const LiveKitchenEntity = require('../entities/LiveKitchenEntity');
+const roles = require('../entities/UserRolesEntity').roles;
 const log = require('../helpers/logger');
 const errors = require('../helpers/error').errors;
 
@@ -60,7 +60,7 @@ module.exports.handler = async function(socket) {
 		userId: user.id,
 		role: user.role
 	};
-	const addSocket = await LiveKitchen.async.addSocket(socketData);
+	const addSocket = await LiveKitchen.addSocket(socketData);
 	if(addSocket.error) {
 		log.lkError(addSocket.error);
 		return socket.disconnect();
@@ -92,8 +92,8 @@ module.exports.handler = async function(socket) {
 
 async function handleDisconnection(data, socket) {
 	/* Change way remove and add sockets figure out user type (pass role) */
-	const removeSocket = await LiveKitchen.async.removeSocket(socket.id, data.role);
-	if(removeSocket.error) return log.lkError(removeSocket.error);
+	const removeSocket = await LiveKitchenEntity.removeSocket(socket.id, data.role);
+	if(removeSocket.err) return log.lkError(removeSocket.err);
 	if(data.role != roles.diner) return;
 
 	/* 
@@ -118,7 +118,7 @@ async function handleNewOrder(order, socket) {
 			tableNo: order.metaData.tableNo,
 			price: order.metaData.price,
 			time: mysqlTimestamp,
-			status: Order.statuses.receivedByServer
+			status: OrderEntity.statuses.receivedByServer
 		},
 		payment: {
 			orderId: order.payment.orderId,
@@ -131,28 +131,28 @@ async function handleNewOrder(order, socket) {
 		items: order.items
 	};
 
-	const createOrder = await Order.async.createNewOrder(orderObj);
-	if(createOrder.error) return log.lkError(createOrder.error);
+	const createOrder = await OrderEntity.createNewOrder(orderObj);
+	if(createOrder.err) return log.lkError(createOrder.err);
 
 	order.metaData.time = unixTimestamp;
-	order.metaData.status = Order.statuses.receivedByServer;
+	order.metaData.status = OrderEntity.statuses.receivedByServer;
 	socket.emit('orderStatusUpdated', {
 		orderId: order.metaData.orderId, 
 		status: order.metaData.status,
-		userMsg: Order.setStatusUpdateMsg(order.metaData.status)
+		userMsg: OrderEntity.setStatusUpdateMsg(order.metaData.status)
 	});
 
-	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(order.metaData.restaurantId);
-	if(rSockets.error) return log.lkError(rSockets.error);
+	const rSockets = await LiveKitchenEntity.getRecipientRestaurantSockets(order.metaData.restaurantId);
+	if(rSockets.err) return log.lkError(rSockets.err);
 	if(rSockets.length < 1) {
 		return log.lkError(e.recipientRestaurantNotConnected);
 	}
 
 	/* We modify the order object to be sent to the restaurant - later use consistent models */
-	order.metaData.status = Order.statuses.sentToKitchen
+	order.metaData.status = OrderEntity.statuses.sentToKitchen
 	const payload = order.metaData;
 	payload.items = order.items;
-	return emitEvent('newOrder', rSockets.data, payload, socket, false);
+	return emitEvent('newOrder', rSockets, payload, socket, false);
 }
 
 async function handleOrderStatusUpdate(order, socket) {
@@ -162,58 +162,58 @@ async function handleOrderStatusUpdate(order, socket) {
 		restaurantId: order.metaData.restaurantId,
 		status: order.metaData.status
 	};
-	const updateStatus = await Order.async.updateOrderStatus(orderObj.orderId, orderObj.status);
-	if(updateStatus.error) return log.lkError(updateStatus.error);
+	const updateStatus = await OrderEntity.updateOrderStatus(orderObj.orderId, orderObj.status);
+	if(updateStatus.err) return log.lkError(updateStatus.err);
 
-	const sockets = await LiveKitchen.async.getAllInterestedSockets(orderObj.restaurantId, orderObj.customerId);
-	if(sockets.error) return log.lkError(sockets.error);
-	if(sockets.data.length < 1) return log.lkError(e.recipientRestaurantNotConnected);
+	const sockets = await LiveKitchenEntity.getAllInterestedSockets(orderObj.restaurantId, orderObj.customerId);
+	if(sockets.err) return log.lkError(sockets.err);
+	if(sockets.length < 1) return log.lkError(e.recipientRestaurantNotConnected);
 
 	const payload = {
 		orderId: orderObj.orderId,
 		status: orderObj.status,
-		userMsg: Order.setStatusUpdateMsg(orderObj.status)
+		userMsg: OrderEntity.setStatusUpdateMsg(orderObj.status)
 	};
-	return emitEvent('orderStatusUpdated', sockets.data, payload, socket);
+	return emitEvent('orderStatusUpdated', sockets, payload, socket);
 }
 
 async function handleOrderAcceptance(order, socket) {
 	/* TODO: build orderObj */
 	order = order.metaData;
-	const sockets = await LiveKitchen.async.getAllInterestedSockets(order.restaurantId, order.customerId);
-	if(sockets.error) return log.lkError(sockets.error);
+	const sockets = await LiveKitchenEntity.getAllInterestedSockets(order.restaurantId, order.customerId);
+	if(sockets.err) return log.lkError(sockets.err);
 
 	/* Once restaurant accepts, process payment (we stored the details in DB when customer placed order) */
-	const details = await Payment.async.getOrderPaymentDetails(order.orderId);
-	if(details.error) return log.lkError(details.error);
+	const details = await PaymentEntity.getOrderPaymentDetails(order.orderId);
+	if(details.err) return log.lkError(details.err);
 
 	var payload = { orderId: order.orderId, status: '', userMsg: '' };
 
-	const charge = await Payment.async.processCustomerPaymentToRestaurant(details.data[0]);
-	if(charge.error) {
-		const payFailStatus = Order.statuses.paymentFailed;
-		const statusUpd = await Order.async.updateOrderStatus(order.orderId, payFailStatus);
-		if(statusUpd.error) return log.lkError(statusUpd.error);
+	const charge = await PaymentEntity.processCustomerPaymentToRestaurant(details[0]);
+	if(charge.err) {
+		const payFailStatus = OrderEntity.statuses.paymentFailed;
+		const statusUpd = await OrderEntity.updateOrderStatus(order.orderId, payFailStatus);
+		if(statusUpd.err) return log.lkError(statusUpd.err);
 		payload.status = payFailStatus;
-		payload.userMsg = charge.error;
-		emitEvent('orderStatusUpdated', sockets.data, payload, socket);
-		return log.lkError(charge.error);
+		payload.userMsg = charge.err;
+		emitEvent('orderStatusUpdated', sockets, payload, socket);
+		return log.lkError(charge.err);
 	}
 
 	/* If payment was successful... */
-	const payOkStatus = Order.statuses.paymentSuccessful;
-	const updateRes = await Payment.async.updateChargeDetails(order.orderId, {
-		chargeId: charge.data.id,
+	const payOkStatus = OrderEntity.statuses.paymentSuccessful;
+	const updateRes = await PaymentEntity.updateChargeDetails(order.orderId, {
+		chargeId: charge.id,
 		paid: 1
 	});
-	if(updateRes.error) return log.lkError(updateRes.error);
+	if(updateReserr) return log.lkError(updateReserr);
 
-	const statusUpdate = await Order.async.updateOrderStatus(order.orderId, payOkStatus);
-	if(statusUpdate.error) return log.lkError(statusUpdate.error);
+	const statusUpdate = await Order.updateOrderStatus(order.orderId, payOkStatus);
+	if(statusUpdateerr) return log.lkError(statusUpdateerr);
 	
 	payload.status = payOkStatus;
-	payload.userMsg = Order.setStatusUpdateMsg(payOkStatus);
-	return emitEvent('orderStatusUpdated', sockets.data, payload, socket);
+	payload.userMsg = OrderEntity.setStatusUpdateMsg(payOkStatus);
+	return emitEvent('orderStatusUpdated', sockets, payload, socket);
 }
 
 async function processRefund(order, socket) {
@@ -224,48 +224,48 @@ async function processRefund(order, socket) {
 	}
 	
 	/* All connected sockets representing the restaurant that requested the refund */
-	const sockets = await LiveKitchen.async.getAllInterestedSockets(
+	const sockets = await LiveKitchen.getAllInterestedSockets(
 		orderObj.restaurantId,
 		orderObj.customerId
 	);
-	if(sockets.error) return log.lkError(sockets.error);
+	if(socketserr) return log.lkError(socketserr);
 
-	const details = await Payment.async.getOrderPaymentDetails(orderObj.orderId);
-	if(details.error) return log.lkError(details.error);
-	if(details.data.length < 1) return log.lkError(errors.chargeNotFound);
-	if(details.data[0].paid !== 1) return log.lkError(errors.cannotRefundUnpaidOrder);
+	const details = await PaymentEntity.getOrderPaymentDetails(orderObj.orderId);
+	if(detailserr) return log.lkError(detailserr);
+	if(details.length < 1) return log.lkError(errors.chargeNotFound);
+	if(details[0].paid !== 1) return log.lkError(errors.cannotRefundUnpaidOrder);
 
 	const chargeObj = {
-		id: details.data[0].chargeId, 
-		amount: details.data[0].amount
+		id: details[0].chargeId, 
+		amount: details[0].amount
 	};
-	const refund = await Payment.async.refundCharge(chargeObj);
-	if(refund.error) {
-		const stripeErr = buildStripeErrObj(refund.error);
+	const refund = await PaymentEntity.refundCharge(chargeObj);
+	if(refunderr) {
+		const stripeErr = buildStripeErrObj(refunderr);
 		return log.lkError(stripeErr);
 	}
 
 	const refundObj = {
-		refundId: refund.data.id,
-		chargeId: refund.data.charge,
-		amount: refund.data.amount
+		refundId: refund.id,
+		chargeId: refund.charge,
+		amount: refund.amount
 	}
-	const refundRef = await Payment.async.storeRefund(refundObj);
-	if(refundRef.error) return log.lkError(refundRef.error);
+	const refundRef = await PaymentEntity.storeRefund(refundObj);
+	if(refundReferr) return log.lkError(refundReferr);
 	
-	const refundStatus = Order.statuses.refunded;
-	const statusUpdate = await Order.async.updateOrderStatus(
+	const refundStatus = OrderEntity.statuses.refunded;
+	const statusUpdate = await Order.updateOrderStatus(
 		orderObj.orderId, 
 		refundStatus
 	);
-	if(statusUpdate.error) return log.lkError(statusUpdate.error);
+	if(statusUpdateerr) return log.lkError(statusUpdateerr);
 	
 	const payload = {
 		orderId: orderObj.orderId,
 		status: refundStatus,
-		userMsg: Order.setStatusUpdateMsg(refundStatus)
+		userMsg: OrderEntity.setStatusUpdateMsg(refundStatus)
 	};
-	return emitEvent('orderStatusUpdated', sockets.data, payload, socket);
+	return emitEvent('orderStatusUpdated', sockets, payload, socket);
 }
 
 async function handleUserJoinedTable(data, socket) {
@@ -275,39 +275,39 @@ async function handleUserJoinedTable(data, socket) {
 		tableNo: data.tableNo
 	}
 
-	const addUserToTable = await TableUser.async.addUserToTable(tableData);
-	if(addUserToTable.error) return log.lkError(addUserToTable.error);
+	const addUserToTable = await TableUser.addUserToTable(tableData);
+	if(addUserToTableerr) return log.lkError(addUserToTableerr);
 	
-	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(tableData.restaurantId);
-	if(rSockets.error) return log.lkError(rSockets.error);
+	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
+	if(rSocketserr) return log.lkError(rSocketserr);
 	if(rSockets.length < 1) {
 		return log.lkError(e.recipientRestaurantNotConnected);
 	}
 
-	return emitEvent('userJoinedTable', rSockets.data, tableData, socket, false);
+	return emitEvent('userJoinedTable', rSockets, tableData, socket, false);
 }
 
 async function handleUserLeftTable(customerId, socket) {
 	/* Retrieve table customer is currently assigned to */
-	const tableInfo = await TableUser.async.getTableInfoByCustomer(customerId);
-	if(tableInfo.error) return log.lkError(tableInfo.error);
-	if(tableInfo.data.length < 1) return log.lkError(e.tableInfoNotFound);
+	const tableInfo = await TableUser.getTableInfoByCustomer(customerId);
+	if(tableInfoerr) return log.lkError(tableInfoerr);
+	if(tableInfo.length < 1) return log.lkError(e.tableInfoNotFound);
 
 	const tableData = {
-		restaurantId: tableInfo.data[0].restaurantId,
-		customerId: tableInfo.data[0].customerId,
-		tableNo: tableInfo.data[0].tableNo
+		restaurantId: tableInfo[0].restaurantId,
+		customerId: tableInfo[0].customerId,
+		tableNo: tableInfo[0].tableNo
 	}
 
-	const removeUser = await TableUser.async.removeUserFromTable(tableData.customerId);
-	if(removeUser.error) return log.lkError(removeUser.error);
+	const removeUser = await TableUser.removeUserFromTable(tableData.customerId);
+	if(removeUsererr) return log.lkError(removeUsererr);
 
-	const rSockets = await LiveKitchen.async.getRecipientRestaurantSockets(tableData.restaurantId);
-	if(rSockets.error) return log.lkError(rSockets.error);
-	if(rSockets.data.length < 1) return log.lkError(e.recipientRestaurantNotConnected);
+	const rSockets = await LiveKitchen.getRecipientRestaurantSockets(tableData.restaurantId);
+	if(rSocketserr) return log.lkError(rSocketserr);
+	if(rSockets.length < 1) return log.lkError(e.recipientRestaurantNotConnected);
 
 	/* Inform the restaurant that the user is no longer an active member of the table */
-	return emitEvent('userLeftTable', rSockets.data, tableData, socket, false);
+	return emitEvent('userLeftTable', rSockets, tableData, socket, false);
 }
 
 function emitEvent(event, recipients, payload, socket, includeSocket=true) {
@@ -323,11 +323,11 @@ function emitEvent(event, recipients, payload, socket, includeSocket=true) {
 }
 
 function buildStripeErrObj(error) {
-	const stripeErr = Payment.isStripeError(error);
+	const stripeErr = PaymentEntity.isStripeError(error);
 	if(!stripeErr) return errors.internalServerError;
 	const errorObj = errors.stripeError;
 	errorObj.statusCode = error.statusCode;
-	errorObj.userMsg = Payment.setStripeMsg(error);
+	errorObj.userMsg = PaymentEntity.setStripeMsg(error);
 	errorObj.devMsg = error.code.concat(': ' + error.stack);
 	return JSON.stringify(errorObj);
 }

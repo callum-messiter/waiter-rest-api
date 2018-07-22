@@ -1,9 +1,9 @@
 const router = require('express').Router();
 const shortId = require('shortid');
-const Menu = require('../models/Menu');
-const Auth = require('../models/Auth');
-const Restaurant = require('../models/Restaurant');
-const roles = require('../models/UserRoles').roles;
+const MenuEntity = require('../entities/MenuEntity');
+const AuthEntity = require('../entities/AuthEntity');
+const RestaurantEntity = require('../entities/RestaurantEntity');
+const roles = require('../entities/UserRolesEntity').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 
@@ -12,7 +12,7 @@ router.get('/:menuId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -22,13 +22,13 @@ router.get('/:menuId', (req, res, next) => {
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	const menuId = req.params.menuId;
-	Menu.getMenuOwnerId(menuId)
+	MenuEntity.getMenuOwnerId(menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
 		// A menu can be retrieved by any user
-		// if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menu.getMenuDetails(menuId);
+		// if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return MenuEntity.getMenuDetails(menuId);
 
 	}).then((m) => {
 
@@ -40,7 +40,7 @@ router.get('/:menuId', (req, res, next) => {
 			menuName: m[0].name,
 			categories: []
 		};
-		return Menu.getMenuCategories(menuId);
+		return MenuEntity.getMenuCategories(menuId);
 
 	}).then((c) => {
 
@@ -50,7 +50,7 @@ router.get('/:menuId', (req, res, next) => {
 		for(i = 0; i < m.categories.length; i++) {
 			m.categories[i].items = [];
 		}
-		return Menu.getMenuItems(menuId);
+		return MenuEntity.getMenuItems(menuId);
 		
 	}).then((i) => {
 
@@ -82,7 +82,7 @@ router.post('/create', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -95,12 +95,12 @@ router.post('/create', (req, res, next) => {
 	menu.menuId = shortId.generate();
 	const restaurantId = req.body.restaurantId;
 
-	Restaurant.getRestaurantOwnerId(restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menu.createNewMenu(menu);
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return MenuEntity.createNewMenu(menu);
 
 	}).then((result) => {
 
@@ -124,7 +124,7 @@ router.put('/update/:menuId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	// No *required* body params; but at least one must be provided
 	const noValidParams = (
@@ -133,11 +133,11 @@ router.put('/update/:menuId', (req, res, next) => {
 	);
 	if(req.params.menuId == undefined || noValidParams) throw e.missingRequiredParams;
 
-	Menu.getMenuOwnerId(req.params.menuId)
+	MenuEntity.getMenuOwnerId(req.params.menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		return Menu.updateMenuDetails(req.params.menuId, req.body);
 
 	}).then((result) => {
@@ -153,7 +153,7 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -162,12 +162,12 @@ router.put('/deactivate/:menuId', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Menu.getMenuOwnerId(req.params.menuId)
+	MenuEntity.getMenuOwnerId(req.params.menuId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.menuNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Menu.deactivateMenu(req.params.menuId);
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return MenuEntity.deactivateMenu(req.params.menuId);
 
 	}).then((result) => {
 		// TODO; change to 204

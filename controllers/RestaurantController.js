@@ -1,10 +1,10 @@
 const router = require('express').Router();
 const shortId = require('shortid');
-const Restaurant = require('../models/Restaurant');
-const Menu = require('../models/Menu');
-const Auth = require('../models/Auth');
-const User = require('../models/User');
-const roles = require('../models/UserRoles').roles;
+const RestaurantEntity = require('../entities/RestaurantEntity');
+const MenuEntity = require('../entities/MenuEntity');
+const AuthEntity = require('../entities/AuthEntity');
+const UserEntity = require('../entities/UserEntity');
+const roles = require('../entities/UserRolesEntity').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 
@@ -13,10 +13,10 @@ router.get('/', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	// TODO: roles allowed
-	Restaurant.getAllRestaurants()
+	RestaurantEntity.getAllRestaurants()
 	.then((restaurants) => {
 
 		res.locals.restaurants = JSON.parse(JSON.stringify(restaurants));
@@ -24,7 +24,7 @@ router.get('/', (req, res, next) => {
 		for(var i = 0; i < res.locals.restaurants.length; i++) {
 			res.locals.restaurants[i].menus = [];
 		}
-		return Menu.getAllMenus();
+		return MenuEntity.getAllMenus();
 
 	}).then((menus) => {
 
@@ -50,7 +50,7 @@ router.get('/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -60,16 +60,16 @@ router.get('/:restaurantId', (req, res, next) => {
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	const restaurantId = req.params.restaurantId;
-	Restaurant.getRestaurantOwnerId(restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 		// A restaurant's details can be retrieved by any user
-		// if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Restaurant.getRestaurantById(restaurantId);
+		// if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return RestaurantEntity.getRestaurantById(restaurantId);
 
 	}).then((r) => {
-		return Restaurant.getRestaurantDetails(restaurantId);
+		return RestaurantEntity.getRestaurantDetails(restaurantId);
 	}).then((details) => {
 
 		/* Loop through array of key-value pairs from DB; build JSON response obj */
@@ -86,7 +86,7 @@ router.post('/create', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -101,11 +101,11 @@ router.post('/create', (req, res, next) => {
 	res.locals.restaurant = restaurant;
 
 	// First check that the user exists
-	User.getUserById(u.userId)
+	UserEntity.getUserById(u.userId)
 	.then((u) => {
 
 		if(u.length < 1) throw e.userNotFound;
-		return Restaurant.createNewRestaurant(restaurant);
+		return RestaurantEntity.createNewRestaurant(restaurant);
 
 	}).then((result) => {
 		// TODO: change to 201; remove parent obj 'data'
@@ -125,7 +125,7 @@ router.put('/update/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	// No *required* body params; but at least one must be provided
 	const noValidParams = (req.body.name == undefined && req.body.description == undefined);
@@ -133,12 +133,12 @@ router.put('/update/:restaurantId', (req, res, next) => {
 	
 	const restaurantId = req.params.restaurantId;
 	const restaurantData = req.body;
-	Restaurant.getRestaurantOwnerId(restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Restaurant.updateRestaurant(restaurantId, restaurantData);
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return RestaurantEntity.updateRestaurant(restaurantId, restaurantData);
 
 	}).then((result) => {
 		// TODO: change to 204
@@ -153,7 +153,7 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -163,12 +163,12 @@ router.put('/deactivate/:restaurantId', (req, res, next) => {
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 	
 	const restaurantId = req.params.restaurantId;
-	Restaurant.getRestaurantOwnerId(restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Restaurant.deactivateRestaurant(restaurantId);
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return RestaurantEntity.deactivateRestaurant(restaurantId);
 
 	}).then((result) => {
 		// TODO: change to 204

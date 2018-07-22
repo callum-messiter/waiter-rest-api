@@ -1,9 +1,9 @@
 const router = require('express').Router();
-const Order = require('../models/Order');
-const Auth = require('../models/Auth');
-const Restaurant = require('../models/Restaurant');
-const User = require('../models/User');
-const roles = require('../models/UserRoles').roles;
+const OrderEntity = require('../entities/OrderEntity');
+const AuthEntity = require('../entities/AuthEntity');
+const RestaurantEntity = require('../entities/RestaurantEntity');
+const UserEntity = require('../entities/UserEntity');
+const roles = require('../entities/UserRolesEntity').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 const moment = require('moment');
@@ -13,7 +13,7 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 	
 	const requiredParams = {
 		query: [],
@@ -24,12 +24,12 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 
 	const restaurantId = req.params.restaurantId;
 
-	Restaurant.getRestaurantOwnerId(restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions
-		return Order.getAllLiveOrdersForRestaurant(restaurantId);
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions
+		return OrderEntity.getAllLiveOrdersForRestaurant(restaurantId);
 
 	// TODO: retrieving orders, then the order items, then building the object, should be done with one query
 	}).then((o) => {
@@ -41,7 +41,7 @@ router.get('/getAllLive/:restaurantId', (req, res, next) => {
 				o[i].items = [];
 			}
 			res.locals.orders = JSON.parse(JSON.stringify(o));
-			return Order.getItemsFromLiveOrders(restaurantId);
+			return OrderEntity.getItemsFromLiveOrders(restaurantId);
 		}
 		return true;
 
@@ -71,7 +71,7 @@ router.get('/list/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 	
 	const requiredParams = {
 		query: [],
@@ -81,12 +81,12 @@ router.get('/list/:restaurantId', (req, res, next) => {
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	const restaurantId = req.params.restaurantId;
-	return Restaurant.getRestaurantOwnerId(restaurantId)
+	return RestaurantEntity.getRestaurantOwnerId(restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
-		return Order.getAllOrdersForRestaurant(restaurantId);
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		return OrderEntity.getAllOrdersForRestaurant(restaurantId);
 
 	}).then((orders) => {
 
@@ -94,7 +94,7 @@ router.get('/list/:restaurantId', (req, res, next) => {
 		res.locals.orders = [];
 		for(var order of orders) { order.items = [] };
 		res.locals.orders = JSON.parse(JSON.stringify(orders));
-		return Order.getItemsFromRestaurantOrders(restaurantId);
+		return OrderEntity.getItemsFromRestaurantOrders(restaurantId);
 
 	}).then((items) => {
 
@@ -113,7 +113,7 @@ router.get('/live/:orderId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.diner, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 	
 	const requiredParams = {
 		query: [],
@@ -122,19 +122,19 @@ router.get('/live/:orderId', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Order.getOrderOwnerId(req.params.orderId)
+	OrderEntity.getOrderOwnerId(req.params.orderId)
 	.then((o) => {
 
 		if(o.length < 1) throw e.orderNotFound;
-		if(!Auth.userHasAccessRights(u, o[0].customerId)) throw e.insufficientPermissions;
-		return Order.getLiveOrder(req.params.orderId);
+		if(!AuthEntity.userHasAccessRights(u, o[0].customerId)) throw e.insufficientPermissions;
+		return OrderEntity.getLiveOrder(req.params.orderId);
 
 	}).then((order) => {
 
 		res.locals.order = [];
 		if(order.length > 0) {
 			res.locals.order = JSON.parse(JSON.stringify(order[0]));
-			return Order.getItemsFromLiveOrder(req.params.orderId);
+			return OrderEntity.getItemsFromLiveOrder(req.params.orderId);
 		}
 		return true;
 
@@ -149,7 +149,7 @@ router.get('/live/:orderId', (req, res, next) => {
 		}
 		// TODO: this is a quick hack; should be retrieved at an earlier point by the customer app
 		// Get the restaurant name for the customer app
-		return Restaurant.getRestaurantById(res.locals.order.restaurantId);
+		return RestaurantEntity.getRestaurantById(res.locals.order.restaurantId);
 
 	}).then((r) => {
 
@@ -167,7 +167,7 @@ router.get('/history', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 	
 	const requiredParams = {
 		query: [],
@@ -184,12 +184,12 @@ router.get('/history', (req, res, next) => {
 	const ordersOwnerId = req.query.userId || u.userId;
 
 	// Check the user exists
-	User.getUserById(ordersOwnerId)
+	UserEntity.getUserById(ordersOwnerId)
 	.then((users) => {
 
 		if(users.length < 1) throw e.userNotFound;
-		if(!Auth.userHasAccessRights(u, ordersOwnerId)) throw e.insufficientPermissions;
-		return Order.getOrdersForUser(ordersOwnerId);
+		if(!AuthEntity.userHasAccessRights(u, ordersOwnerId)) throw e.insufficientPermissions;
+		return OrderEntity.getOrdersForUser(ordersOwnerId);
 
 	}).then((o) => {
 		return res.status(200).json(o);
@@ -204,7 +204,7 @@ router.get('/historyV2', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 	
 	const requiredParams = {
 		query: [],
@@ -215,12 +215,12 @@ router.get('/historyV2', (req, res, next) => {
 	const ordersOwnerId = req.query.userId || u.userId;
 
 	/* Check the user exists */
-	User.getUserById(ordersOwnerId)
+	UserEntity.getUserById(ordersOwnerId)
 	.then((users) => {
 
 		if(users.length < 1) throw e.userNotFound;
-		if(!Auth.userHasAccessRights(u, ordersOwnerId)) throw e.insufficientPermissions;
-		return Order.getAllOrdersForUser(ordersOwnerId);
+		if(!AuthEntity.userHasAccessRights(u, ordersOwnerId)) throw e.insufficientPermissions;
+		return OrderEntity.getAllOrdersForUser(ordersOwnerId);
 
 	}).then((orders) => {
 
@@ -228,7 +228,7 @@ router.get('/historyV2', (req, res, next) => {
 		res.locals.orders = [];
 		for(var order of orders) { order.items = [] };
 		res.locals.orders = JSON.parse(JSON.stringify(orders));
-		return Order.getItemsFromUserOrders(ordersOwnerId);
+		return OrderEntity.getItemsFromUserOrders(ordersOwnerId);
 
 	}).then((items) => {
 
@@ -256,15 +256,12 @@ function assignItemsToOrder(items, orders) {
 }
 
 /* Refer to this for async-await operations */
-const Payment = require('../models/Payment');
+const PaymentEntity = require('../entities/PaymentEntity');
 
 router.get('/refund', (req, res, next) => testAsync(req, res, next) );
 async function testAsync(req, res, next) {
-	const stackTrace = new Error().stack;
-	e.cannotRefundUnpaidOrder.stackTrace = stackTrace;
-	res.json(e.cannotRefundUnpaidOrder);
 	const orderId = 'HyOmYlURM';
-	const order = await Payment.async.getOrderPaymentDetails(orderId);
+	const order = await PaymentEntity.async.getOrderPaymentDetails(orderId);
 	if(order.error) return next(order.error);
 	if(order.data.length < 1) return next(e.chargeNotFound);
 	if(order.data[0].paid !== 1) return next(e.cannotRefundUnpaidOrder);
@@ -273,13 +270,13 @@ async function testAsync(req, res, next) {
 		id: order.data[0].chargeId, 
 		amount: order.data[0].amount
 	};
-	const refund = await Payment.async.refundCharge(chargeObj);
+	const refund = await PaymentEntity.async.refundCharge(chargeObj);
 	if(refund.error) {
-		const stripeErr = Payment.isStripeError(refund.error);
+		const stripeErr = PaymentEntity.isStripeError(refund.error);
 		if(!stripeErr) return next(e.internalServerError);
 		const errorObj = e.stripeError;
 		errorObj.statusCode = refund.error.statusCode;
-		errorObj.userMsg = Payment.setStripeMsg(refund.error);
+		errorObj.userMsg = PaymentEntity.setStripeMsg(refund.error);
 		errorObj.devMsg = refund.error.code.concat(': ' + refund.error.stack);
 		return next(errorObj);
 	}
@@ -289,7 +286,7 @@ async function testAsync(req, res, next) {
 		chargeId: refund.data.charge,
 		amount: refund.data.amount
 	}
-	const refundRef = await Payment.async.storeRefund(refundObj);
+	const refundRef = await PaymentEntity.async.storeRefund(refundObj);
 	if(refundRef.error) return res.status(400).json(refundRef.error);
 	return res.status(200).json(refund.data);
 }

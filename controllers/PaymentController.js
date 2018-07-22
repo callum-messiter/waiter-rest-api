@@ -1,8 +1,8 @@
 const router = require('express').Router();
-const Restaurant = require('../models/Restaurant');
-const Payment = require('../models/Payment');
-const Auth = require('../models/Auth');
-const roles = require('../models/UserRoles').roles;
+const RestaurantEntity = require('../entities/RestaurantEntity');
+const PaymentEntity = require('../entities/PaymentEntity');
+const AuthEntity = require('../entities/AuthEntity');
+const roles = require('../entities/UserRolesEntity').roles;
 const e = require('../helpers/error').errors;
 const p = require('../helpers/params');
 const _ = require('underscore');
@@ -16,7 +16,7 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -25,20 +25,20 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Restaurant.getRestaurantOwnerId(req.params.restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(req.params.restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		/* Get restaurants Stripe account ID */
-		return Payment.getRestaurantPaymentDetails(req.params.restaurantId);
+		return PaymentEntity.getRestaurantPaymentDetails(req.params.restaurantId);
 
 	}).then((details) => {	
 
 		/* Return empty obj if restaurant has no stripe account yet */
 		if(details.length < 1) return {};
 		res.locals.stripeAccountId = details[0].destination;
-		return Payment.getRestaurantStripeAccount(details[0].destination);
+		return PaymentEntity.getRestaurantStripeAccount(details[0].destination);
 
 	}).then((account) => {
 
@@ -58,7 +58,7 @@ router.post('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -68,20 +68,20 @@ router.post('/stripeAccount', (req, res, next) => {
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
 	const rid = req.body.restaurantId;
-	Restaurant.getRestaurantOwnerId(rid)
+	RestaurantEntity.getRestaurantOwnerId(rid)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		/* Check that the restaurant doesn't already have a Stripe account */
-		return Payment.getRestaurantPaymentDetails(rid);
+		return PaymentEntity.getRestaurantPaymentDetails(rid);
 
 	}).then((details) => {
 
 		if(details.length > 0) throw e.multipleStripeAccountsForbidden;
 		const account = parseAndValidateRequestParams(req); /* Build the Stripe Account object */
 		if(_.isEmpty(account)) throw e.malformedRestaurantDetails;
-		return Payment.createRestaurantStripeAccount(account);
+		return PaymentEntity.createRestaurantStripeAccount(account);
 
 	}).then((account) => {
 		
@@ -89,7 +89,7 @@ router.post('/stripeAccount', (req, res, next) => {
 		var isVerified = false;
 		if(account.charges_enabled && account.payouts_enabled) { isVerified = true; }
 		/* Add the details to the database */
-		return Payment.saveRestaurantStripeMetaData({
+		return PaymentEntity.saveRestaurantStripeMetaData({
 			restaurantId: rid,
 			isVerified: isVerified,
 			stripeAccountId: account.id
@@ -106,7 +106,7 @@ router.post('/stripeAccount', (req, res, next) => {
 router.patch('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -115,13 +115,13 @@ router.patch('/stripeAccount', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Restaurant.getRestaurantOwnerId(req.body.restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(req.body.restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
-		if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+		if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		/* Get the restaurant's Stripe account ID */
-		return Payment.getRestaurantPaymentDetails(req.body.restaurantId);
+		return PaymentEntity.getRestaurantPaymentDetails(req.body.restaurantId);
 
 	}).then((details) => {	
 
@@ -129,7 +129,7 @@ router.patch('/stripeAccount', (req, res, next) => {
 		res.locals.details = details[0];
 		const account = parseAndValidateRequestParams(req); // Build the Stripe Account object
 		if(_.isEmpty(account)) throw e.malformedRestaurantDetails;
-		return Payment.updateStripeAccount(details[0].destination, account);	
+		return PaymentEntity.updateStripeAccount(details[0].destination, account);	
 
 	}).then((account) => {
 		
@@ -138,7 +138,7 @@ router.patch('/stripeAccount', (req, res, next) => {
 		const isVerified = (account.charges_enabled && account.payouts_enabled) ? true : false;
 		/* If the verification status has changed, update the meta data in the DB */
 		if( isVerified !== Boolean(Number(preEdit.isVerified)) ) {
-			return Payment.updateRestaurantStripeMetaData(preEdit.destination, {isVerified});
+			return PaymentEntity.updateRestaurantStripeMetaData(preEdit.destination, {isVerified});
 		}
 		return true;
 
@@ -153,7 +153,7 @@ router.get('/restaurantDetails/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
 	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
-	if(!Auth.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
+	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
 		query: [],
@@ -162,17 +162,17 @@ router.get('/restaurantDetails/:restaurantId', (req, res, next) => {
 	}
 	if(p.paramsMissing(req, requiredParams)) throw e.missingRequiredParams;
 
-	Restaurant.getRestaurantOwnerId(req.params.restaurantId)
+	RestaurantEntity.getRestaurantOwnerId(req.params.restaurantId)
 	.then((r) => {
 
 		if(r.length < 1) throw e.restaurantNotFound;
 
 		// Any diner can access this data
 		if(u.userRole == roles.restaurateur) {
-			if(!Auth.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
+			if(!AuthEntity.userHasAccessRights(u, r[0].ownerId)) throw e.insufficientPermissions;
 		}
 
-		return Payment.getRestaurantPaymentDetails(req.params.restaurantId);
+		return PaymentEntity.getRestaurantPaymentDetails(req.params.restaurantId);
 
 	}).then((details) => {
 

@@ -1,8 +1,8 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const server = require('../../server');
+const server = require('../../../server');
 const should = chai.should();
-const e = require('../../helpers/error').errors;
+const e = require('../../../helpers/error').errors;
 
 chai.use(chaiHttp);
 

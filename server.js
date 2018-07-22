@@ -6,7 +6,7 @@ const cors = require('cors');
 const socket = require('socket.io');
 const db = require('./config/database');
 const conf = require('./config/config');
-const router = require('./routes/api');
+const router = require('./router');
 const errorHandler = require('./helpers/error').errorHandler
 const liveKitchenHandler = require('./controllers/LiveKitchen').handler;
 
@@ -25,12 +25,8 @@ app.use(bodyParser.urlencoded( { extended: true } ));
 app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/api', router);
+app.use('/', router);
 app.use(errorHandler);
-
-/* Some basic routing */
-app.get('/api', (req, res, next) => res.redirect('/apidoc') );
-app.get('/', (req, res, next) => res.redirect('/apidoc') );
 
 /* Start server */
 const server = app.listen(conf.port, () => {

@@ -12,7 +12,7 @@ module.exports = {
 	},
 	jwt: {
 		secret: process.env.JWT_SECRET,
-		issuer: 'https://api.waitr-dev.live',
+		issuer: process.env.JWT_ISSUER,
 		alg: 'HS256'
 	},
 	smtp: {

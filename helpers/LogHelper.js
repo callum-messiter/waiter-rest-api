@@ -1,6 +1,6 @@
 const bunyan = require('bunyan');
 const path = require('path');
-const e = require('./error');
+const e = require('./ErrorHelper');
 
 /* trace -> level 10 */
 module.exports.trace = function(reqPath, errKey, type, requester) {

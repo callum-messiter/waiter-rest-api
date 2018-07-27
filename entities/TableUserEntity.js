@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const e = require('../helpers/error').errors;
+const e = require('../helpers/ErrorHelper').errors;
 
 module.exports.getTableInfoByCustomer = (customerId) => {
 	return new Promise((resolve, reject) => {

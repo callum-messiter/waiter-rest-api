@@ -1,11 +1,13 @@
 const db = require('../config/database');
-const e = require('../helpers/error').errors;
+const e = require('../helpers/ErrorHelper').errors;
+const ParamHelper = require('../helpers/ParamHelper');
+const CategoryService = require('../services/CategoryService');
 
 module.exports.getCategoryOwnerId = (categoryId) => {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT restaurants.ownerId FROM restaurants ' +
-					  'JOIN menus ON menus.restaurantId = restaurants.restaurantId ' +
-					  'JOIN categories ON categories.menuId = menus.menuId ' +
+					  'LEFT JOIN menus ON menus.restaurantId = restaurants.restaurantId ' +
+					  'LEFT JOIN categories ON categories.menuId = menus.menuId ' +
 					  'WHERE categories.categoryId = ?';
 		db.query(query, categoryId, (err, data) => {
 			if(err) return resolve({ err: err });
@@ -25,15 +27,15 @@ module.exports.getCategoryItems = (categoryId) => {
 }
 
 module.exports.createNewCategory = (data) => {
-	const category = {
-		categoryId: data.categoryId,
-		menuId: data.menuId,
-		name: data.name,
-		description: data.description,
-		date: data.date,
-		active: data.active
-	}
 	return new Promise((resolve, reject) => {
+		const category = {
+			categoryId: data.categoryId,
+			menuId: data.menuId,
+			name: data.name,
+			description: data.description,
+			date: data.date,
+			active: data.active
+		}
 		const query = 'INSERT INTO categories SET ?';
 		db.query(query, category, (err, result) => {
 			if(err) return resolve({ err: err });
@@ -45,8 +47,10 @@ module.exports.createNewCategory = (data) => {
 
 module.exports.updateCategory = (categoryId, data) => {
 	return new Promise((resolve, reject) => {
+		const ep = CategoryService.editableParams;
+		const categoryObj = ParamHelper.buildObjBasedOnParams(data, ep);
 		const query = 'UPDATE categories SET ? WHERE categoryId = ?'
-		db.query(query, [data, categoryId], (err, result) => {
+		db.query(query, [categoryObj, categoryId], (err, result) => {
 			if(err) return resolve({ err: err });
 			if(result.affectedRows < 1) return resolve({ err: e.sqlUpdateFailed });
 			return resolve(result);

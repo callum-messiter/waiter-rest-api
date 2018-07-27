@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const e = require('../helpers/error').errors;
+const e = require('../helpers/ErrorHelper').errors;
 const roles = require('./UserRolesEntity').roles;
 
 module.exports.getRecipientRestaurantSockets = (restaurantId) => {

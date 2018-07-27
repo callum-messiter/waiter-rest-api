@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const roles = require('../entities/UserRolesEntity').roles;
 const db = require('../config/database');
-const e = require('../helpers/error').errors;
+const e = require('../helpers/ErrorHelper').errors;
 const config = require('../config/config');
 
 module.exports.createUserToken = (userId, userRole) => {

@@ -1,23 +1,25 @@
 const db = require('../config/database');
-const e = require('../helpers/error').errors;
+const e = require('../helpers/ErrorHelper').errors;
 
 module.exports.roles = {
 	diner: 100,
-	restaurateur: 200,
-	waitrAdmin: 900
+	restaurateur: 200
 }
 
 module.exports.roleIDs = {
 	diner: 100,
-	restaurateur: 200,
-	internalAdmin: 500,
-	externalAdmin: 900
+	restaurateur: 200
 }
 
-module.exports.setUserRole = function(userDetails) {
+module.exports.setUserRole = (data) => {
 	return new Promise((resolve, reject) => {
+		const detailsObj = {
+			userId: data.userId,
+			roleId: data.roleId,
+			startDate: data.startDate
+		};
 		const query = 'INSERT INTO userroles SET ?'
-		db.query(query, userDetails, (err, result) => {
+		db.query(query, detailsObj, (err, result) => {
 			if(err) return resolve({ err: err });
 			if(result.affectedRows < 1) return resolve({ err: e.sqlInsertFailed });
 			return resolve(result);
@@ -25,7 +27,7 @@ module.exports.setUserRole = function(userDetails) {
 	});
 }
 
-module.exports.getUserRole = function(userId) {
+module.exports.getUserRole = (userId) => {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT roleId FROM userroles WHERE userId = ?';
 		db.query(query, userId, (err, data) => {

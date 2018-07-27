@@ -5,8 +5,8 @@ const AuthEntity = require('../entities/AuthEntity');
 const TableUserEntity = require('../entities/TableUserEntity');
 const LiveKitchenEntity = require('../entities/LiveKitchenEntity');
 const roles = require('../entities/UserRolesEntity').roles;
-const log = require('../helpers/logger');
-const errors = require('../helpers/error').errors;
+const log = require('../helpers/LogHelper');
+const errors = require('../helpers/ErrorHelper').errors;
 
 const lrn = {
 	connection: 'connection',

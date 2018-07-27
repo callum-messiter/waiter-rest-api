@@ -7,7 +7,7 @@ const socket = require('socket.io');
 const db = require('./config/database');
 const conf = require('./config/config');
 const router = require('./router');
-const errorHandler = require('./helpers/error').errorHandler
+const errorHandler = require('./middleware/ErrorHandler');
 const liveKitchenHandler = require('./controllers/LiveKitchen').handler;
 
 console.log("      _    ____ ___     ");

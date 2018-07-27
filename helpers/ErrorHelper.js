@@ -1,5 +1,12 @@
-const log = require('./logger');
-const devErrors = require('./developerErrors');
+const log = require('./LogHelper');
+const regex = require('./ValidationHelper').regex;
+const passFormat = require('./ValidationHelper').passFormat;
+
+const devErrors = {
+	chargeNotFound: 'We store in the DB a reference to the Stripe charge. This error means this reference does not exist in the DB. It could mean that the order has not been paid for, e.g. if the order was rejected by the restaurant. It can also mean that the orderID provided represents a non-existent order.'
+	, cannotRefundUnpaidOrder: 'We store in the DB a reference to the charge when the order is placed. We only process the charge via Stripe once the restaurant accepts the order. Between these points, the reference to the charge specifies it as being unpaid. This error likely means the order was rejected by the restaurant.'
+	,
+}
 
 const errorTypes = {
 	auth: '_auth',
@@ -59,6 +66,13 @@ const errors = {
 		devMsg: defaultDevMsg,
 		userMsg: defaultUserMsg
 	},
+	incorrectUserType: {
+		statusCode: 400,
+		errorKey: 'incorrectUserType',
+		type: errorTypes.auth,
+		devMsg: 'The specified type does not match the user\'s role.',
+		userMsg: defaultUserMsg
+	},
 	insufficientPermissions: {
 		statusCode: 403,
 		errorKey: 'insufficientPermissions',
@@ -86,6 +100,38 @@ const errors = {
 		type: errorTypes.auth,
 		devMsg: defaultDevMsg,
 		userMsg: 'This account is not currently active. You can restore your account by clicking here.'
+	},
+	invalidUserType: {
+		statusCode: 401,
+		errorKey: 'invalidUserType',
+		type: errorTypes.auth,
+		devMsg: 'The user type must be one of the following: `diner`, `restaurateur`.', 
+		userMsg: 'This account is not currently active. You can restore your account by clicking here.'
+	},
+
+	/**
+		Field Validation
+	**/
+	passwordInvalid: {
+		statusCode: 400,
+		errorKey: 'passwordInvalid',
+		type: errorTypes.auth,
+		devMsg: `The request must contain a valid new password. Regex: ${regex.password}`,
+		userMsg: 'The password must contain ' + passFormat
+	},
+	emailInvalid: {
+		statusCode: 400,
+		errorKey: 'emailInvalid',
+		type: errorTypes.auth,
+		devMsg: `The request must contain a valid email address. Regex: ${regex.email}`,
+		userMsg: 'Please enter a valid email address.'
+	},
+	invalidParamValue: {
+		statusCode: 400,
+		errorKey: 'invalidParamValue',
+		type: errorTypes.auth,
+		devMsg: defaultDevMsg,
+		userMsg: defaultUserMsg
 	},
 
 	/**

@@ -1,13 +1,13 @@
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
-const e = require('../helpers/error').errors;
+const e = require('../helpers/ErrorHelper').errors;
 
 module.exports.getUserByEmail = (email) => {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT users.userId, users.firstName, users.lastName, users.email, ' + 
-					  'users.password, users.isVerified, users.isActive, userroles.roleId ' +
+					  'users.password, users.verified, users.active, userroles.roleId ' +
 					  'FROM users ' +
-			          'JOIN userroles ON userroles.userId = users.userId ' +
+			          'LEFT JOIN userroles ON userroles.userId = users.userId ' +
 			          'WHERE email = ?';
 		db.query(query, email, (err, data) => {
 			if(err) return resolve({ err: err });
@@ -45,16 +45,6 @@ module.exports.checkPassword = (plainTextPassword, hash) => {
 	});
 }
 
-module.exports.isEmailRegistered = function(email) {
-	return new Promise((resolve, reject) => {
-		const query = 'SELECT * FROM users WHERE email = ?';
-		db.query(query, email, (err, data) => {
-			if(err) return resolve({ err: err });
-			return resolve(data);
-		});
-	});
-}
-
 module.exports.hashPassword = function(password) {
 	return new Promise((resolve, reject) => {
 		bcrypt.genSalt(11, (err, salt) => {
@@ -67,10 +57,17 @@ module.exports.hashPassword = function(password) {
 	});
 }
 
-module.exports.createNewUser = function(user) {
+module.exports.createNewUser = function(data) {
 	return new Promise((resolve, reject) => {
+		const userObj = {
+			userId: data.userId,
+			email: data.email,
+			password: data.password,
+			firstName: data.firstName,
+			lastName: data.lastName
+		};
 		const query = 'INSERT INTO users SET ?';
-		db.query(query, user, (err, result) => {
+		db.query(query, userObj, (err, result) => {
 			if(err) return resolve({ err: err });
 			if(result.affectedRows < 1) return resolve({ err: e.sqlInsertFailed });
 			return resolve(result);
@@ -83,54 +80,6 @@ module.exports.updateUserDetails = function(userId, userDetails) {
 		const query = 'UPDATE users SET ? ' +
 					  'WHERE userId = ?';
 		db.query(query, [userDetails, userId], (err, result) => {
-			if(err) return resolve({ err: err });
-			if(result.affectedRows < 1) return resolve({ err: e.sqlUpdateFailed });
-			return resolve(result);
-		});
-	});
-}
-
-module.exports.updateUserPassword = function(userId, newPassword) {
-	return new Promise((resolve, reject) => {
-		const query = 'UPDATE users SET password = ? ' +
-					  'WHERE userId = ?';
-		db.query(query, [newPassword, userId], (err, result) => {
-			if(err) return resolve({ err: err });
-			if(result.affectedRows < 1) return resolve({ err: e.sqlUpdateFailed });
-			return resolve(result);
-		});
-	});
-}
-
-module.exports.updateUserEmailAddress = function(userId, newEmailAddress, isVerified=false) {
-	return new Promise((resolve, reject) => {
-		const query = 'UPDATE users SET email = ?, isVerified = ? ' +
-					  'WHERE userId = ?';
-		db.query(query, [newEmailAddress, isVerified, userId], (err, result) => {
-			if(err) return resolve({ err: err });
-			if(result.affectedRows < 1) return resolve({ err: e.sqlUpdateFailed });
-			if(result.changedRows < 1) return reject({ err: e.alreadyCurrentEmail });
-			return resolve(result);
-		});
-	});
-}
-
-module.exports.setUserAsVerified = function(userId) {
-	return new Promsie((resolve, reject) => {
-		const query = 'UPDATE users SET isVerified = 1 WHERE userId = ?';
-		db.query(query, userId, (err, result) => {
-			if(err) return resolve({ err: err });
-			if(result.affectedRows < 1) return resolve({ err: e.sqlUpdateFailed });
-			if(result.changedRows < 1) return reject(e.userAlreadyVerified);
-			return resolve(result);
-		});
-	});
-}
-
-module.exports.deactivateUser = function(userId) {
-	return new Promise((resolve, reject) => {
-		const query = 'UPDATE users SET isActive = 0 WHERE userId = ?';
-		db.query(query, userId, (err, result) => {
 			if(err) return resolve({ err: err });
 			if(result.affectedRows < 1) return resolve({ err: e.sqlUpdateFailed });
 			return resolve(result);

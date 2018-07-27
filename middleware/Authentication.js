@@ -1,16 +1,14 @@
 const AuthEntity = require('../entities/AuthEntity');
-const e = require('../helpers/error').errors;
+const e = require('../helpers/ErrorHelper').errors;
 
-const freeRoutes = [
-	'/auth/login', 
-	'/auth/login/d', 
-	'/user/create', 
-	'/user/r', 
-	'/user/d'
-];
+/*
+	In any route which uses this middleware, it will run before passing control to the relevant controller.
+	E.g. creating a new category has the flow:
 
+	PUT /category -> AuthenticationMiddleware (below) -> CategoryController
+
+*/
 module.exports = async function(req, res, next) {
-	if(freeRoutes.includes(req.path)) return next();
 	if(req.headers.authorization === undefined) return next(e.missingRequiredHeaders);
 
 	const payload = await AuthEntity.verifyToken(req.headers.authorization);

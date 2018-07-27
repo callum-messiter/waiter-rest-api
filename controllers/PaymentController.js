@@ -3,8 +3,8 @@ const RestaurantEntity = require('../entities/RestaurantEntity');
 const PaymentEntity = require('../entities/PaymentEntity');
 const AuthEntity = require('../entities/AuthEntity');
 const roles = require('../entities/UserRolesEntity').roles;
-const e = require('../helpers/error').errors;
-const p = require('../helpers/params');
+const e = require('../helpers/ErrorHelper').errors;
+const p = require('../helpers/ParamHelper');
 const _ = require('underscore');
 
 /* Stripe requires this info in the below format; we only handle the following values: */
@@ -15,7 +15,7 @@ const allowedCurrencies = ['gbp'];
 router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	const allowedRoles = [roles.restaurateur];
 	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
@@ -57,7 +57,7 @@ router.get('/stripeAccount/:restaurantId', (req, res, next) => {
 router.post('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	const allowedRoles = [roles.restaurateur];
 	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
@@ -105,7 +105,7 @@ router.post('/stripeAccount', (req, res, next) => {
 /* Update a restaurant's stripe account */
 router.patch('/stripeAccount', (req, res, next) => {
 	const u = res.locals.authUser;
-	const allowedRoles = [roles.restaurateur, roles.waitrAdmin];
+	const allowedRoles = [roles.restaurateur];
 	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {
@@ -152,7 +152,7 @@ router.patch('/stripeAccount', (req, res, next) => {
 router.get('/restaurantDetails/:restaurantId', (req, res, next) => {
 	const u = res.locals.authUser;
 
-	const allowedRoles = [roles.diner, roles.restaurateur, roles.waitrAdmin];
+	const allowedRoles = [roles.diner, roles.restaurateur];
 	if(!AuthEntity.userHasRequiredRole(u.userRole, allowedRoles)) throw e.insufficientRolePrivileges;
 
 	const requiredParams = {

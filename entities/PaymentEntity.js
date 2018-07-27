@@ -2,8 +2,8 @@ const db = require('../config/database');
 const config = require('../config/config');
 const stripe = require("stripe")(config.stripe.secretKey);
 stripe.setApiVersion('2018-02-28');
-const e = require('../helpers/error').errors;
-const defaultUserMsg = require('../helpers/error').defaultUserMsg;	
+const e = require('../helpers/ErrorHelper').errors;
+const defaultUserMsg = require('../helpers/ErrorHelper').defaultUserMsg;	
 
 module.exports.isStripeError = (err) => {
 	switch (err.type) {

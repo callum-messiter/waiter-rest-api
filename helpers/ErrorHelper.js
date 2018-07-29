@@ -145,7 +145,7 @@ const errors = {
 		userMsg: defaultUserMsg
 	},
 	emailAlreadyRegistered: {
-		statusCode: 404,
+		statusCode: 401,
 		errorKey: 'emailAlreadyRegistered',
 		type: errorTypes.user,
 		devMsg: defaultDevMsg,

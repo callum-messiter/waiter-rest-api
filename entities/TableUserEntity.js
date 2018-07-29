@@ -37,7 +37,7 @@ module.exports.addUserToTable = (data) => {
 	});
 }
 
-module.exports.getAllTableUsersForRestaurant = function(restaurantId) {
+module.exports.getAllTableUsersForRestaurant = (restaurantId) => {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT * FROM tableusers WHERE restaurantId = ?';
 		db.query(query, restaurantId, (err, data) => {

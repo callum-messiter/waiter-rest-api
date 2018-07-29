@@ -3,20 +3,10 @@ const UserEntity = require('../entities/UserEntity');
 const RestaurantEntity = require('../entities/RestaurantEntity');
 const PaymentEntity = require('../entities/PaymentEntity');
 const MenuEntity = require('../entities/MenuEntity');
-const ParamHelper = require('../helpers/ParamHelper');
 const roles = require('../entities/UserRolesEntity').roles;
 const e = require('../helpers/ErrorHelper').errors;
 
 module.exports.login = async (req) => {
-	const requiredParams = {
-		query: ['email', 'password'],
-		body: [],
-		route: []
-	}
-	if(ParamHelper.paramsMissing(req, requiredParams)) {
-		return { err: e.missingRequiredParams };
-	}
-
 	const getUser = await UserEntity.getUserByEmail(req.query.email);
 	if(getUser.err) return { err: getUser.err };
 	if(getUser.length < 1) return { err: e.emailNotRegistered };
@@ -73,18 +63,9 @@ module.exports.login = async (req) => {
 }
 
 module.exports.logout = async (req) => {
-	const requiredParams = {
-		query: ['userId'],
-		body: [],
-		route: []
-	}
-	if(ParamHelper.paramsMissing(req, requiredParams)) {
-		return { err: e.missingRequiredParams };
-	}
-
 	/* TODO: check user exists */
-	const token = await AuthEntity.createUserToken(user.userId, user.roleId);
-	if(token.err) return { err: token.err };
+	//const token = await AuthEntity.createUserToken(user.userId, user.roleId);
+	//if(token.err) return { err: token.err };
 	return true;
 }
 

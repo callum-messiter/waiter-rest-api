@@ -13,6 +13,25 @@ module.exports.isSet = (val) => {
 	return true;
 }
 
+module.exports.isSetAndNotEmpty = (param) => {
+	if(param === undefined) return false;
+	if(param === null) return false; 
+	if(param.toString().replace(/\s+/g, '') == '') return false;
+	return true;
+}
+
+module.exports.isEmpty = (obj) => {
+    for(var key in obj) {
+        if(obj.hasOwnProperty(key)) return false;
+    }
+    return true;
+}
+
+module.exports.isNonEmptyObj = (param) => {
+	if(typeof param === 'object' && !isEmpty(param)) return true;
+	return false;
+}
+
 module.exports.someFieldsAreEmpty = (values) => {
 	for( k of Object.keys(values) ) { 
 		if( !isSet(values[k]) ) return true 
@@ -29,10 +48,10 @@ module.exports.areEqual = (val1, val2) => {
 }
 
 module.exports.isValidEmail = (val) => {
-	return regex.email.test(String(val).toLowerCase());
+	return regex.email.test( String(val).toLowerCase() );
 }
 
 /* Minimum eight characters, at least one letter and one number */
 module.exports.isValidPassword = (val) => {
-	return regex.password.test(String(val));
+	return regex.password.test( String(val) );
 }

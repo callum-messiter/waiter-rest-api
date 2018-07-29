@@ -12,49 +12,28 @@ const shortId = require('shortid');
 const editableParams = ['firstName', 'lastName', 'email', 'password', 'active'];
 module.exports.editableParams = editableParams;
 
-module.exports.create = async (req) => {
-	if(req.body.type === undefined) return { err: e.missingRequiredParams };
-	let requiredBodyParams;
-	
-	if(req.body.type == 'diner') {
-		requiredBodyParams = ['email', 'password', 'firstName', 'lastName'];
-	} else if(req.body.type == 'restaurateur') {
-		requiredBodyParams = ['email', 'password', 'firstName', 'lastName', 'restaurantName'];
-	} else {
-		return { err: e.invalidUserType };
-	}
-
-	const requiredParams = {
-		query: [],
-		body: requiredBodyParams,
-		route: []
-	}
-	if(ParamHelper.paramsMissing(req, requiredParams)) {
-		return { err: e.missingRequiredParams };
-	}
-
-	if( !Validator.isValidEmail(req.body.email) ) {
+module.exports.create = async (params) => {
+	if( !Validator.isValidEmail(params.email) ) {
 		return { err: e.emailInvalid };
 	}
-	const usersWithEmail = await UserEntity.getUserByEmail(req.body.email);
-	console.log(usersWithEmail);
+	const usersWithEmail = await UserEntity.getUserByEmail(params.email);
 	if(usersWithEmail.err) return { err: usersWithEmail.err };
 	if(usersWithEmail.length > 0) {
 		return { err: e.emailAlreadyRegistered };
 	}
 
-	if( !Validator.isValidPassword(req.body.password) ) {
+	if( !Validator.isValidPassword(params.password) ) {
 		return { err: e.passwordInvalid };
 	}
-	const hash = await UserEntity.hashPassword(req.body.password);
+	const hash = await UserEntity.hashPassword(params.password);
 	if(hash.err) return { err: hash.err };
 
 	const userObj = {
 		userId: shortId.generate(),
-		email: req.body.email,
+		email: params.email,
 		password: hash,
-		firstName: req.body.firstName,
-		lastName: req.body.lastName
+		firstName: params.firstName,
+		lastName: params.lastName
 	}
 
 	const create = await UserEntity.createNewUser(userObj);
@@ -62,7 +41,7 @@ module.exports.create = async (req) => {
 
 	const userDetails = {
 		userId: userObj.userId,
-		roleId: roles[req.body.type],
+		roleId: roles[params.type],
 		startDate: myDate = moment().format("YYYY-MM-DD HH:mm:ss")
 	}
 
@@ -74,17 +53,18 @@ module.exports.create = async (req) => {
 			userId: userObj.userId, 
 			userRole: userDetails.roleId,
 			firstName: userObj.firstName,
-			lastName: userObj.lastName
+			lastName: userObj.lastName,
+			email: userObj.email
 			//isVerified: false,
 		}
 	}
 
 	/* When a restaurateur registers, create their restaurant and default menu */
-	if(req.body.type == 'restaurateur') {
+	if(params.type == 'restaurateur') {
 		const restaurant = {
 			restaurantId: shortId.generate(),
 			ownerId: userObj.userId,
-			name: req.body.restaurantName
+			name: params.restaurantName
 		};
 		const menu = {
 			menuId: shortId.generate(),
@@ -93,6 +73,7 @@ module.exports.create = async (req) => {
 		};
 
 		const createRest = await RestaurantEntity.createRestaurantWithDefaultMenu(restaurant, menu);
+		if(createRest.err) return { err: createRest.err };
 		response.restaurant = restaurant;
 		response.menu = menu;
 	}
@@ -100,41 +81,32 @@ module.exports.create = async (req) => {
 	return response;
 }
 
-module.exports.update = async (req, authUser) => {
-	const uid = req.params.userId;
-	const user = await UserEntity.getUserById(uid);
-	if(user.err) return { err: user.err };
-	if(user.length < 1) return { err: e.userNotFound };
-	/* Non-admin users can update only their own details; admins can do any */
-	if(!AuthService.userHasAccessRights(authUser, uid)) {
-		return { err: e.insufficientPermissions };
-	}
-
+module.exports.update = async (user, params) => {
 	let userObj = {}; /* Email/password can only be updated in isolation */
-	if(req.body.email) {
+	if(params.email) {
 		
-		const email = await validateRequestToUpdateEmail(req.body.email, uid);
+		const email = await validateRequestToUpdateEmail(params.email, user.userId);
 		if(email.err) return { err: email.err };
-		userObj.email = String(req.body.email).toLowerCase();
+		userObj.email = String(params.email).toLowerCase();
 		userObj.verified = false; /* User must verify the new email address */
 
-	} else if(req.body.newPassword) {
+	} else if(params.newPassword) {
 		
-		const pass = await validateRequestToUpdatePassword(req.body, user[0].password);
+		const pass = await validateRequestToUpdatePassword(params, user.password);
 		if(pass.err) return { err: pass.err };
 		/* If new password is valid, hash it */
-		const hash = await UserEntity.hashPassword(req.body.newPassword);
+		const hash = await UserEntity.hashPassword(params.newPassword);
 		if(hash.err) return { err: hash.err };
 		userObj.password = hash;
 
 	} else {
 		/* There are no required params, but at least one editable param must be provided */
-		const noValidParams = await ParamHelper.noValidParams(req.body, editableParams);
+		const noValidParams = await ParamHelper.noValidParams(params, editableParams);
 		if(noValidParams) return { err: e.missingRequiredParams };
-		userObj = ParamHelper.buildObjBasedOnParams(req.body, editableParams);
+		userObj = ParamHelper.buildObjBasedOnParams(params, editableParams);
 	}
 
-	const update = await UserEntity.updateUserDetails(uid, userObj);
+	const update = await UserEntity.updateUserDetails(user.userId, userObj);
 	return true;
 }
 

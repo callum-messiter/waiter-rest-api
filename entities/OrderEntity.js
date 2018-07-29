@@ -90,7 +90,7 @@ module.exports.getOrder = (orderId) => {
 
 				for(const i of items) {
 					order[0].items.push({
-						itemId: i.itemId,
+						id: i.itemId,
 						name: i.name,
 						price: i.price
 					});

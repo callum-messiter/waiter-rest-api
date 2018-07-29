@@ -8,33 +8,16 @@ const e = require('../helpers/ErrorHelper').errors;
 const ParamHelper = require('../helpers/ParamHelper');
 const moment = require('moment');
 
-module.exports.get = async (req, authUser) => {
-	const requiredParams = {
-		query: [],
-		body: [],
-		route: ['orderId']
-	}
-	if(ParamHelper.paramsMissing(req, requiredParams)) {
-		return { err: e.missingRequiredParams };
-	}
-
-	const ownerId = await OrderEntity.getOrderOwnerId(req.params.orderId, authUser.userRole);
-	if(ownerId.err) return { err: ownerId.err };
-	if(ownerId.length < 1) return { err: e.orderNotFound };
-	if(!AuthService.userHasAccessRights(authUser, ownerId[0].ownerId)) {
-		return { err: e.insufficientPermissions };
-	}
-
+module.exports.get = async (orderId) => {
 	const order = await OrderEntity.getOrder(req.params.orderId);
 	if(order.err) return { err: order.err };
-	if(order.length < 1) return { err: e.internalServerError }; /* We confirmed its existence already ^ */
+	if(order.length < 1) return { err: e.internalServerError };
 
 	let orderObj = {
-		orderId: order[0].orderId,
+		id: order[0].orderId,
 		price: order[0].price,
 		status: order[0].status,
-		time: moment(order[0].time).unix(),
-		items: order[0].items,
+		timePlaced: moment(order[0].time).unix(),
 		customer: {
 			id: order[0].customerId,
 			firstName: order[0].customerFName,
@@ -44,71 +27,23 @@ module.exports.get = async (req, authUser) => {
 			id: order[0].restaurantId,
 			name: order[0].restaurantName,
 			tableNo: order[0].tableNo
-		}
+		},
+		items: order[0].items
 	};
 	return orderObj;
 }
 
-module.exports.getList = async (req, authUser) => {
-	const requiredParams = {
-		query: ['liveOnly', 'ownerId'],
-		body: [],
-		route: []
-	}
-	if(ParamHelper.paramsMissing(req, requiredParams)) {
-		return { err: e.missingRequiredParams };
-	}
-
-	/* If requester is diner -> userId. If requester is restaurateur -> restaurantId */
-	const ordersOwnerId = req.query.ownerId;
-	const liveOnly = (req.query.liveOnly == 'true') ? true : false;
-
-	/* 
-		Only admins can access the resources of others.
-		Thus: 
-			if requester is restaurateur, `ownerId` param must be the ID of a restaurant owned by the requester
-			if requester is diner, `ownerId` param must a userId equal the userId of the requester
-	*/
-	let ownerId, potentialErr;
-	if(authUser.userRole == roles.restaurateur) {
-
-		/* The `ownerId` param is a restaurantId (the requester wants their restaurant's order history) */
-		restaurantOwner = await RestaurantEntity.getRestaurantOwnerId(ordersOwnerId);
-		if(restaurantOwner.err) return { err: restaurantOwner.err };
-		if(restaurantOwner.length < 1) return { err: e.restaurantNotFound };
-		ownerId = restaurantOwner[0].ownerId;
-
-	} else if(authUser.userRole == roles.diner) {
-
-		/* The `ownerId` param is a userId (the requester (diner) wants their own order history) */
-		diner = await UserEntity.getUserById(ordersOwnerId);
-		if(diner.err) return { err: diner.err };
-		if(diner.length < 1) return { err: e.userNotFound };
-		ownerId = diner[0].userId;
-
-	} else {
-		return { err: e.internalServerError }; /* Should never happen */
-	}
-
-	if(!AuthService.userHasAccessRights(authUser, ownerId)) {
-		return { err: e.insufficientPermissions };
-	}
-
-	const orders = await OrderEntity.getAllOrders(
-		ordersOwnerId, /* req.query.ownerId - a customerId or restaurantId */
-		authUser.userRole, 
-		liveOnly
-	);
+module.exports.getList = async (ownerId, userRole, liveOnly=false) => {
+	const orders = await OrderEntity.getAllOrders(ownerId, userRole, liveOnly);
 	if(orders.err) return { err: orders.err };
 
 	let list = [];
 	for(const o of orders) {
 		list.push({
-			orderId: o.orderId,
+			id: o.orderId,
 			price: o.price,
 			status: o.status,
-			time: moment(o.time).unix(),
-			items: o.items,
+			timePlaced: moment(o.time).unix(),
 			customer: {
 				id: o.customerId,
 				firstName: o.customerFName,
@@ -118,13 +53,14 @@ module.exports.getList = async (req, authUser) => {
 				id: o.restaurantId,
 				name: o.restaurantName,
 				tableNo: o.tableNo
-			}
+			},
+			items: o.items
 		});
 	}
 	return list;
 }
 
-module.exports.refund = async (req, authUser) => {
+module.exports.refund = async (orderId) => {
 	const order = await PaymentEntity.getOrderPaymentDetails(orderId);
 	if(order.err) return { err: order.err };
 	if(order.length < 1) return { err: e.chargeNotFound };

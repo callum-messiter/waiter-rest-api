@@ -2,8 +2,9 @@
     "name": "Waiter REST API",
     "version": "1.0.0",
     "description": "The RESTful API for waiter, serving all client applications.",
-    "url" : "http://localhost:3000/api",
+    "url" : "http://localhost:3000",
   	"sampleUrl" : "/api",
+  	"title": "Waitr API V1.0",
     "template": {
         "forceLanguage": "en"
     }

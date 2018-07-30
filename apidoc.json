@@ -7,5 +7,9 @@
   	"title": "Waitr API V1.0",
     "template": {
         "forceLanguage": "en"
-    }
+    },
+    "header": {
+		"title": "Getting Started",
+		"filename": "header.md"
+	}
 }

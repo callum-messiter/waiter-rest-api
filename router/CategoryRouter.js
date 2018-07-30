@@ -12,22 +12,24 @@ const AuthMiddleware = require('../middleware/Authentication');
  * @apiGroup Category
  * @apiVersion 1.0.0
  * @apiName Create
+ * @apiUse AuthHeader
+ * @apiPermission restaurateur
  * @apiDescription A user may add a new category to an existing menu.
  * @apiParam {String} menuId The ID of the menu to which the category is to be added
  * @apiParam {String} name The category name, e.g. "Desserts"
  * @apiParam {String} [description] A string describing the category
  * @apiSuccessExample {json} Success-Response (201):
- *{
- *    "categoryId": String 
- *}
+ * {
+ *     "categoryId": String 
+ * }
  * @apiErrorExample menuNotFound (404):
- *{
- *   "statusCode": 404,
- *   "errorKey": "menuNotFound",
- *   "type": "_auth",
- *   "devMsg": String,
- *   "userMsg": String
- *}
+ * {
+ *     "statusCode": 404,
+ *     "errorKey": "menuNotFound",
+ *     "type": String,
+ *     "devMsg": String,
+ *     "userMsg": String
+ * }
  */
 router.post('/category', AuthMiddleware, (req, res, next) => {
 	CategoryController.create(req, res, next);
@@ -38,6 +40,8 @@ router.post('/category', AuthMiddleware, (req, res, next) => {
  * @apiGroup Category
  * @apiVersion 1.0.0
  * @apiName Update
+ * @apiUse AuthHeader
+ * @apiPermission restaurateur
  * @apiDescription The details of a category may be updated by the user.
  *
  * @apiParam {String} categoryId The ID of the category to be updated
@@ -45,13 +49,13 @@ router.post('/category', AuthMiddleware, (req, res, next) => {
  * @apiParam {String} [description] A new description for the category
  * @apiParam {Boolean} [active] This parameter can be used to activate or deactivate a category (only active categories will be visible to customers).
  * @apiErrorExample categoryNotFound (404):
- *{
- *   "statusCode": 404,
- *   "errorKey": "categoryNotFound",
- *   "type": "_auth",
- *   "devMsg": String,
- *   "userMsg": String
- *}
+ * {
+ *     "statusCode": 404,
+ *     "errorKey": "categoryNotFound",
+ *     "type": String,
+ *     "devMsg": String,
+ *     "userMsg": String
+ * }
  */
 router.patch('/category/:categoryId', AuthMiddleware, (req, res, next) => {
 	CategoryController.update(req, res, next);

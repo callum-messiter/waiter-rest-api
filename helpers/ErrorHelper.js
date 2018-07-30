@@ -191,11 +191,11 @@ const errors = {
 		userMsg: defaultUserMsg
 	},
 	malformedRestaurantDetails: {
-		statusCode: 500,
+		statusCode: 400,
 		errorKey: 'malformedRestaurantDetails',
 		type: errorTypes.restaurant,
 		devMsg: defaultDevMsg,
-		userMsg: defaultUserMsg
+		userMsg: 'The server will parse the request body and check that the values are correctly formatted according to Stripe\'s requirements. Any malformatted values will be omitted. This error is returned when no values are correctly formatted.'
 	},
 	multipleStripeAccountsForbidden: {
 		statusCode: 409,

@@ -18,58 +18,58 @@ const e = require('../helpers/ErrorHelper').errors;
  *
  * @apiParam {String} email The email address which is associated to the user's Waitr account
  * @apiParam {String} password The user's password
- * @apiSuccessExample {json} Success-Response (200):
- *{
- *    "user": {
- *        "userId": String,
- *        "firstName": String,
- *        "lastName": String,
- *        "email": String,
- *        "role": Int,
- *        "token": String
- *    },
- *    "restaurant": {
- *        "restaurantId": String,
- *        "name": String,
- *        "isStripeAccountVerified": Bool
- *    },
- *    "menu": {
- *        "menuId": String,
- *        "name": String
- *    }
- *}
- * @apiErrorExample emailNotRegistered (401):
- *{
- *   "statusCode": 401,
- *   "errorKey": "emailNotRegistered",
- *   "type": "_auth",
- *   "devMsg": String,
- *   "userMsg": String
- *}
- * @apiErrorExample passwordIncorrect (401):
- *{
- *   "statusCode": 401,
- *   "errorKey": "passwordIncorrect",
- *   "type": "_auth",
- *   "devMsg": String,
- *   "userMsg": String
- *}
- * @apiErrorExample restaurantNotFound (404):
- *{
- *   "statusCode": 404,
- *   "errorKey": "restaurantNotFound",
- *   "type": "_auth",
- *   "devMsg": String,
- *   "userMsg": String
- *}
- * @apiErrorExample menuNotFound (404):
- *{
- *   "statusCode": 404,
- *   "errorKey": "menuNotFound",
- *   "type": "_auth",
- *   "devMsg": String,
- *   "userMsg": String
- *}
+ * @apiSuccessExample {json} Success-Response (200): 
+ * {  
+ *     "user": {  
+ *         "userId": String,
+ *         "firstName": String,
+ *         "lastName": String,
+ *         "email": String,
+ *         "role": Int,
+ *         "token": String
+ *     },
+ *     "restaurant": {  
+ *         "restaurantId": String,
+ *         "name": String,
+ *         "isStripeAccountVerified": Bool
+ *     },
+ *     "menu": {  
+ *         "menuId": String,
+ *         "name": String
+ *     }
+ * }
+ * @apiErrorExample emailNotRegistered (401): 
+ * {  
+ *     "statusCode": 401,
+ *     "errorKey": "emailNotRegistered",
+ *     "type": String,
+ *     "devMsg": String,
+ *     "userMsg": String
+ * }
+ * @apiErrorExample passwordIncorrect (401): 
+ * {
+ *     "statusCode":  401,
+ *     "errorKey":  "passwordIncorrect",
+ *     "type":  String,
+ *     "devMsg":  String,
+ *     "userMsg":  String
+ * }
+ * @apiErrorExample restaurantNotFound (404): 
+ * {
+ *     "statusCode":  404,
+ *     "errorKey":  "restaurantNotFound",
+ *     "type":  String,
+ *     "devMsg":  String,
+ *     "userMsg":  String
+ * }
+ * @apiErrorExample menuNotFound (404): 
+ * {
+ *     "statusCode":  404,
+ *     "errorKey":  "menuNotFound",
+ *     "type":  String,
+ *     "devMsg":  String,
+ *     "userMsg":  String
+ * }
  */
 router.get('/auth/login', (req, res, next) => {
 	AuthController.login(req, res, next);

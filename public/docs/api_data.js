@@ -1,4 +1,4 @@
-[
+define({ "api": [
   {
     "type": "get",
     "url": "/auth/login",
@@ -30,8 +30,8 @@
     "success": {
       "examples": [
         {
-          "title": "Success-Response (200):",
-          "content": "{\n   \"user\": {\n       \"userId\": String,\n       \"firstName\": String,\n       \"lastName\": String,\n       \"email\": String,\n       \"role\": Int,\n       \"token\": String\n   },\n   \"restaurant\": {\n       \"restaurantId\": String,\n       \"name\": String,\n       \"isStripeAccountVerified\": Bool\n   },\n   \"menu\": {\n       \"menuId\": String,\n       \"name\": String\n   }\n}",
+          "title": "Success-Response (200): ",
+          "content": "{  \n    \"user\": {  \n        \"userId\": String,\n        \"firstName\": String,\n        \"lastName\": String,\n        \"email\": String,\n        \"role\": Int,\n        \"token\": String\n    },\n    \"restaurant\": {  \n        \"restaurantId\": String,\n        \"name\": String,\n        \"isStripeAccountVerified\": Bool\n    },\n    \"menu\": {  \n        \"menuId\": String,\n        \"name\": String\n    }\n}",
           "type": "json"
         }
       ]
@@ -39,23 +39,23 @@
     "error": {
       "examples": [
         {
-          "title": "emailNotRegistered (401):",
-          "content": "{\n  \"statusCode\": 401,\n  \"errorKey\": \"emailNotRegistered\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "title": "emailNotRegistered (401): ",
+          "content": "{  \n    \"statusCode\": 401,\n    \"errorKey\": \"emailNotRegistered\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         },
         {
-          "title": "passwordIncorrect (401):",
-          "content": "{\n  \"statusCode\": 401,\n  \"errorKey\": \"passwordIncorrect\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "title": "passwordIncorrect (401): ",
+          "content": "{\n    \"statusCode\":  401,\n    \"errorKey\":  \"passwordIncorrect\",\n    \"type\":  String,\n    \"devMsg\":  String,\n    \"userMsg\":  String\n}",
           "type": "json"
         },
         {
-          "title": "restaurantNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"restaurantNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "title": "restaurantNotFound (404): ",
+          "content": "{\n    \"statusCode\":  404,\n    \"errorKey\":  \"restaurantNotFound\",\n    \"type\":  String,\n    \"devMsg\":  String,\n    \"userMsg\":  String\n}",
           "type": "json"
         },
         {
-          "title": "menuNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"menuNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "title": "menuNotFound (404): ",
+          "content": "{\n    \"statusCode\":  404,\n    \"errorKey\":  \"menuNotFound\",\n    \"type\":  String,\n    \"devMsg\":  String,\n    \"userMsg\":  String\n}",
           "type": "json"
         }
       ]
@@ -76,6 +76,13 @@
     "group": "Category",
     "version": "1.0.0",
     "name": "Create",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user may add a new category to an existing menu.</p>",
     "parameter": {
       "fields": {
@@ -108,7 +115,7 @@
       "examples": [
         {
           "title": "Success-Response (201):",
-          "content": "{\n   \"categoryId\": String \n}",
+          "content": "{\n    \"categoryId\": String \n}",
           "type": "json"
         }
       ]
@@ -117,7 +124,7 @@
       "examples": [
         {
           "title": "menuNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"menuNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"menuNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -129,7 +136,20 @@
       {
         "url": "/api/category"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "patch",
@@ -138,6 +158,13 @@
     "group": "Category",
     "version": "1.0.0",
     "name": "Update",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
     "description": "<p>The details of a category may be updated by the user.</p>",
     "parameter": {
       "fields": {
@@ -177,7 +204,7 @@
       "examples": [
         {
           "title": "categoryNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"categoryNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"categoryNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -189,7 +216,20 @@
       {
         "url": "/api/category/:categoryId"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "post",
@@ -198,6 +238,13 @@
     "group": "Item",
     "version": "1.0.0",
     "name": "Create",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user may add a new item to an existing menu category.</p>",
     "parameter": {
       "fields": {
@@ -237,7 +284,7 @@
       "examples": [
         {
           "title": "Success-Response (201):",
-          "content": "{\n   \"itemId\": String \n}",
+          "content": "{\n    \"itemId\": String \n}",
           "type": "json"
         }
       ]
@@ -246,7 +293,7 @@
       "examples": [
         {
           "title": "categoryNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"categoryNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"categoryNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -258,7 +305,20 @@
       {
         "url": "/api/item"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "patch",
@@ -267,6 +327,13 @@
     "group": "Item",
     "version": "1.0.0",
     "name": "Update",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
     "description": "<p>The details of an item may be updated by the user.</p>",
     "parameter": {
       "fields": {
@@ -313,7 +380,7 @@
       "examples": [
         {
           "title": "itemNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"itemNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"itemNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -325,7 +392,20 @@
       {
         "url": "/api/item/:itemId"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "post",
@@ -334,6 +414,13 @@
     "group": "Menu",
     "version": "1.0.0",
     "name": "Create",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user can add a new menu to an existing restaurant.</p>",
     "parameter": {
       "fields": {
@@ -366,7 +453,7 @@
       "examples": [
         {
           "title": "Success-Response (201):",
-          "content": "{\n   \"menuId\": String\n}",
+          "content": "{\n    \"menuId\": String\n}",
           "type": "json"
         }
       ]
@@ -375,7 +462,7 @@
       "examples": [
         {
           "title": "restaurantNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"restaurantNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"restaurantNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -387,7 +474,20 @@
       {
         "url": "/api/menu"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "get",
@@ -396,6 +496,18 @@
     "group": "Menu",
     "version": "1.0.0",
     "name": "Get",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      },
+      {
+        "name": "diner",
+        "title": "Diner (Role 100)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user can retrieve a menu, including all its categories and items.</p>",
     "parameter": {
       "fields": {
@@ -414,7 +526,7 @@
       "examples": [
         {
           "title": "Success-Response (200):",
-          "content": "{\n   \"id\": String,\n   \"name\": String,\n   \"restaurant\": {\n      \"id\": String,\n      \"name\": String\n   },\n   \"categories\": [\n      {\n          \"id\": String,\n          \"name\": String,\n          \"items\": [\n               {\n                   \"id\": String,\n                   \"name\": String,\n                   \"price\": Float,\n                   \"description\": String\n               }, \n               ...\n          ]\n      },\n      ...\n   ] \n}",
+          "content": "{  \n    \"id\": String,\n    \"name\": String,\n    \"restaurant\": {  \n        \"id\": String,\n        \"name\": String\n    },\n    \"categories\": [  \n        {  \n            \"id\": String,\n            \"name\": String,\n            \"items\": [  \n                {  \n                    \"id\": String,\n                    \"name\": String,\n                    \"price\": Float,\n                    \"description\": String\n                }\n            ]\n        }\n    ]\n}",
           "type": "json"
         }
       ]
@@ -423,7 +535,7 @@
       "examples": [
         {
           "title": "menuNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"menuNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"menuNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -435,15 +547,35 @@
       {
         "url": "/api/menu/:menuId"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
-    "type": "post",
+    "type": "patch",
     "url": "/menu/:menuId",
     "title": "Update",
     "group": "Menu",
     "version": "1.0.0",
     "name": "Update",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user can add a new menu to an existing restaurant.</p>",
     "parameter": {
       "fields": {
@@ -483,7 +615,7 @@
       "examples": [
         {
           "title": "menuNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"menuNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"menuNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -495,7 +627,20 @@
       {
         "url": "/api/menu/:menuId"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "get",
@@ -504,6 +649,18 @@
     "group": "Order",
     "version": "1.0.0",
     "name": "Get",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      },
+      {
+        "name": "diner",
+        "title": "Diner (Role 100)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user can retrieve a specific order. Useful when a customer wishes to see a breakdown of an order they've placed.</p>",
     "parameter": {
       "fields": {
@@ -522,7 +679,7 @@
       "examples": [
         {
           "title": "Success-Response (200):",
-          "content": "{\n\t\t\"id\": String,\n\t\t\"price\": Float,\n\t\t\"status\": Int,\n\t\t\"timePlaced\": Int,\n\t\t\"customer\": {\n\t\t\t\"id\": String,\n\t\t\t\"firstName\": String,\n\t\t\t\"lastName\": String\n\t\t},\n\t\t\"restaurant\": {\n\t\t\t\"id\": String,\n\t\t\t\"name\": String,\n\t\t\t\"tableNo\": String\n\t\t},\n     \"items\": [\n         {\n             \"id\": String,\n             \"name\": String,\n             \"price\": Float\n         },\n         ...\n     ]\n}",
+          "content": "{  \n    \"id\": String,\n    \"price\": Float,\n    \"status\": Int,\n    \"timePlaced\": Int,\n    \"customer\": {  \n        \"id\": String,\n        \"firstName\": String,\n        \"lastName\": String\n    },\n    \"restaurant\": {  \n        \"id\": String,\n        \"name\": String,\n        \"tableNo\": String\n    },\n    \"items\": [  \n        {  \n            \"id\": String,\n            \"name\": String,\n            \"price\": Float\n        }\n    ]\n}",
           "type": "json"
         }
       ]
@@ -531,7 +688,7 @@
       "examples": [
         {
           "title": "orderNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"orderNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"orderNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -543,15 +700,40 @@
       {
         "url": "/api/order/:orderId"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "get",
-    "url": "/order/:ownerId",
+    "url": "/order",
     "title": "List",
     "group": "Order",
     "version": "1.0.0",
     "name": "List",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      },
+      {
+        "name": "diner",
+        "title": "Diner (Role 100)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user can retrieve a list of orders; either all orders placed by a particular diner, or all those placed at a particular restaurant.</p>",
     "parameter": {
       "fields": {
@@ -577,7 +759,7 @@
       "examples": [
         {
           "title": "Success-Response (200):",
-          "content": "{\n [\n   {\n\t\t   \"id\": String,\n\t\t   \"price\": Float,\n\t\t   \"status\": Int,\n\t\t   \"timePlaced\": Int,\n\t\t   \"customer\": {\n\t\t\t   \"id\": String,\n\t\t\t   \"firstName\": String,\n\t\t\t   \"lastName\": String\n\t\t   },\n\t\t   \"restaurant\": {\n\t\t\t   \"id\": String,\n\t\t\t   \"name\": String,\n\t\t\t   \"tableNo\": String\n\t\t   },\n        \"items\": [\n           {\n                \"id\": String,\n                \"name\": String,\n                \"price\": Float\n           },\n           ...\n        ]\n   },\n   ...\n ]\n}",
+          "content": "[  \n    {  \n        \"id\": String,\n        \"price\": Float,\n        \"status\": Int,\n        \"timePlaced\": Int,\n        \"customer\": {  \n            \"id\": String,\n            \"firstName\": String,\n            \"lastName\": String\n        },\n        \"restaurant\": {  \n            \"id\": String,\n            \"name\": String,\n            \"tableNo\": String\n        },\n        \"items\": [  \n            {  \n                \"id\": String,\n                \"name\": String,\n                \"price\": Float\n            }\n        ]\n    }\n]",
           "type": "json"
         }
       ]
@@ -586,12 +768,12 @@
       "examples": [
         {
           "title": "restaurantNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"restaurantNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"restaurantNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         },
         {
           "title": "userNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"userNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"userNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -601,9 +783,22 @@
     "groupDescription": "<p>All endpoints relating to the Order resource</p>",
     "sampleRequest": [
       {
-        "url": "/api/order/:ownerId"
+        "url": "/api/order"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "patch",
@@ -612,6 +807,13 @@
     "group": "Order",
     "version": "1.0.0",
     "name": "Refund",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
     "description": "<p>A restaurant can refund an existing paid-for order. The server calls the Stripe API to reverse the charge.</p>",
     "parameter": {
       "fields": {
@@ -630,22 +832,22 @@
       "examples": [
         {
           "title": "orderNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"orderNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"orderNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         },
         {
           "title": "chargeNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"chargeNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"chargeNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         },
         {
           "title": "cannotRefundUnpaidOrder (401):",
-          "content": "{\n  \"statusCode\": 401,\n  \"errorKey\": \"cannotRefundUnpaidOrder\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 401,\n    \"errorKey\": \"cannotRefundUnpaidOrder\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         },
         {
           "title": "stripeError (4XX, 5XX):",
-          "content": "{\n  \"statusCode\": Int,\n  \"errorKey\": \"stripeError\",\n  \"type\": \"_stripe\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": Int,\n    \"errorKey\": \"stripeError\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -657,7 +859,123 @@
       {
         "url": "/api/order/:orderId"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "post",
+    "url": "/restaurant",
+    "title": "Create",
+    "group": "Restaurant",
+    "version": "1.0.0",
+    "name": "Create",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
+    "description": "<p>A user can create - and assign to himself - a new restaurant.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "ownerId",
+            "description": "<p>The ID of the user to whom the restaurant is to be assigned</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>The name of the restaurant, e.g. &quot;Fellsville Tandoori&quot;</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "description",
+            "description": "<p>A string describing the restaurant, e.g. &quot;Fellsville's favourite Indian restaurant&quot;</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "location",
+            "description": "<p>The name of the town in which the restaurant is based</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "email",
+            "description": "<p>The restaurant's contact email address</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "phoneNumber",
+            "description": "<p>The restaurant's contact number</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response (201):",
+          "content": "{  \n    \"restaurantId\": String\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "userNotFound (404):",
+          "content": "{  \n    \"statusCode\": 404,\n    \"errorKey\": \"userNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "C:/users/cal/desktop/waitr/waitr-api/router/RestaurantRouter.js",
+    "groupTitle": "Restaurant",
+    "groupDescription": "<p>All endpoints relating to the Restaurant resource</p>",
+    "sampleRequest": [
+      {
+        "url": "/api/restaurant"
+      }
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "get",
@@ -666,7 +984,32 @@
     "group": "Restaurant",
     "version": "1.0.0",
     "name": "Get",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      },
+      {
+        "name": "diner",
+        "title": "Diner (Role 100)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user can retrieve a particular restaurant.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "restaurantId",
+            "description": "<p>The ID of the restaurant to be retrieved</p>"
+          }
+        ]
+      }
+    },
     "success": {
       "examples": [
         {
@@ -680,7 +1023,7 @@
       "examples": [
         {
           "title": "restaurantNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"restaurantNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{  \n    \"statusCode\": 404,\n    \"errorKey\": \"restaurantNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -692,7 +1035,20 @@
       {
         "url": "/api/restaurant/:restaurantId"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "get",
@@ -701,12 +1057,19 @@
     "group": "Restaurant",
     "version": "1.0.0",
     "name": "List",
+    "permission": [
+      {
+        "name": "diner",
+        "title": "Diner (Role 100)",
+        "description": ""
+      }
+    ],
     "description": "<p>A user can retrieve a complete list of Waitr's active restaurants.</p>",
     "success": {
       "examples": [
         {
           "title": "Success-Response (200):",
-          "content": "{\n  [\n    {\n      \"restaurantId\": String,\n      \"name\": String,\n      \"menus\": [\n      \t{\n\t            \"id\": String,\n\t            \"name\": String,\n\t            \"restaurant\": {\n\t                \"id\": String,\n\t                \"name\": String\n\t            },\n\t            \"categories\": [\n\t                {\n\t                    \"id\": String,\n\t                    \"name\": String,\n\t                    \"items\": [\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t    \"id\": String,\n\t\t\t\t\t\t        \"name\": String,\n\t\t\t\t\t\t        \"price\": Float,\n\t\t\t\t\t\t        \"description\": String\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t...\n\t                    ]\n\t                },\n\t\t\t\t\t...\n         \t]\n          },\n          ...\n      ]\n    },\n    ...\n  ]\n}",
+          "content": "[  \n    {  \n        \"restaurantId\": String,\n        \"name\": String,\n        \"menus\": [  \n            {  \n                \"id\": String,\n                \"name\": String,\n                \"restaurant\": {  \n                    \"id\": String,\n                    \"name\": String\n                },\n                \"categories\": [  \n                    {  \n                        \"id\": String,\n                        \"name\": String,\n                        \"items\": [  \n                            {  \n                                \"id\": String,\n                                \"name\": String,\n                                \"price\": Float,\n                                \"description\": String\n                            }\n                        ]\n                    }\n                ]\n            }\n        ]\n    }\n]",
           "type": "json"
         }
       ]
@@ -718,7 +1081,20 @@
       {
         "url": "/api/restaurant"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "get",
@@ -727,12 +1103,32 @@
     "group": "Restaurant",
     "version": "1.0.0",
     "name": "List",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
     "description": "<p>A restaurant can retrieve an up-to-date breakdown of which of their tables are occupied by active customers.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "restaurantId",
+            "description": "<p>The ID of the restaurant whose up-to-date table breakdown is to be retrieved</p>"
+          }
+        ]
+      }
+    },
     "success": {
       "examples": [
         {
           "title": "Success-Response (200):",
-          "content": " {\n   \"tableUsers\": [\n        {\n\t\t\t   \"id\": tu.id,\n\t\t\t   \"restaurantId\": String,\n\t\t\t   \"customerId\": String,\n\t\t\t   \"tableNo\": String,\n\t\t\t   \"time\": Int\n\t\t   },\n\t\t   ...\n    ]\n }",
+          "content": "[  \n    {  \n        \"id\": String,\n        \"restaurantId\": String,\n        \"customerId\": String,\n        \"tableNo\": String,\n        \"time\": Int\n    }\n]",
           "type": "json"
         }
       ]
@@ -741,7 +1137,7 @@
       "examples": [
         {
           "title": "restaurantNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"restaurantNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{  \n    \"statusCode\": 404,\n    \"errorKey\": \"restaurantNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -753,7 +1149,220 @@
       {
         "url": "/api/restaurant/:restaurantId/tableUsers"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "patch",
+    "url": "/restaurant/:restaurantId",
+    "title": "Update",
+    "group": "Restaurant",
+    "version": "1.0.0",
+    "name": "Update",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
+    "description": "<p>A user can update the details of an existing restaurant.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "name",
+            "description": "<p>The new name of the restaurant, e.g. &quot;Fellsville Best Tandoori&quot;</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "description",
+            "description": "<p>A string describing the restaurant, e.g. &quot;Fellsville's favourite Indian cuisine&quot;</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "location",
+            "description": "<p>The name of the town in which the restaurant is based</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "email",
+            "description": "<p>The restaurant's contact email address</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "phoneNumber",
+            "description": "<p>The restaurant's contact number</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "active",
+            "description": "<p>This parameter can be used to activate or deactivate a restaurant (only active restaurants are visible to customers).</p>"
+          }
+        ]
+      }
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "restaurantNotFound (404):",
+          "content": "{  \n    \"statusCode\": 404,\n    \"errorKey\": \"restaurantNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "C:/users/cal/desktop/waitr/waitr-api/router/RestaurantRouter.js",
+    "groupTitle": "Restaurant",
+    "groupDescription": "<p>All endpoints relating to the Restaurant resource</p>",
+    "sampleRequest": [
+      {
+        "url": "/api/restaurant/:restaurantId"
+      }
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "patch",
+    "url": "/restaurant/:restaurantId/stripeAccount",
+    "title": "UpdateStripeAccount",
+    "group": "Restaurant",
+    "version": "1.0.0",
+    "name": "UpdateStripeAccount",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      }
+    ],
+    "description": "<p>A user can update the stripe-account details of an existing restaurant. This endpoint can also be used to initially <em>create</em> the restaurant's Stripe account.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "restaurantId",
+            "description": "<p>The ID of the restaurant whose Stripe acccount is to be updated/created</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "type",
+            "description": "<p>The type of Stripe account that is to be created. Must be 'custom'</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "country",
+            "description": "<p>The country to which the Stripe account will be associated. Must be the two-letter country code 'GB'</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "email",
+            "description": "<p>The email address to be assigned to the Stripe account</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "external_account",
+            "description": "<p>A bank account in tokenised form, provided by the Stripe API. It is the responsiblity of the client to first call Stripe's API to retrieve a toke.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "tos_acceptance",
+            "description": "<p>A stringified object detailing the restaurateur's acceptance of Stripe's terms-of-services agreement. Refer to Stripe's docs for info about specific properties: https://stripe.com/docs/connect/required-verification-information</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "legal_entity",
+            "description": "<p>An stringified object detailing such things as the restaurant's owner. Refer to Stripe's docs for info about specific properties: https://stripe.com/docs/connect/required-verification-information</p>"
+          }
+        ]
+      }
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "restaurantNotFound (404):",
+          "content": "{  \n    \"statusCode\": 404,\n    \"errorKey\": \"restaurantNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
+          "type": "json"
+        },
+        {
+          "title": "malformedRestaurantDetails (400):",
+          "content": "{  \n    \"statusCode\": 400,\n    \"errorKey\": \"malformedRestaurantDetails\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "C:/users/cal/desktop/waitr/waitr-api/router/RestaurantRouter.js",
+    "groupTitle": "Restaurant",
+    "groupDescription": "<p>All endpoints relating to the Restaurant resource</p>",
+    "sampleRequest": [
+      {
+        "url": "/api/restaurant/:restaurantId/stripeAccount"
+      }
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "post",
@@ -762,6 +1371,18 @@
     "group": "User",
     "version": "1.0.0",
     "name": "Create",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      },
+      {
+        "name": "diner",
+        "title": "Diner (Role 100)",
+        "description": ""
+      }
+    ],
     "description": "<p>Handles the creation of a new user account.</p>",
     "parameter": {
       "fields": {
@@ -815,7 +1436,7 @@
       "examples": [
         {
           "title": "Success-Response (201):",
-          "content": "{\n   \"user\": {\n       \"id\": String,\n       \"firstName\": String,\n       \"lastName\": String,\n       \"email\": String,\n       \"role\": Int\n   },\n   \"restaurant\": {\n       \"id\": String,\n       \"ownerId\": String,\n       \"name\": String\n   },\n   \"menu\": {\n       \"id\": String,\n       \"restaurantId\": String,\n       \"name\": String\n   }\n}",
+          "content": "{  \n    \"user\": {  \n        \"id\": String,\n        \"firstName\": String,\n        \"lastName\": String,\n        \"email\": String,\n        \"role\": Int\n    },\n    \"restaurant\": {  \n        \"id\": String,\n        \"ownerId\": String,\n        \"name\": String\n    },\n    \"menu\": {  \n        \"id\": String,\n        \"restaurantId\": String,\n        \"name\": String\n    }\n}",
           "type": "json"
         }
       ]
@@ -824,22 +1445,22 @@
       "examples": [
         {
           "title": "invalidUserType (401):",
-          "content": "{\n  \"statusCode\": 401,\n  \"errorKey\": \"invalidUserType\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 401,\n    \"errorKey\": \"invalidUserType\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         },
         {
           "title": "emailInvalid (400):",
-          "content": "{\n  \"statusCode\": 400,\n  \"errorKey\": \"emailInvalid\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 400,\n    \"errorKey\": \"emailInvalid\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         },
         {
           "title": "emailAlreadyRegistered (401):",
-          "content": "{\n  \"statusCode\": 401,\n  \"errorKey\": \"emailAlreadyRegistered\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 401,\n    \"errorKey\": \"emailAlreadyRegistered\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         },
         {
           "title": "passwordInvalid (400):",
-          "content": "{\n  \"statusCode\": 400,\n  \"errorKey\": \"passwordInvalid\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 400,\n    \"errorKey\": \"passwordInvalid\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -851,7 +1472,20 @@
       {
         "url": "/api/user"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   },
   {
     "type": "patch",
@@ -860,6 +1494,18 @@
     "group": "User",
     "version": "1.0.0",
     "name": "Update",
+    "permission": [
+      {
+        "name": "restaurateur",
+        "title": "Restaurateur (Role 200)",
+        "description": ""
+      },
+      {
+        "name": "diner",
+        "title": "Diner (Role 100)",
+        "description": ""
+      }
+    ],
     "description": "<p>Handles the modification of the details of an existing user account.</p>",
     "parameter": {
       "fields": {
@@ -913,7 +1559,7 @@
       "examples": [
         {
           "title": "userNotFound (404):",
-          "content": "{\n  \"statusCode\": 404,\n  \"errorKey\": \"userNotFound\",\n  \"type\": \"_auth\",\n  \"devMsg\": String,\n  \"userMsg\": String\n}",
+          "content": "{\n    \"statusCode\": 404,\n    \"errorKey\": \"userNotFound\",\n    \"type\": String,\n    \"devMsg\": String,\n    \"userMsg\": String\n}",
           "type": "json"
         }
       ]
@@ -925,6 +1571,19 @@
       {
         "url": "/api/user/:userId"
       }
-    ]
+    ],
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p><code>&lt;token&gt;</code>.</p>"
+          }
+        ]
+      }
+    }
   }
-]
+] });

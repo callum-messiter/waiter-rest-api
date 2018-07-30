@@ -1,11 +1,20 @@
-/* 
-	*GET*: retrieves a resources at the specified URL, e.g. /resources/{resourceId}
-	*POST*: creates a new resource under the /resources URL, or collection. Usually the resource identifier is returned by the server
-	*PUT*: creates a new resource under the /resources/{resourceId} URL, where the resource ID is specified in the request URL. If the resources already exists, it will
-	be replaced in its entirety (PUT is idempotent)
-	*PATCH*: performs a partial update of a resource at the provided URL 
-*/
+/**
+ * @apiDefine AuthHeader
+ *
+ * @apiHeader {String} Authorization `<token>`.
+ */
 
+  /**
+ * @apiDefine restaurateur
+ *
+ * Restaurateur (Role 200)
+ */
+
+  /**
+ * @apiDefine diner
+ *
+ * Diner (Role 100)
+ */
 const router = require('express').Router();
 const AuthRouter = require('./AuthRouter');
 const UserRouter = require('./UserRouter');
@@ -24,6 +33,6 @@ router.use(ItemRouter);
 router.use(OrderRouter);
 
 /* Direct root requests to documentation */
-router.use('/', (req, res, next) => res.redirect('/apidoc') );
+router.use('/', (req, res, next) => res.redirect('/docs') );
 
 module.exports = router;

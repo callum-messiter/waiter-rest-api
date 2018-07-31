@@ -16,7 +16,7 @@ module.exports.getUserByEmail = (email) => {
 	});
 }
 
-module.exports.getAllUsers = function() {
+module.exports.getAllUsers = () => {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT email FROM users';
 		db.query(query, (err, data) => {
@@ -26,7 +26,7 @@ module.exports.getAllUsers = function() {
 	});
 }
 
-module.exports.getUserById = function(userId) {
+module.exports.getUserById = (userId) => {
 	return new Promise((resolve, reject) => {
 		const query = 'SELECT * FROM users WHERE userId = ?';
 		db.query(query, userId, (err, data) => {
@@ -45,7 +45,7 @@ module.exports.checkPassword = (plainTextPassword, hash) => {
 	});
 }
 
-module.exports.hashPassword = function(password) {
+module.exports.hashPassword = (password) => {
 	return new Promise((resolve, reject) => {
 		bcrypt.genSalt(11, (err, salt) => {
 			if(err) return reject(err);
@@ -57,7 +57,7 @@ module.exports.hashPassword = function(password) {
 	});
 }
 
-module.exports.createNewUser = function(data) {
+module.exports.createNewUser = (data) => {
 	return new Promise((resolve, reject) => {
 		const userObj = {
 			userId: data.userId,
@@ -75,7 +75,7 @@ module.exports.createNewUser = function(data) {
 	});
 }
 
-module.exports.updateUserDetails = function(userId, userDetails) {
+module.exports.updateUserDetails = (userId, userDetails) => {
 	return new Promise((resolve, reject) => {
 		const query = 'UPDATE users SET ? ' +
 					  'WHERE userId = ?';

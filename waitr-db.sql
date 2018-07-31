@@ -329,11 +329,11 @@ CREATE TABLE `userroles` (
 --
 
 CREATE TABLE `users` (
-  `userId` varchar(11) NOT NULL,
-  `email` varchar(50) NOT NULL,
+  `userId` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
   `password` varchar(100) NOT NULL,
-  `firstName` varchar(30) NOT NULL,
-  `lastName` varchar(30) NOT NULL,
+  `firstName` varchar(100) NOT NULL,
+  `lastName` varchar(100) NOT NULL,
   `date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `verified` tinyint(4) NOT NULL DEFAULT '0',
   `active` tinyint(4) DEFAULT '1'

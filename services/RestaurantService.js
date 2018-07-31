@@ -385,6 +385,7 @@ const parseAndValidateRequestParams = (r) => {
 	return account;
 }
 
+/* 
 const setGeneralInfo = (details) => {
 	if (details.length < 1) return {};
 	for (const item of details) {
@@ -456,3 +457,4 @@ const setGeneralInfo = (details) => {
 	}
 	return {};
 }
+*/
